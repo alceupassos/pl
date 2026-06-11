@@ -30,6 +30,7 @@ import { CrmSection } from "@/components/sections/crm-section";
 import { AgendaSection } from "@/components/sections/agenda-section";
 import { DiarioSection } from "@/components/sections/diario-section";
 import { NocSection } from "@/components/sections/noc-section";
+import { PlenarioSection } from "@/components/sections/plenario-section";
 import { RaioxSection } from "@/components/sections/raiox-section";
 import { MetaSection } from "@/components/sections/meta-section";
 import { PesquisasSection } from "@/components/sections/pesquisas-section";
@@ -45,6 +46,7 @@ import { RegionFilter } from "@/components/sections/region-filter";
 import { TopTicker } from "@/components/top-ticker";
 import { ConfigPanel } from "@/components/sections/config-panel";
 import { LoginScreen } from "@/components/login-screen";
+import { calcularQuociente, projetarBancada } from "@/lib/quociente";
 import type { RegionId } from "@/lib/mock/types";
 
 // Seções renderizadas como componentes React (não HTML em string).
@@ -56,6 +58,7 @@ const REACT_SECTIONS = new Set([
   "eventos",
   "diario",
   "noc",
+  "plenario",
   "raiox",
   "meta",
   "pesquisas",
@@ -128,10 +131,15 @@ function syncCalculatorOutputs() {
       (document.getElementById("inp_margem") as HTMLInputElement | null)
         ?.value || 15,
     ) / 100;
-  const totalVotos = eleitores * comp;
-  const validos = totalVotos * (1 - invalidos);
-  const coef = Math.round(validos / vagas);
-  const meta = Math.round(coef * (1 + margem));
+  // Matemática extraída para lib/quociente.ts (compartilhada com a aba
+  // "2026" do /m); esta função segue sendo só a cola DOM da seção.
+  const { coeficiente: coef, metaVotos: meta } = calcularQuociente({
+    eleitores,
+    comparecimento: comp,
+    invalidos,
+    vagas,
+    margem,
+  });
 
   const resCoef = document.getElementById("res_coef");
   const resMeta = document.getElementById("res_meta");
@@ -150,7 +158,7 @@ function syncCalculatorOutputs() {
     (document.getElementById("inp_pl_cands") as HTMLInputElement | null)
       ?.value || 28,
   );
-  const vagasPl = Math.floor(plTotal / coef);
+  const vagasPl = projetarBancada({ votosLegenda: plTotal, quociente: coef }).base;
   const pct = ((renato / plTotal) * 100).toFixed(1);
   const pos = Math.ceil((plTotal / plCands / renato) * (plCands * 0.3));
 
@@ -588,6 +596,8 @@ export function CampaignCockpit() {
                 region={activeRegion}
                 onRegionChange={setActiveRegion}
               />
+            ) : activeSection === "plenario" ? (
+              <PlenarioSection />
             ) : activeSection === "raiox" ? (
               <RaioxSection region={activeRegion} />
             ) : activeSection === "meta" ? (

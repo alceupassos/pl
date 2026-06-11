@@ -4,6 +4,7 @@ export const navigationGroups = [
     items: [
       { id: "dashboard", icon: "layout-dashboard", label: "Dashboard" },
       { id: "noc", icon: "radar", label: "NOC ao Vivo" },
+      { id: "plenario", icon: "landmark", label: "Plenário" },
       { id: "pesquisas", icon: "chart-column", label: "Pesquisas" },
       { id: "raiox", icon: "scan-search", label: "Raio-X Regional" },
       { id: "meta", icon: "target", label: "Meta de Votos" },

@@ -2,6 +2,7 @@ import { Composition } from "remotion";
 
 import { WeeklyCampaignVideo } from "./WeeklyCampaignVideo";
 import { MotionReport } from "./MotionReport";
+import { MobileRecap } from "./MobileRecap";
 
 export function RemotionRoot() {
   return (
@@ -17,6 +18,22 @@ export function RemotionRoot() {
           candidate: "Renato Araujo",
           headline: "Resumo semanal da campanha",
           metric: "8.7%",
+        }}
+      />
+      <Composition
+        id="MobileRecap"
+        component={MobileRecap}
+        durationInFrames={300}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          variacaoIdx: "+4,2%",
+          idxFechamento: "147,8",
+          melhorPost: "Hoje a oposição mostrou que tem voz: pauta da segurança avançou.",
+          melhorPostMetrica: "96k views · acima da banda",
+          placarVotacoes: "3 vitórias × 1 derrota",
+          fidelidade: "95,4%",
         }}
       />
       <Composition

@@ -48,6 +48,10 @@ export const pageTitles = {
     "NOC ao Vivo",
     "War-room · Presidente · Senador · Dep. Federal · Dep. Estadual",
   ],
+  plenario: [
+    "Plenário ao Vivo",
+    "Liderança da oposição · votações nominais · fidelidade da bancada PL",
+  ],
   raiox: [
     "Raio-X Regional",
     "Prioridades da população × potencial de votos por região",

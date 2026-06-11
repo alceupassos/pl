@@ -73,6 +73,22 @@ export function verifyJwt(token: string) {
   }
 }
 
+/**
+ * Valida um token de sessão + regra de IP das credenciais provisórias.
+ * Único lugar com essa regra — usado por lib/api-auth (rotas API) e pelo
+ * gate server-side do /m (app/m/layout.tsx).
+ */
+export function verifySession(token: string | undefined, requestHeaders: Headers) {
+  if (!token) return null;
+  const payload = verifyJwt(token);
+  if (!payload) return null;
+  const requiresSameIp = payload.credentialType !== "main";
+  if (requiresSameIp && payload.ip !== getClientIp(requestHeaders)) {
+    return null;
+  }
+  return payload;
+}
+
 export function getClientIp(headers: Headers) {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {

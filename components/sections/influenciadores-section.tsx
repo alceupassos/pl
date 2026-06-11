@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { HoverPost, useHoverPost } from "@/components/hover-post";
+import watchlist from "@/data/watchlist.json";
 import {
   ATIVACAO,
   INFLUENCERS,
@@ -176,6 +177,33 @@ export function InfluenciadoresSection() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Ecossistema evangélico — espelho do equalizador da aba Rio do /m.
+          Fonte: data/watchlist.json (edição em runtime reflete no /m na hora;
+          aqui, no próximo build). */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-header">
+          <div className="card-title">Ecossistema Evangélico · RJ</div>
+          <span className="card-badge badge-real">
+            {watchlist.ecossistema_evangelico.length} entidades · base do candidato
+          </span>
+        </div>
+        <div className="detail-list">
+          {watchlist.ecossistema_evangelico.map((e) => (
+            <div className="detail-row" key={e.id}>
+              <span>
+                {e.nome}
+                <small style={{ color: "var(--texto-sec)", marginLeft: 6 }}>
+                  {e.tipo}
+                </small>
+              </span>
+              <span style={{ color: "var(--branco)", fontWeight: 700 }}>
+                {e.alcance.toLocaleString("pt-BR")}k alcance
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 

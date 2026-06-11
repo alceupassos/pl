@@ -7,6 +7,7 @@ import { EChart } from "@/components/echart";
 import { donutOption } from "@/components/echart-options";
 import {
   MATERIAS,
+  MUNICAO,
   getMateriaPost,
   sentimentoColor,
   type Materia,
@@ -171,6 +172,54 @@ export function MidiaSection() {
             <span className="card-badge badge-azul">distribuição</span>
           </div>
           <EChart option={donut} height={260} />
+        </div>
+      </div>
+
+      {/* Munição — espelho da coluna da aba Radar do /m */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-header">
+          <div className="card-title">
+            Munição — matérias negativas sobre o governo (24h)
+          </div>
+          <span className="card-badge badge-real">
+            ranqueado por alcance
+          </span>
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Matéria</th>
+                <th>Veículo</th>
+                <th>Alcance</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...MUNICAO]
+                .sort((a, b) => (b.alcance ?? 0) - (a.alcance ?? 0))
+                .map((m) => (
+                  <tr key={m.titulo}>
+                    <td>{m.titulo}</td>
+                    <td>{m.veiculo}</td>
+                    <td>{(m.alcance ?? 0).toLocaleString("pt-BR")}k</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn-top"
+                        onClick={() =>
+                          navigator.clipboard
+                            ?.writeText(`${m.titulo} — ${m.veiculo}`)
+                            .catch(() => undefined)
+                        }
+                      >
+                        copiar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "principal": {
+    "simbolo": "SOST",
+    "nome": "Sóstenes Cavalcante",
+    "partido": "PL",
+    "uf": "RJ",
+    "cor": "#16C784",
+    "handles": { "x": "sostenes", "instagram": "sostenescavalcante" }
+  },
+  "pesosIndice": {
+    "mencoes": 0.35,
+    "sentimento": 0.3,
+    "seguidores": 0.2,
+    "imprensa": 0.15
+  },
+  "concorrentes_rj": [
+    {
+      "simbolo": "JRDY",
+      "nome": "Carlos Jordy",
+      "partido": "PL",
+      "interno": true,
+      "votos2022": null,
+      "cor": "#3B82F6",
+      "handles": { "x": "carlosjordy", "instagram": "carlosjordy" }
+    },
+    {
+      "simbolo": "DWAG",
+      "nome": "Daniela do Waguinho",
+      "partido": "União",
+      "interno": false,
+      "votos2022": 213706,
+      "cor": "#A855F7",
+      "handles": { "instagram": "danieladowaguinho" }
+    },
+    {
+      "simbolo": "PZLO",
+      "nome": "General Pazuello",
+      "partido": "PL",
+      "interno": true,
+      "votos2022": 205324,
+      "cor": "#22D3EE",
+      "handles": { "instagram": "gen.pazuello" }
+    },
+    {
+      "simbolo": "TPET",
+      "nome": "Talíria Petrone",
+      "partido": "PSOL",
+      "interno": false,
+      "votos2022": 198548,
+      "cor": "#FB923C",
+      "handles": { "x": "taliriapetrone", "instagram": "taliriapetrone" }
+    },
+    {
+      "simbolo": "DLUZ",
+      "nome": "Doutor Luizinho",
+      "partido": "PP",
+      "interno": false,
+      "votos2022": 190071,
+      "cor": "#FACC15",
+      "handles": { "instagram": "doutorluizinho" }
+    }
+  ],
+  "atores_nacionais": [
+    { "id": "lula", "nome": "Lula", "partido": "PT" },
+    { "id": "flavio-bolsonaro", "nome": "Flávio Bolsonaro", "partido": "PL" },
+    { "id": "renan-santos", "nome": "Renan Santos", "partido": "Missão" },
+    { "id": "tarcisio", "nome": "Tarcísio de Freitas", "partido": "Republicanos" },
+    { "id": "hugo-motta", "nome": "Hugo Motta", "partido": "Republicanos" },
+    { "id": "lindbergh", "nome": "Lindbergh Farias", "partido": "PT" }
+  ],
+  "ecossistema_evangelico": [
+    { "id": "ad-vitoria-rj", "nome": "AD Vitória em Cristo", "tipo": "igreja", "alcance": 1200 },
+    { "id": "universal-rj", "nome": "Universal RJ", "tipo": "igreja", "alcance": 2400 },
+    { "id": "batista-rio", "nome": "Convenção Batista Carioca", "tipo": "igreja", "alcance": 640 },
+    { "id": "canal-gospel-rj", "nome": "Gospel Rio (YouTube)", "tipo": "canal", "alcance": 880 },
+    { "id": "radio-melodia", "nome": "Rádio Melodia", "tipo": "radio", "alcance": 1500 },
+    { "id": "influ-pastor-baixada", "nome": "Pr. influente da Baixada", "tipo": "influenciador", "alcance": 420 },
+    { "id": "louvor-niteroi", "nome": "Rede de Louvor Niterói/SG", "tipo": "rede", "alcance": 310 }
+  ],
+  "colunistas": [
+    { "nome": "Lauro Jardim", "veiculo": "O Globo" },
+    { "nome": "Bela Megale", "veiculo": "O Globo" },
+    { "nome": "Guilherme Amado", "veiculo": "Metrópoles" },
+    { "nome": "Igor Gadelha", "veiculo": "Metrópoles" },
+    { "nome": "Andréia Sadi", "veiculo": "g1" },
+    { "nome": "Camila Bomfim", "veiculo": "GloboNews" },
+    { "nome": "Paulo Cappelli", "veiculo": "Metrópoles" },
+    { "nome": "Malu Gaspar", "veiculo": "O Globo" }
+  ],
+  "veiculos": ["O Globo", "Extra", "O Dia", "g1 Rio", "Band Rio", "Record Rio", "Metrópoles", "Folha", "Estadão"],
+  "termos": ["Sóstenes", "Sóstenes Cavalcante", "PL RJ", "líder do PL", "oposição Câmara", "bancada evangélica"]
+}

@@ -11,6 +11,10 @@ export type Materia = {
   sentimento: Sentimento;
   link: string;
   trecho: string;
+  /** Sobre quem é a matéria: o candidato (default) ou o governo (munição). */
+  alvo?: "candidato" | "governo";
+  /** Alcance estimado do veículo, em milhares (usado no ranking de munição). */
+  alcance?: number;
 };
 
 export const MATERIAS: Materia[] = [
@@ -93,6 +97,61 @@ export const MATERIAS: Materia[] = [
     sentimento: "Neutro",
     link: "https://www.bnews.com.br/noticias/politica/aliados-de-bolsonaro-organizam-manifestacao-no-7-de-setembro-em-frente-casa-de-praia-do-ex-presidente.html",
     trecho: "Mobilização para o 7 de Setembro.",
+  },
+];
+
+// "Munição": matérias negativas sobre o GOVERNO nas últimas 24h (mock,
+// ranqueadas por alcance) — espelham a coluna Munição da aba Radar do /m.
+export const MUNICAO: Materia[] = [
+  {
+    data: "hoje",
+    titulo: "Governo corta verba de programa social e gera reação no Congresso",
+    veiculo: "O Globo",
+    sentimento: "Crítico",
+    link: "",
+    trecho: "Corte atinge programas com forte apelo popular no Sudeste.",
+    alvo: "governo",
+    alcance: 2100,
+  },
+  {
+    data: "hoje",
+    titulo: "Inflação de alimentos volta a subir e pressiona o Planalto",
+    veiculo: "Folha de S.Paulo",
+    sentimento: "Crítico",
+    link: "",
+    trecho: "Cesta básica acumula alta e corrói aprovação no eleitorado de baixa renda.",
+    alvo: "governo",
+    alcance: 1900,
+  },
+  {
+    data: "hoje",
+    titulo: "Obra federal prometida no RJ completa dois anos parada",
+    veiculo: "Extra",
+    sentimento: "Crítico",
+    link: "",
+    trecho: "Pauta direta para o palanque fluminense da oposição.",
+    alvo: "governo",
+    alcance: 1300,
+  },
+  {
+    data: "hoje",
+    titulo: "Ministério é alvo de operação por suspeita de desvio",
+    veiculo: "Metrópoles",
+    sentimento: "Crítico",
+    link: "",
+    trecho: "Operação atinge indicação política da base do governo.",
+    alvo: "governo",
+    alcance: 1100,
+  },
+  {
+    data: "hoje",
+    titulo: "Base do governo racha em votação-chave na Câmara",
+    veiculo: "Estadão",
+    sentimento: "Crítico",
+    link: "",
+    trecho: "Articulação falha e expõe fragilidade da coalizão.",
+    alvo: "governo",
+    alcance: 950,
   },
 ];
 

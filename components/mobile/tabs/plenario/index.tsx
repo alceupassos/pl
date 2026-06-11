@@ -1,0 +1,185 @@
+"use client";
+
+// Aba PLENÁRIO — a liderança da oposição em tempo real: placar de votação
+// nominal, fidelidade da bancada do PL, traições, cabo de guerra narrativo
+// e quem está falando pela oposição. Os blocos exportados são reusados na
+// seção espelho do desktop (components/sections/plenario-section.tsx).
+
+import { useMemo } from "react";
+
+import { EChart } from "@/components/echart";
+import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { mGaugeOption, racingBarOption } from "@/components/mobile/m-chart-options";
+import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { Odometer } from "@/components/mobile/ui/odometer";
+import type { PlenarioState } from "@/lib/live-schemas";
+
+export function PlacarVotacao({ plenario }: { plenario: PlenarioState }) {
+  const v = plenario.votacao;
+  if (!plenario.votacaoAtiva || !v) {
+    return (
+      <div className="m-card">
+        <div className="m-card-head">
+          <span className="m-card-title">Votação nominal</span>
+          <LiveBadge ch="plenario" cadenceMs={10000} />
+        </div>
+        <div className="m-ghost">plenário sem votação nominal em andamento</div>
+      </div>
+    );
+  }
+
+  const total = Math.max(1, v.sim + v.nao);
+  const pctSim = (v.sim / total) * 100;
+  const orientacaoSim = v.orientacaoPL === "Sim";
+
+  return (
+    <FlashCard watch={v.sim + v.nao}>
+      <div className="m-card-head">
+        <span className="m-card-title">
+          <span className="m-pill vermelho" style={{ marginRight: 6 }}>
+            EM VOTAÇÃO
+          </span>
+        </span>
+        <LiveBadge ch="plenario" cadenceMs={1000} />
+      </div>
+      <div className="m-feed-title" style={{ marginBottom: 10 }}>
+        {v.titulo}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span className="m-mono m-up-c" style={{ fontSize: 26, fontWeight: 800 }}>
+          SIM <Odometer value={v.sim} />
+        </span>
+        <span className="m-mono m-down-c" style={{ fontSize: 26, fontWeight: 800 }}>
+          <Odometer value={v.nao} /> NÃO
+        </span>
+      </div>
+      <div className="m-bar" style={{ height: 10, marginTop: 6 }}>
+        <span style={{ width: `${pctSim}%`, background: "var(--m-up)" }} />
+      </div>
+      <div className="m-feed-meta" style={{ justifyContent: "space-between" }}>
+        <span>
+          orientação PL: <b className={orientacaoSim ? "m-up-c" : "m-down-c"}>{v.orientacaoPL.toUpperCase()}</b>
+        </span>
+        <span>{v.outros} abst./obstr.</span>
+      </div>
+    </FlashCard>
+  );
+}
+
+export function FidelidadeBancada({ plenario }: { plenario: PlenarioState }) {
+  const f = plenario.fidelidade;
+  const cor = f.pct >= 95 ? "#16C784" : f.pct >= 88 ? "#F5A623" : "#EA3943";
+  const option = useMemo(
+    () => mGaugeOption({ pct: f.pct, cor, label: `${f.com} de ${f.total} com a orientação` }),
+    [f.pct, f.com, f.total, cor],
+  );
+  const traicoes = plenario.votacao?.traicoes ?? [];
+
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Fidelidade da bancada PL</span>
+        <LiveBadge ch="plenario" cadenceMs={10000} />
+      </div>
+      <EChart option={option} height={140} />
+      {traicoes.length ? (
+        <div role="alert">
+          {traicoes.map((t) => (
+            <div className="m-feed-item" key={t.deputado_.nome}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="m-pill amarelo">TRAIU A ORIENTAÇÃO</span>
+                <span className="m-feed-title">
+                  {t.deputado_.nome}{" "}
+                  <span className="m-muted-c">
+                    ({t.deputado_.siglaPartido}-{t.deputado_.siglaUf}) votou {t.tipoVoto}
+                  </span>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="m-feed-meta" style={{ justifyContent: "center" }}>
+          nenhuma traição de voto detectada
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CaboDeGuerra({ plenario }: { plenario: PlenarioState }) {
+  const c = plenario.caboDeGuerra;
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Cabo de guerra narrativo · hoje</span>
+        <span className="m-mono m-muted-c" style={{ fontSize: 10 }}>
+          share of voice
+        </span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 6 }}>
+        <span className="m-up-c" style={{ fontWeight: 700 }}>
+          OPOSIÇÃO · {c.temaOposicao}
+        </span>
+        <span className="m-down-c" style={{ fontWeight: 700, textAlign: "right" }}>
+          {c.temaGoverno} · GOVERNO
+        </span>
+      </div>
+      <div className="m-bar" style={{ height: 14, background: "var(--m-down)" }}>
+        <span style={{ width: `${c.shareOposicao}%`, background: "var(--m-up)", borderRadius: "3px 0 0 3px" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+        <span className="m-mono m-up-c" style={{ fontSize: 13, fontWeight: 800 }}>
+          <Odometer value={c.shareOposicao} decimals={1} suffix="%" />
+        </span>
+        <span className="m-mono m-down-c" style={{ fontSize: 13, fontWeight: 800 }}>
+          <Odometer value={100 - c.shareOposicao} decimals={1} suffix="%" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function RacingVoz({ plenario }: { plenario: PlenarioState }) {
+  const option = useMemo(
+    () =>
+      racingBarOption({
+        items: plenario.vozes.map((v, i) => ({
+          nome: `${v.nome} (${v.partido})`,
+          valor: v.mencoes,
+          cor: i === 0 ? "#16C784" : "#3b82f6",
+        })),
+      }),
+    [plenario.vozes],
+  );
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Quem fala pela oposição · 6h</span>
+        <LiveBadge ch="plenario" cadenceMs={10000} />
+      </div>
+      <div data-no-swipe>
+        <EChart option={option} height={170} />
+      </div>
+    </div>
+  );
+}
+
+export default function PlenarioTab() {
+  const plenario = useLiveChannel<PlenarioState>("plenario").data;
+
+  if (!plenario) {
+    return <div className="m-ghost">sincronizando com o plenário…</div>;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <PlacarVotacao plenario={plenario} />
+      <FidelidadeBancada plenario={plenario} />
+      <CaboDeGuerra plenario={plenario} />
+      <RacingVoz plenario={plenario} />
+    </div>
+  );
+}

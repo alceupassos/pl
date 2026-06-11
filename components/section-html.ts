@@ -3,6 +3,7 @@
 // migradas caem no HTML estático existente em campaign-data.ts.
 
 import { campaignSections } from "@/components/campaign-data";
+import watchlist from "@/data/watchlist.json";
 import type { Kpi, RegionId } from "@/lib/mock/types";
 import { REGIONS, getRegion, regionEleitorado } from "@/lib/mock/rj-regions";
 import * as M from "@/lib/mock/campaign-metrics";
@@ -268,6 +269,21 @@ function concorrentes(region: RegionId): string {
       delta: "+3 p.p.",
     },
   ];
+  // Watchlist do /m (data/watchlist.json) — os 5 concorrentes nomeados com
+  // símbolo, cor fixa e voto 2022, espelhando a fita do Cockpit do Candidato.
+  const watchlistHtml = `<div class="card" style="margin-top:12px;">
+    <div class="card-header"><div class="card-title">Watchlist do candidato — fita de concorrentes (/m)</div><span class="card-badge badge-real">cotações ao vivo no celular</span></div>
+    <div class="conc-list">${watchlist.concorrentes_rj
+      .map(
+        (c) => `<div class="conc-row">
+        <span class="conc-pos" style="color:${c.cor};font-family:var(--font-mono),monospace;">${c.simbolo}</span>
+        <span class="conc-photo-wrap" style="display:flex;align-items:center;justify-content:center;background:${c.cor}22;border-color:${c.cor}66;color:${c.cor};font-weight:800;font-size:11px;">${c.simbolo.slice(0, 2)}</span>
+        <span class="conc-name">${c.nome}<small>${c.partido}-RJ · ${c.interno ? "interno PL (coopetição na lista)" : "externo"}</small></span>
+        <span class="conc-int">${c.votos2022 ? `${c.votos2022.toLocaleString("pt-BR")}<br/><small style="color:var(--texto-sec);font-size:9px;">votos 2022</small>` : "—"}</span>
+      </div>`,
+      )
+      .join("")}</div>
+  </div>`;
   return `<div id="sec-concorrentes" class="section active">
     ${regionBanner(region)}
     ${kpiRow(kpis)}
@@ -278,6 +294,7 @@ function concorrentes(region: RegionId): string {
       </div>
       ${chartCard("Disputa por Município", "nós × Chico", "cConcor", 240)}
     </div>
+    ${watchlistHtml}
   </div>`;
 }
 
