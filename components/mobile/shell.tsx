@@ -122,8 +122,9 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       <header className="m-header">
         <div className="m-header-brand">
           COCKPIT <span style={{ color: "var(--m-up)" }}>SOST</span>
-          {/* carimbo de versão visível — diagnóstico de cache no aparelho */}
-          <small>O CANDIDATO · 2026 · v4</small>
+          {/* carimbo de versão visível — diagnóstico de cache no aparelho.
+              O minor sobe sozinho a cada build (ver next.config.ts). */}
+          <small>O CANDIDATO · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}</small>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LiveBadge ch="idx.sost" cadenceMs={2000} showLabel />
