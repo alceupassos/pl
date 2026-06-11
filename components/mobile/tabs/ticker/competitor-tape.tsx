@@ -18,6 +18,7 @@ import {
 import { BottomSheet } from "@/components/mobile/ui/bottom-sheet";
 import { useFlash } from "@/components/mobile/ui/flash-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import type { IdxSnapshot, QuoteRj, QuotesRjSnapshot } from "@/lib/live-schemas";
 import type { Concorrente, Watchlist } from "@/lib/watchlist";
@@ -45,8 +46,11 @@ function CompetitorCard({ meta, quote }: { meta: Concorrente; quote: QuoteRj }) 
   return (
     <article className={`m-quote-card ${flash ? `m-flash-${flash}` : ""}`.trim()}>
       <div className="m-quote-head">
-        <span className="m-quote-sym" style={{ color: meta.cor }}>
-          {meta.simbolo}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <MAvatar src={meta.foto} nome={meta.nome} cor={meta.cor} size={26} />
+          <span className="m-quote-sym" style={{ color: meta.cor }}>
+            {meta.simbolo}
+          </span>
         </span>
         <span className={`m-pill ${meta.interno ? "interno" : "externo"}`}>
           {meta.interno ? "interno PL" : "externo"}
