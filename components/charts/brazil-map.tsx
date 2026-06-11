@@ -87,13 +87,11 @@ export function BrazilMap({
       mount(echarts);
     })();
 
-    const onWin = () => chartRef.current?.resize();
-    window.addEventListener("resize", onWin);
-
+    // Sem window.resize: o ResizeObserver acima já cobre mudanças reais do
+    // container, e a barra de URL do mobile dispara resize em rajada no scroll.
     return () => {
       disposed = true;
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onWin);
       ro?.disconnect();
       chartRef.current?.dispose();
       chartRef.current = null;

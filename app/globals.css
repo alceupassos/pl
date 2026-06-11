@@ -3859,7 +3859,9 @@ body.cfg-contrast { --texto-sec: #aab; }
   #app, #app.logado {
     display: block !important;
     height: auto !important;
-    min-height: 100dvh;
+    /* svh (estável), não dvh: dvh é re-resolvido a cada frame enquanto a barra
+       de URL anima no scroll, forçando relayout do documento inteiro. */
+    min-height: 100svh;
   }
   #main {
     display: block !important;
@@ -3874,10 +3876,11 @@ body.cfg-contrast { --texto-sec: #aab; }
     -webkit-overflow-scrolling: touch;
     padding-bottom: 88px !important; /* espaço para a bottom-nav */
   }
-  /* topbar gruda no topo enquanto rola */
+  /* topbar gruda no topo enquanto rola — sem backdrop-filter: o fundo
+     (--cinza-painel) é opaco, então o blur era custo de repaint por frame
+     de scroll sem nenhum efeito visível. */
   #topbar, .topbar {
     position: sticky; top: 0; z-index: 40;
-    backdrop-filter: blur(8px);
   }
   /* trava o fundo só quando o drawer está aberto */
   #app.sidebar-open { overflow: hidden; }
@@ -3891,8 +3894,9 @@ body.cfg-contrast { --texto-sec: #aab; }
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     gap: 4px;
-    background: linear-gradient(180deg, rgba(14,15,20,0.86), rgba(8,9,13,0.98));
-    backdrop-filter: blur(14px);
+    /* Fundo quase opaco em vez de backdrop-filter: o blur sobre conteúdo
+       rolando força re-blur a cada frame e derruba o scroll em celulares. */
+    background: linear-gradient(180deg, rgba(14,15,20,0.97), rgba(8,9,13,1));
     border-top: 1px solid rgba(255,255,255,0.08);
     box-shadow: 0 -10px 30px -12px rgba(0,0,0,0.7);
   }

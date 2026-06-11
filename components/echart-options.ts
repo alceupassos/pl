@@ -14,14 +14,22 @@ const axisCommon = {
   splitLine: { lineStyle: { color: GRID } },
 };
 
+// Ponteiro grosso = touch. Avaliado no load do módulo (só roda no cliente
+// quando consumido pelo EChart; no SSR o resultado não é usado pelo canvas).
+const COARSE_POINTER =
+  typeof window !== "undefined" &&
+  window.matchMedia("(pointer: coarse)").matches;
+
 // Transições suaves quando os dados mudam (monitor vivo).
 // Respeita prefers-reduced-motion — animações de canvas não são cobertas por CSS.
+// No touch a atualização é seca (0ms): 700ms de redraw animado em vários
+// canvas a cada tick disputa o main thread com o scroll do celular.
 function liveUpdate() {
   const reduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   return {
-    animationDurationUpdate: reduced ? 0 : 700,
+    animationDurationUpdate: reduced || COARSE_POINTER ? 0 : 700,
     animationEasingUpdate: "cubicOut",
   };
 }
@@ -32,6 +40,9 @@ const tooltipDark = {
   textStyle: { color: "#e6e6f0", fontSize: 12 },
   // Mantém o tooltip dentro do canvas (evita corte com overflow-x hidden no mobile).
   confine: true,
+  // No touch, tooltip só no toque: seguir o dedo (mousemove emulado pelo
+  // zrender) redesenha o canvas a cada touchmove durante o gesto de scroll.
+  ...(COARSE_POINTER ? { triggerOn: "click" as const } : {}),
 };
 
 const legendDark = {

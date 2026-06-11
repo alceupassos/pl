@@ -67,6 +67,10 @@ export function EChart({
       inst.on("click", (p) => {
         if (p?.name) latest.current.onSelect?.(p.name);
       });
+      // O ResizeObserver cobre toda mudança real de tamanho do container
+      // (rotação, resize de janela, breakpoints). Não escutamos window.resize:
+      // no mobile ele dispara em rajada quando a barra de URL retrai durante o
+      // scroll — sem o container mudar — e cada resize() é um redraw síncrono.
       ro = new ResizeObserver(() => chartRef.current?.resize());
       ro.observe(el);
     };
@@ -86,13 +90,9 @@ export function EChart({
       mount(echarts);
     })();
 
-    const onWin = () => chartRef.current?.resize();
-    window.addEventListener("resize", onWin);
-
     return () => {
       disposed = true;
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onWin);
       ro?.disconnect();
       chartRef.current?.dispose();
       chartRef.current = null;
