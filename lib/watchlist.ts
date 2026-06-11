@@ -16,6 +16,7 @@ export const PrincipalSchema = z.object({
   partido: z.string(),
   uf: z.string(),
   cor: z.string(),
+  foto: z.string().optional(),
   handles: HandlesSchema.optional(),
 });
 
@@ -26,6 +27,7 @@ export const ConcorrenteSchema = z.object({
   interno: z.boolean(),
   votos2022: z.number().nullable(),
   cor: z.string(),
+  foto: z.string().optional(),
   handles: HandlesSchema.optional(),
 });
 
@@ -33,6 +35,7 @@ export const AtorNacionalSchema = z.object({
   id: z.string(),
   nome: z.string(),
   partido: z.string().optional(),
+  foto: z.string().optional(),
 });
 
 export const EntidadeEvangelicaSchema = z.object({

@@ -15,11 +15,16 @@ import Link from "next/link";
 import {
   Activity,
   CalendarDays,
+  ClipboardList,
+  Crosshair,
   Landmark,
   Map as MapIcon,
+  MessagesSquare,
   Radar,
   RadioTower,
   Settings2,
+  Users,
+  Wallet,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -36,6 +41,11 @@ const RioTab = dynamic(() => import("@/components/mobile/tabs/rio"), { ssr: fals
 const RadarTab = dynamic(() => import("@/components/mobile/tabs/radar"), { ssr: false, loading: ghost });
 const RedesTab = dynamic(() => import("@/components/mobile/tabs/redes"), { ssr: false, loading: ghost });
 const C2026Tab = dynamic(() => import("@/components/mobile/tabs/c2026"), { ssr: false, loading: ghost });
+const EquipeTab = dynamic(() => import("@/components/mobile/tabs/equipe"), { ssr: false, loading: ghost });
+const OportunidadesTab = dynamic(() => import("@/components/mobile/tabs/oportunidades"), { ssr: false, loading: ghost });
+const PesquisasTab = dynamic(() => import("@/components/mobile/tabs/pesquisas"), { ssr: false, loading: ghost });
+const GastosTab = dynamic(() => import("@/components/mobile/tabs/gastos"), { ssr: false, loading: ghost });
+const VozTab = dynamic(() => import("@/components/mobile/tabs/voz"), { ssr: false, loading: ghost });
 
 const TABS: { id: TabId; label: string; Icon: typeof Activity; Component: React.ComponentType }[] = [
   { id: "ticker", label: "Ticker", Icon: Activity, Component: TickerTab },
@@ -43,7 +53,12 @@ const TABS: { id: TabId; label: string; Icon: typeof Activity; Component: React.
   { id: "rio", label: "Rio", Icon: MapIcon, Component: RioTab },
   { id: "radar", label: "Radar", Icon: Radar, Component: RadarTab },
   { id: "redes", label: "Redes", Icon: RadioTower, Component: RedesTab },
+  { id: "equipe", label: "Equipe", Icon: Users, Component: EquipeTab },
+  { id: "oportunidades", label: "Oportun.", Icon: Crosshair, Component: OportunidadesTab },
+  { id: "pesquisas", label: "Pesquisas", Icon: ClipboardList, Component: PesquisasTab },
+  { id: "gastos", label: "Gastos", Icon: Wallet, Component: GastosTab },
   { id: "c2026", label: "2026", Icon: CalendarDays, Component: C2026Tab },
+  { id: "voz", label: "Voz", Icon: MessagesSquare, Component: VozTab },
 ];
 
 export function MobileShell({ initialTab }: { initialTab: TabId }) {
@@ -51,6 +66,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
   const [index, setIndex] = useState(initialIndex);
   const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([initialIndex]));
   const viewportRef = useRef<HTMLDivElement>(null);
+  const tabbarRef = useRef<HTMLElement>(null);
   const rafRef = useRef(0);
 
   const plenario = useLiveChannel<PlenarioState>("plenario").data;
@@ -66,6 +82,10 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
 
   useEffect(() => {
     window.history.replaceState(null, "", `/m/${TABS[index].id}${window.location.search}`);
+    // centraliza a aba ativa na tab bar rolável
+    tabbarRef.current
+      ?.querySelectorAll<HTMLButtonElement>(".m-tab")
+      [index]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [index]);
 
   const setActive = useCallback((i: number) => {
@@ -132,7 +152,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
         </div>
       </div>
 
-      <nav className="m-tabbar" aria-label="Abas do cockpit">
+      <nav className="m-tabbar" aria-label="Abas do cockpit" ref={tabbarRef}>
         {TABS.map((tab, i) => (
           <button
             key={tab.id}

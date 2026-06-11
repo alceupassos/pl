@@ -5,6 +5,9 @@
 // Server-only (lê a watchlist do disco via lib/watchlist).
 
 import { getRaceTimeline } from "@/lib/mock/races";
+// Builders v2 (equipe/oportunidades/pesquisas/gastos/voz + redes ampliado).
+// Import dinâmico-circular seguro: só usamos as funções em tempo de chamada.
+import * as v2 from "@/lib/live-mock-v2";
 import { REGIONS } from "@/lib/mock/rj-regions";
 import { calcularQuociente, projetarBancada } from "@/lib/quociente";
 import type { Watchlist } from "@/lib/watchlist";
@@ -781,6 +784,11 @@ export const CHANNEL_CADENCE_MS: Record<Exclude<Channel, "watchlist">, number> =
   radar: 10_000,
   redes: 3000,
   c2026: 30_000,
+  equipe: 2000,
+  oportunidades: 30_000,
+  pesquisas: 5000,
+  gastos: 15_000,
+  voz: 2500,
 };
 
 export function buildAllSnapshots(w: Watchlist, now: number, opts: MockOptions = {}): Envelope[] {
@@ -797,8 +805,13 @@ export function buildAllSnapshots(w: Watchlist, now: number, opts: MockOptions =
     env("plenario", snapshotPlenario(now, opts)),
     env("rio.pulsos", snapshotRio(w, now)),
     env("radar", snapshotRadar(w, now)),
-    env("redes", snapshotRedes(w, now)),
+    env("redes", v2.snapshotRedesV2(w, now)),
     env("c2026", snapshotC2026(now)),
+    env("equipe", v2.snapshotEquipe(now)),
+    env("oportunidades", v2.snapshotOportunidades(w, now)),
+    env("pesquisas", v2.snapshotPesquisas(now)),
+    env("gastos", v2.snapshotGastos(now)),
+    env("voz", v2.snapshotVoz(now)),
   ];
 }
 
@@ -822,9 +835,19 @@ export function buildDelta(ch: Exclude<Channel, "watchlist" | "alerts">, w: Watc
     case "radar":
       return snapshotRadar(w, now);
     case "redes":
-      return snapshotRedes(w, now);
+      return v2.deltaRedesV2(w, now);
     case "c2026":
       return snapshotC2026(now);
+    case "equipe":
+      return v2.deltaEquipe(now);
+    case "oportunidades":
+      return v2.snapshotOportunidades(w, now);
+    case "pesquisas":
+      return v2.deltaPesquisas(now);
+    case "gastos":
+      return v2.snapshotGastos(now);
+    case "voz":
+      return v2.deltaVoz(now);
   }
 }
 

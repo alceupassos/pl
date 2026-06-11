@@ -1,57 +1,326 @@
 "use client";
 
-// Aba REDES — engajamento próprio: contadores por plataforma, monitor do
-// último post (curva 1ª hora vs banda dos últimos 30 posts), racing semanal
-// e detector de crise (z-score).
+// Aba REDES — A VITRINE do cockpit: cada rede social como um ativo, com
+// histórico, arena comparativa com as cabeças dos candidatos, melhor horário
+// e share-of-voice dos veículos. TODO card tem número-destaque, legenda e
+// linha de leitura ("o que isso diz").
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import { racingBarOption } from "@/components/mobile/m-chart-options";
+import {
+  areaStackOption,
+  avatarRacingOption,
+  donutOption,
+  groupedBarsOption,
+  heatmapHorasOption,
+} from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
+import { MOraculo } from "@/components/mobile/ui/m-oraculo";
 import { Odometer } from "@/components/mobile/ui/odometer";
-import type { RedesState } from "@/lib/live-schemas";
+import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
+import { StatPill } from "@/components/mobile/ui/stat-pill";
+import type { RedeHist, RedeId, RedesV2Snapshot } from "@/lib/live-schemas";
 
-const REDE_LABEL: Record<string, string> = {
-  instagram: "Instagram",
-  x: "X",
-  youtube: "YouTube",
-  facebook: "Facebook",
-  tiktok: "TikTok",
+const REDE_META: Record<RedeId, { nome: string; cor: string; sigla: string }> = {
+  instagram: { nome: "Instagram", cor: "#E1306C", sigla: "IG" },
+  facebook: { nome: "Facebook", cor: "#1877F2", sigla: "FB" },
+  x: { nome: "X (Twitter)", cor: "#d6dbe2", sigla: "X" },
+  youtube: { nome: "YouTube", cor: "#FF4444", sigla: "YT" },
+  tiktok: { nome: "TikTok", cor: "#69C9D0", sigla: "TT" },
 };
 
-function Plataformas({ redes }: { redes: RedesState }) {
+const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const HORAS = ["8h", "10h", "12h", "14h", "17h", "19h", "20h", "21h"];
+
+function fmtK(v: number): string {
+  return v >= 1000 ? `${(v / 1000).toFixed(v >= 100_000 ? 0 : 1)}k` : String(Math.round(v));
+}
+
+/* ① HERO POR REDE — cada rede como um ativo, com 30 dias de filme */
+function RedeHeroCard({ rede }: { rede: RedeHist }) {
+  const meta = REDE_META[rede.rede];
+  const ganho30d = rede.seguidoresAgora - (rede.seguidores30d[0]?.v ?? rede.seguidoresAgora);
+  const pct30d = ((ganho30d / Math.max(1, rede.seguidores30d[0]?.v ?? 1)) * 100).toFixed(1);
+  const engDir =
+    rede.engajamentoAgora >= (rede.engajamento30d[0]?.v ?? 0) ? "subindo" : "caindo";
+
+  const option = useMemo(
+    () =>
+      areaStackOption({
+        labels: rede.seguidores30d.map((p) => {
+          const d = new Date(p.t);
+          return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+        }),
+        series: [
+          { nome: "Seguidores", cor: meta.cor, data: rede.seguidores30d.map((p) => p.v), area: true },
+        ],
+        series2: {
+          nome: "Engajamento %",
+          cor: "#F5A623",
+          data: rede.engajamento30d.map((p) => p.v),
+        },
+      }),
+    [rede, meta.cor],
+  );
+
+  return (
+    <article className="m-quote-card" style={{ flexBasis: 300, borderTop: `2px solid ${meta.cor}` }}>
+      <div className="m-quote-head">
+        <span className="m-quote-sym" style={{ color: meta.cor }}>
+          {meta.sigla} · {meta.nome}
+        </span>
+        <span className={`m-pill ${ganho30d >= 0 ? "up" : "down"}`}>
+          {ganho30d >= 0 ? "▲" : "▼"} {pct30d}% / 30d
+        </span>
+      </div>
+      <div style={{ display: "flex", gap: 14, alignItems: "baseline", margin: "6px 0" }}>
+        <span className="m-quote-val" style={{ fontSize: 21 }}>
+          <Odometer value={rede.seguidoresAgora} />
+        </span>
+        <span className="m-mono m-muted-c" style={{ fontSize: 10.5 }}>
+          seguidores
+        </span>
+        <span className="m-mono m-warn-c" style={{ fontSize: 12, fontWeight: 700 }}>
+          eng <Odometer value={rede.engajamentoAgora} decimals={1} suffix="%" />
+        </span>
+      </div>
+      <LazyChart option={option} height={120} />
+      <SectionLeitura>
+        {meta.nome} {ganho30d >= 0 ? "ganhou" : "perdeu"} {fmtK(Math.abs(ganho30d))} seguidores
+        em 30 dias; engajamento {engDir} (linha amarela).
+      </SectionLeitura>
+    </article>
+  );
+}
+
+function RedesHero({ redes }: { redes: RedesV2Snapshot }) {
+  const lider = [...redes.porRede].sort(
+    (a, b) =>
+      b.seguidoresAgora / Math.max(1, b.seguidores30d[0]?.v ?? 1) -
+      a.seguidoresAgora / Math.max(1, a.seguidores30d[0]?.v ?? 1),
+  )[0];
   return (
     <div className="m-card">
       <div className="m-card-head">
-        <span className="m-card-title">Seguidores · hoje</span>
+        <span className="m-card-title">Suas redes · filme de 30 dias</span>
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div className="m-carousel" data-no-swipe>
-        {redes.plataformas.map((p) => (
-          <article className="m-quote-card" style={{ flexBasis: 168 }} key={p.rede}>
-            <div className="m-quote-nome">{REDE_LABEL[p.rede] ?? p.rede}</div>
-            <div className="m-quote-val">
-              <Odometer value={p.seguidores} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-              <span className={`m-mono ${p.deltaDia >= 0 ? "m-up-c" : "m-down-c"}`} style={{ fontSize: 11, fontWeight: 700 }}>
-                {p.deltaDia >= 0 ? "▲" : "▼"} <Odometer value={p.deltaDia} signed /> hoje
-              </span>
-              <span className="m-mono m-muted-c" style={{ fontSize: 10.5 }}>
-                eng <Odometer value={p.engajamento} decimals={1} suffix="%" />
-              </span>
-            </div>
-          </article>
+        {redes.porRede.map((r) => (
+          <RedeHeroCard key={r.rede} rede={r} />
         ))}
       </div>
+      <SectionLeitura>
+        Arraste para o lado: cada card é uma rede. A que mais cresce agora é{" "}
+        {REDE_META[lider.rede].nome}.
+      </SectionLeitura>
     </div>
   );
 }
 
-function MonitorUltimoPost({ redes }: { redes: RedesState }) {
+/* ② ARENA POR REDE — SOST × 5 concorrentes, com as cabeças no gráfico */
+const METRICAS = [
+  { id: "seguidores", label: "Seguidores", suffix: "" },
+  { id: "engajamento", label: "Engajamento", suffix: "%" },
+  { id: "crescimento7d", label: "Crescimento 7d", suffix: "%" },
+] as const;
+
+function Arena({ redes }: { redes: RedesV2Snapshot }) {
+  const [redeSel, setRedeSel] = useState<RedeId>("instagram");
+  const [metrica, setMetrica] = useState<(typeof METRICAS)[number]["id"]>("seguidores");
+
+  const dados = redes.porRede.find((r) => r.rede === redeSel);
+  const option = useMemo(() => {
+    if (!dados) return null;
+    const m = METRICAS.find((x) => x.id === metrica)!;
+    return avatarRacingOption({
+      items: dados.concorrentes.map((c) => ({
+        nome: c.nome.split(" ").slice(0, 2).join(" "),
+        valor: metrica === "seguidores" ? c.seguidores : c[metrica],
+        cor: c.cor,
+        img: avatarForChart(c.foto, c.nome, c.cor),
+      })),
+      suffix: m.suffix,
+    });
+  }, [dados, metrica]);
+
+  if (!dados || !option) return null;
+  const ordenado = [...dados.concorrentes].sort((a, b) =>
+    metrica === "seguidores" ? b.seguidores - a.seguidores : b[metrica] - a[metrica],
+  );
+  const posSost = ordenado.findIndex((c) => c.simbolo === "SOST") + 1;
+  const gap = ordenado[0]?.simbolo === "SOST"
+    ? "na liderança"
+    : `gap de ${metrica === "seguidores" ? fmtK(ordenado[0].seguidores - (ordenado.find((c) => c.simbolo === "SOST")?.seguidores ?? 0)) : `${(ordenado[0][metrica] - (ordenado.find((c) => c.simbolo === "SOST")?.[metrica] ?? 0)).toFixed(1)}${METRICAS.find((x) => x.id === metrica)!.suffix}`} para o líder`;
+
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Arena · você × concorrentes por rede</span>
+        <LiveBadge ch="redes" cadenceMs={3000} />
+      </div>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+        {redes.porRede.map((r) => (
+          <button
+            key={r.rede}
+            type="button"
+            className={`m-pill ${redeSel === r.rede ? "up" : ""}`.trim()}
+            onClick={() => setRedeSel(r.rede)}
+            aria-pressed={redeSel === r.rede}
+            style={redeSel === r.rede ? { color: REDE_META[r.rede].cor, borderColor: REDE_META[r.rede].cor } : undefined}
+          >
+            {REDE_META[r.rede].sigla}
+          </button>
+        ))}
+        <span style={{ flex: 1 }} />
+        {METRICAS.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            className={`m-pill ${metrica === m.id ? "amarelo" : ""}`.trim()}
+            onClick={() => setMetrica(m.id)}
+            aria-pressed={metrica === m.id}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <div data-no-swipe>
+        <EChart option={option} height={200} />
+      </div>
+      <SectionLeitura>
+        No {REDE_META[redeSel].nome}, você é o {posSost}º em{" "}
+        {METRICAS.find((x) => x.id === metrica)!.label.toLowerCase()} — {gap}.
+      </SectionLeitura>
+    </div>
+  );
+}
+
+/* ③ QUEM CRESCE MAIS — 7 dias, todos × todas as redes */
+function QuemCresce({ redes }: { redes: RedesV2Snapshot }) {
+  const candidatos = redes.porRede[0]?.concorrentes ?? [];
+  const option = useMemo(
+    () =>
+      groupedBarsOption({
+        labels: redes.porRede.map((r) => REDE_META[r.rede].sigla),
+        series: candidatos.map((c) => ({
+          nome: c.nome.split(" ")[0],
+          cor: c.cor,
+          data: redes.porRede.map(
+            (r) => r.concorrentes.find((x) => x.simbolo === c.simbolo)?.crescimento7d ?? 0,
+          ),
+        })),
+        suffix: "%",
+      }),
+    [redes.porRede, candidatos],
+  );
+
+  let melhor = { nome: "", rede: "", valor: -Infinity };
+  for (const r of redes.porRede) {
+    for (const c of r.concorrentes) {
+      if (c.crescimento7d > melhor.valor) {
+        melhor = { nome: c.nome, rede: REDE_META[r.rede].nome, valor: c.crescimento7d };
+      }
+    }
+  }
+
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Quem cresce mais · 7 dias</span>
+        <LiveBadge ch="redes" cadenceMs={3000} />
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+        {candidatos.map((c) => (
+          <span key={c.simbolo} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--m-muted)" }}>
+            <MAvatar src={c.foto} nome={c.nome} cor={c.cor} size={18} /> {c.nome.split(" ")[0]}
+          </span>
+        ))}
+      </div>
+      <LazyChart option={option} height={190} />
+      <SectionLeitura>
+        Barras acima de zero = ganhando seguidores. {melhor.nome} é quem mais cresce na semana
+        ({melhor.valor.toFixed(1)}% no {melhor.rede}).
+      </SectionLeitura>
+    </div>
+  );
+}
+
+/* ⑤ MELHOR HORÁRIO PARA POSTAR */
+function MelhorHorario({ redes }: { redes: RedesV2Snapshot }) {
+  const option = useMemo(
+    () => heatmapHorasOption({ dias: DIAS, horas: HORAS, values: redes.heatmapPostagem }),
+    [redes.heatmapPostagem],
+  );
+  const top = [...redes.heatmapPostagem].sort((a, b) => b[2] - a[2])[0];
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Melhor horário para postar</span>
+        <span className="m-pill">alcance por dia × hora</span>
+      </div>
+      <LazyChart option={option} height={180} />
+      <SectionLeitura>
+        Quanto mais verde, mais alcance. Pico: {DIAS[top?.[0] ?? 0]} às {HORAS[top?.[1] ?? 0]} —
+        agende os posts importantes aí.
+      </SectionLeitura>
+    </div>
+  );
+}
+
+/* ⑥ VEÍCULOS — share of voice da imprensa */
+function Veiculos({ redes }: { redes: RedesV2Snapshot }) {
+  const top6 = redes.veiculos.slice(0, 6);
+  const option = useMemo(
+    () =>
+      donutOption({
+        items: top6.map((v) => ({
+          nome: v.veiculo,
+          valor: v.share,
+          cor: v.tom > 0.15 ? "#16C784" : v.tom < -0.15 ? "#EA3943" : "#8a93a8",
+        })),
+        centro: { valor: `${Math.round(top6[0]?.share ?? 0)}%`, label: top6[0]?.veiculo ?? "" },
+      }),
+    [top6],
+  );
+  const lider = top6[0];
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Imprensa · quem fala de você</span>
+        <LiveBadge ch="redes" cadenceMs={3000} />
+      </div>
+      <LazyChart option={option} height={170} />
+      <div>
+        {top6.map((v) => (
+          <div className="m-row" key={v.veiculo}>
+            <span style={{ fontSize: 12 }}>{v.veiculo}</span>
+            <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span className="m-mono m-muted-c" style={{ fontSize: 11 }}>
+                {v.share.toFixed(1)}%
+              </span>
+              <span className={`m-pill ${v.tom > 0.15 ? "up" : v.tom < -0.15 ? "down" : ""}`.trim()}>
+                {v.tom > 0.15 ? "favorável" : v.tom < -0.15 ? "crítico" : "neutro"}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <SectionLeitura>
+        Fatia = quanto cada veículo fala de você; cor = tom. {lider?.veiculo} concentra a
+        cobertura{lider && lider.tom < -0.15 ? " com tom crítico — prioridade de assessoria." : "."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+/* ④ monitor do último post (v1, com leitura) */
+function MonitorUltimoPost({ redes }: { redes: RedesV2Snapshot }) {
   const post = redes.ultimoPost;
   const option = useMemo(() => {
     const minutos = post.bandaP25.map((_, i) => `${i}m`);
@@ -81,95 +350,81 @@ function MonitorUltimoPost({ redes }: { redes: RedesState }) {
         splitLine: { lineStyle: { color: "rgba(255,255,255,0.05)" } },
       },
       series: [
-        {
-          name: "banda p25",
-          type: "line" as const,
-          data: post.bandaP25,
-          stack: "banda",
-          showSymbol: false,
-          lineStyle: { opacity: 0 },
-          silent: true,
-          tooltip: { show: false },
-        },
-        {
-          name: "banda média 30 posts",
-          type: "line" as const,
-          data: post.bandaP75.map((v, i) => v - post.bandaP25[i]),
-          stack: "banda",
-          showSymbol: false,
-          lineStyle: { opacity: 0 },
-          areaStyle: { color: "#8a93a8", opacity: 0.14 },
-          silent: true,
-          tooltip: { show: false },
-        },
-        {
-          name: "este post",
-          type: "line" as const,
-          data: post.curva1h.map((p) => p.v),
-          showSymbol: false,
-          lineStyle: { width: 2.2, color: post.selo === "sono" ? "#EA3943" : "#16C784" },
-          itemStyle: { color: "#16C784" },
-        },
+        { name: "banda p25", type: "line" as const, data: post.bandaP25, stack: "banda", showSymbol: false, lineStyle: { opacity: 0 }, silent: true, tooltip: { show: false } },
+        { name: "banda média 30 posts", type: "line" as const, data: post.bandaP75.map((v, i) => v - post.bandaP25[i]), stack: "banda", showSymbol: false, lineStyle: { opacity: 0 }, areaStyle: { color: "#8a93a8", opacity: 0.14 }, silent: true, tooltip: { show: false } },
+        { name: "este post", type: "line" as const, data: post.curva1h.map((p) => p.v), showSymbol: false, lineStyle: { width: 2.2, color: post.selo === "sono" ? "#EA3943" : "#16C784" }, itemStyle: { color: "#16C784" } },
       ],
     };
   }, [post]);
 
-  const selo = post.selo === "fogo" ? "🔥 acima da banda" : post.selo === "sono" ? "💤 abaixo da banda" : "— dentro da banda";
+  const selo = post.selo === "fogo" ? "🔥 acima da banda" : post.selo === "sono" ? "💤 abaixo da banda" : "dentro da banda";
 
   return (
     <FlashCard watch={post.curtidas}>
       <div className="m-card-head">
-        <span className="m-card-title">Monitor do último post · {REDE_LABEL[post.rede] ?? post.rede}</span>
+        <span className="m-card-title">Monitor do último post</span>
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
-      <p style={{ fontSize: 12.5, color: "var(--m-text)", margin: "0 0 8px" }}>“{post.texto}”</p>
+      <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>“{post.texto}”</p>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
-        <span className="m-mono" style={{ fontSize: 13 }}>
-          ❤ <Odometer value={post.curtidas} />
-        </span>
-        <span className="m-mono" style={{ fontSize: 13 }}>
-          💬 <Odometer value={post.comentarios} />
-        </span>
-        <span className="m-mono" style={{ fontSize: 13 }}>
-          ↗ <Odometer value={post.compartilhamentos} />
-        </span>
-        <span className="m-mono" style={{ fontSize: 13 }}>
-          ▶ <Odometer value={post.views} />
-        </span>
+        <StatPill label="curtidas" value={post.curtidas} />
+        <StatPill label="comentários" value={post.comentarios} />
+        <StatPill label="compart." value={post.compartilhamentos} />
+        <StatPill label="views" value={post.views} />
         <span className={`m-pill ${post.selo === "fogo" ? "up" : post.selo === "sono" ? "down" : ""}`.trim()}>{selo}</span>
       </div>
       <div data-no-swipe>
-        <EChart option={option} height={140} />
+        <EChart option={option} height={130} />
       </div>
-      <div className="m-feed-meta">
-        <span>curva da 1ª hora vs banda média (p25–p75) dos últimos 30 posts</span>
-      </div>
+      <SectionLeitura>
+        Linha verde = este post, minuto a minuto na 1ª hora; faixa cinza = o normal dos seus
+        últimos 30 posts. {post.selo === "fogo" ? "Está performando acima do normal — impulsione agora." : post.selo === "sono" ? "Abaixo do normal — revise horário/formato." : "Performance dentro do esperado."}
+      </SectionLeitura>
     </FlashCard>
   );
 }
 
-function RacingSemanal({ redes }: { redes: RedesState }) {
+/* ⑦ racing semanal com cabeças */
+function RacingSemanal({ redes }: { redes: RedesV2Snapshot }) {
+  const fotos = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const r of redes.porRede) for (const c of r.concorrentes) m.set(c.nome, c.foto);
+    return m;
+  }, [redes.porRede]);
+
   const option = useMemo(
     () =>
-      racingBarOption({
-        items: redes.racingSemanal.map((r) => ({ nome: r.nome, valor: r.engajamento7d, cor: r.cor })),
+      avatarRacingOption({
+        items: redes.racingSemanal.map((r) => ({
+          nome: r.nome.split(" ").slice(0, 2).join(" "),
+          valor: r.engajamento7d,
+          cor: r.cor,
+          img: avatarForChart(fotos.get(r.nome) ?? null, r.nome, r.cor),
+        })),
+        suffix: "k",
       }),
-    [redes.racingSemanal],
+    [redes.racingSemanal, fotos],
   );
+  const lider = redes.racingSemanal[0];
   return (
     <div className="m-card">
       <div className="m-card-head">
-        <span className="m-card-title">Racing semanal · engajamento (k)</span>
+        <span className="m-card-title">Engajamento total · semana</span>
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div data-no-swipe>
-        <EChart option={option} height={210} />
+        <EChart option={option} height={230} />
       </div>
+      <SectionLeitura>
+        Soma de curtidas+comentários+compart. da semana (milhares), todas as redes.{" "}
+        {lider ? `${lider.nome} lidera o tabuleiro.` : ""}
+      </SectionLeitura>
     </div>
   );
 }
 
-function CriseDetector({ redes }: { redes: RedesState }) {
+/* ⑧ detector de crise (v1) */
+function CriseDetector({ redes }: { redes: RedesV2Snapshot }) {
   const c = redes.crise;
   return (
     <div
@@ -185,26 +440,32 @@ function CriseDetector({ redes }: { redes: RedesState }) {
         <span className={`m-mono ${c.ativo ? "m-down-c" : "m-up-c"}`} style={{ fontSize: 24, fontWeight: 800 }}>
           z = <Odometer value={c.zscore} decimals={2} />
         </span>
-        <span className="m-muted-c" style={{ fontSize: 11 }}>
-          {c.ativo
-            ? "volume de polaridade negativa fora da banda — resposta segmentada recomendada"
-            : "polaridade dentro da banda esperada (limiar z > 2)"}
-        </span>
       </div>
+      <SectionLeitura>
+        Mede se o volume de críticas saiu do padrão histórico (limiar z &gt; 2).{" "}
+        {c.ativo ? "Saiu: resposta segmentada recomendada AGORA." : "Tudo dentro do padrão."}
+      </SectionLeitura>
     </div>
   );
 }
 
 export default function RedesTab() {
-  const redes = useLiveChannel<RedesState>("redes").data;
-  if (!redes) return <div className="m-ghost">sincronizando com as redes…</div>;
+  const redes = useLiveChannel<RedesV2Snapshot>("redes").data;
+  if (!redes || !("porRede" in redes)) {
+    return <div className="m-ghost">sincronizando com as redes…</div>;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <Plataformas redes={redes} />
+      <RedesHero redes={redes} />
+      <Arena redes={redes} />
+      <QuemCresce redes={redes} />
       <MonitorUltimoPost redes={redes} />
+      <MelhorHorario redes={redes} />
+      <Veiculos redes={redes} />
       <RacingSemanal redes={redes} />
       <CriseDetector redes={redes} />
+      <MOraculo section="m-redes" context={`crise=${redes.crise.ativo}`} />
     </div>
   );
 }

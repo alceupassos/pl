@@ -11,14 +11,22 @@ import {
   type Channel,
   type EcgDelta,
   type EcgSnapshot,
+  type EquipeDelta,
+  type EquipeSnapshot,
   type IdxDelta,
   type IdxSnapshot,
+  type PesquisasDelta,
+  type PesquisasSnapshot,
   type QuotesNacDelta,
   type QuotesNacSnapshot,
   type QuotesRjDelta,
   type QuotesRjSnapshot,
+  type RedesV2Delta,
+  type RedesV2Snapshot,
   type TapeDelta,
   type TapeSnapshot,
+  type VozDelta,
+  type VozSnapshot,
 } from "@/lib/live-schemas";
 
 export type ChannelState<T = unknown> = {
@@ -187,6 +195,72 @@ function reduceDelta(ch: Channel, prev: unknown, delta: unknown): unknown {
       const p = (prev as AlertsSnapshot | null) ?? { alertas: [] as Alert[] };
       if (p.alertas.some((a) => a.id === d.alerta.id)) return p;
       return { alertas: [d.alerta, ...p.alertas].slice(0, ALERTS_CAP) };
+    }
+    case "redes": {
+      // merge: históricos 30d/heatmap só viajam no snapshot
+      const d = delta as RedesV2Delta;
+      const p = prev as RedesV2Snapshot | null;
+      if (!p) return undefined;
+      const vivoPorRede = new Map(d.porRedeVivo.map((r) => [r.rede, r]));
+      return {
+        ...p,
+        plataformas: d.plataformas,
+        ultimoPost: d.ultimoPost,
+        racingSemanal: d.racingSemanal,
+        crise: d.crise,
+        veiculos: d.veiculos,
+        porRede: p.porRede.map((r) => {
+          const vivo = vivoPorRede.get(r.rede);
+          if (!vivo) return r;
+          return {
+            ...r,
+            seguidoresAgora: vivo.seguidoresAgora,
+            engajamentoAgora: vivo.engajamentoAgora,
+            concorrentes: vivo.concorrentes,
+          };
+        }),
+      };
+    }
+    case "equipe": {
+      const d = delta as EquipeDelta;
+      const p = prev as EquipeSnapshot | null;
+      if (!p) return undefined;
+      const vivo = new Map(d.porRegiao.map((r) => [r.id, r]));
+      const idsNovos = new Set(p.feed.map((f) => f.id));
+      const novos = d.feedNovos.filter((f) => !idsNovos.has(f.id));
+      return {
+        ...p,
+        geral: d.geral,
+        funil: d.funil,
+        porRegiao: p.porRegiao.map((r) => {
+          const u = vivo.get(r.id);
+          if (!u) return r;
+          return {
+            ...r,
+            cadastrados: u.cadastrados,
+            pct: u.pct,
+            spark: [...r.spark.slice(-19), u.sparkLast],
+          };
+        }),
+        feed: [...novos, ...p.feed].slice(0, 30),
+      };
+    }
+    case "pesquisas": {
+      const d = delta as PesquisasDelta;
+      const p = prev as PesquisasSnapshot | null;
+      if (!p) return undefined;
+      return { ...p, propria: d.propria };
+    }
+    case "voz": {
+      const d = delta as VozDelta;
+      const p = prev as VozSnapshot | null;
+      if (!p) return undefined;
+      const ids = new Set(p.mensagens.map((m) => m.id));
+      const novas = d.mensagens.filter((m) => !ids.has(m.id));
+      return {
+        contadores: d.contadores,
+        mensagens: [...novas, ...p.mensagens].slice(0, 60),
+      };
     }
     // canais de estado completo: o delta JÁ É o estado novo
     default:

@@ -35,6 +35,51 @@ const HEURISTICAS: Record<string, string[]> = {
     "Dispare a próxima pesquisa para a base que menos respondeu — o dado que falta vale mais que confirmar o que já sabe.",
     "Compare ondas: variação dentro da margem não é tendência. Aja sobre movimentos consistentes em 2+ ondas.",
   ],
+  // Seções do app mobile /m (v2).
+  "m-ticker": [
+    "O índice reage com um dia de atraso à imprensa; o spike de hoje vira manchete amanhã — prepare a resposta hoje.",
+    "Variação sem volume de menções é ruído; só reaja a movimento com menções/min acima da média.",
+  ],
+  "m-plenario": [
+    "Traição em votação simbólica antecipa racha na bancada — mapeie o voto antes de a pauta valer de verdade.",
+    "Quando a oposição domina o share do debate, não dispute o tema do governo: imponha o seu na janela seguinte.",
+  ],
+  "m-rio": [
+    "Região quente sem presença sua é palco do adversário; agende agenda física onde o pulso subiu dois dias seguidos.",
+    "Equalizador evangélico alto com menção baixa a você é audiência disponível — ative os púlpitos parceiros.",
+  ],
+  "m-radar": [
+    "Veículo com share alto e tom neutro é o melhor alvo de assessoria — neutro vira positivo com pauta exclusiva.",
+    "Responda colunista crítico de alcance alto em até 24h; depois disso a versão dele vira a oficial.",
+  ],
+  "m-redes": [
+    "Replique na rede que mais cresce o formato campeão da sua rede madura — crescimento composto barato.",
+    "Concorrente crescendo 2x numa rede onde você é fraco: dispute agora ou ceda o território até a eleição.",
+  ],
+  "m-equipe": [
+    "O gargalo está na conversão cadastrado→engajado; um líder de igreja ativado vale dez cabos avulsos.",
+    "Realoque cabos da região que já bateu meta para a pior praça — custo zero, impacto imediato no funil.",
+  ],
+  "m-oportunidades": [
+    "Tema com demanda alta e satisfação baixa É o discurso; valide com a manchete local antes de gravar.",
+    "Bater na fraqueza do adversário só funciona ancorado em notícia publicada — sem fonte, vira ataque e volta contra você.",
+  ],
+  "m-pesquisas": [
+    "Intenção alta com rejeição baixa é a ameaça real — monitore quem está nesse quadrante, não o líder do dia.",
+    "Use a pesquisa própria para testar mensagem, não para medir voto: o painel próprio enviesa intenção.",
+  ],
+  "m-gastos": [
+    "Rubrica em estouro no meio da campanha rouba o caixa do sprint final — corte agora ou prepare suplementação.",
+    "Custo por voto acima do benchmark indica mídia mal segmentada; realoque do alcance amplo para o território-alvo.",
+  ],
+  "m-voz": [
+    "Tema repetido por eleitores de bairros diferentes no mesmo dia é pauta emergente — responda antes da imprensa.",
+    "Pico de negativas concentrado numa única fonte é ataque coordenado, não opinião pública; documente e exponha.",
+  ],
+  "m-c2026": [
+    "Banda de confiança cruzando a do rival é empate técnico; gaste energia onde a separação é real.",
+    "O quociente muda com o desempenho da legenda inteira — puxe o time, não só o seu número.",
+  ],
 };
 
 function heuristica(section: string, context: string): string {

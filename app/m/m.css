@@ -244,9 +244,19 @@ body:has(.m-app:not(.m-embed)) {
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(14, 17, 24, 0.97), #0a0d13);
   border-top: 1px solid var(--m-border);
+  /* 11 abas: barra rolável; meia aba cortada + fade nas bordas sinalizam overflow */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent);
+}
+.m-tabbar::-webkit-scrollbar {
+  display: none;
 }
 .m-tab {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 62px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -264,6 +274,17 @@ body:has(.m-app:not(.m-embed)) {
 .m-tab.active {
   color: var(--m-up);
   background: radial-gradient(120% 100% at 50% 0%, rgba(22, 199, 132, 0.14), transparent 70%);
+  position: relative;
+}
+.m-tab.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--m-up);
 }
 .m-tab:active { transform: scale(0.94); }
 .m-tab-badge {

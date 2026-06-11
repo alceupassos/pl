@@ -36,6 +36,11 @@ export const CHANNELS = [
   "radar",
   "redes",
   "c2026",
+  "equipe",
+  "oportunidades",
+  "pesquisas",
+  "gastos",
+  "voz",
 ] as const;
 
 export const ChannelSchema = z.enum(CHANNELS);
@@ -358,6 +363,315 @@ export const C2026StateSchema = z.object({
 });
 export type C2026State = z.infer<typeof C2026StateSchema>;
 
+/* ══ v2 ══ */
+
+/* ── redes (AMPLIADO): histórico por rede + concorrentes + veículos ── */
+
+export const RedeIdSchema = z.enum(["x", "instagram", "facebook", "youtube", "tiktok"]);
+export type RedeId = z.infer<typeof RedeIdSchema>;
+
+export const ConcorrenteRedeSchema = z.object({
+  simbolo: z.string(),
+  nome: z.string(),
+  cor: z.string(),
+  foto: z.string().nullable(),
+  seguidores: z.number(),
+  engajamento: z.number(),
+  crescimento7d: z.number(),
+});
+export type ConcorrenteRede = z.infer<typeof ConcorrenteRedeSchema>;
+
+export const RedeHistSchema = z.object({
+  rede: RedeIdSchema,
+  /** Históricos 30d só viajam no snapshot (deltas são parciais). */
+  seguidores30d: z.array(PointSchema),
+  engajamento30d: z.array(PointSchema),
+  seguidoresAgora: z.number(),
+  engajamentoAgora: z.number(),
+  concorrentes: z.array(ConcorrenteRedeSchema),
+  melhorHorario: z.object({ dia: z.string(), hora: z.number() }),
+});
+export type RedeHist = z.infer<typeof RedeHistSchema>;
+
+export const VeiculoSovSchema = z.object({
+  veiculo: z.string(),
+  share: z.number(), // 0..100
+  tom: z.number(), // -1..+1
+  alcance: z.number(),
+  spark: z.array(z.number()),
+});
+export type VeiculoSov = z.infer<typeof VeiculoSovSchema>;
+
+export const RedesV2SnapshotSchema = RedesStateSchema.extend({
+  porRede: z.array(RedeHistSchema),
+  veiculos: z.array(VeiculoSovSchema),
+  /** [diaIdx, horaIdx, valor 0..100] — melhor horário de postagem. */
+  heatmapPostagem: z.array(z.tuple([z.number(), z.number(), z.number()])),
+});
+export type RedesV2Snapshot = z.infer<typeof RedesV2SnapshotSchema>;
+
+export const RedesV2DeltaSchema = RedesStateSchema.extend({
+  porRedeVivo: z.array(
+    z.object({
+      rede: RedeIdSchema,
+      seguidoresAgora: z.number(),
+      engajamentoAgora: z.number(),
+      concorrentes: z.array(ConcorrenteRedeSchema),
+    }),
+  ),
+  veiculos: z.array(VeiculoSovSchema),
+});
+export type RedesV2Delta = z.infer<typeof RedesV2DeltaSchema>;
+
+/* ── equipe — correligionários em camadas + cadastros em tempo real ── */
+
+export const EquipeTierSchema = z.object({
+  nivel: z.string(),
+  nome: z.string(),
+  plural: z.string(),
+  cor: z.string(),
+  avatar: z.string(),
+  count: z.number(),
+  cadastroPct: z.number(),
+  engajadoPct: z.number(),
+  topPerformer: z.object({ nome: z.string(), pct: z.number() }),
+});
+export type EquipeTier = z.infer<typeof EquipeTierSchema>;
+
+export const EquipeFeedItemSchema = z.object({
+  id: z.string(),
+  t: z.number(),
+  nome: z.string(),
+  acao: z.string(),
+  nivel: z.string(),
+  cor: z.string(),
+});
+export type EquipeFeedItem = z.infer<typeof EquipeFeedItemSchema>;
+
+export const EquipeGeralSchema = z.object({
+  lista: z.number(),
+  cadastrados: z.number(),
+  engajados: z.number(),
+  meta: z.number(),
+  velocidadeMin: z.number(),
+});
+
+export const EquipeSnapshotSchema = z.object({
+  geral: EquipeGeralSchema,
+  porRegiao: z.array(
+    z.object({
+      id: z.string(),
+      nome: z.string(),
+      cadastrados: z.number(),
+      meta: z.number(),
+      pct: z.number(),
+      spark: z.array(z.number()),
+    }),
+  ),
+  tiers: z.array(EquipeTierSchema),
+  funil: z.object({ lista: z.number(), cadastro: z.number(), engajado: z.number() }),
+  ranking: z.array(
+    z.object({
+      nome: z.string(),
+      nivel: z.string(),
+      regiao: z.string(),
+      atingimentoPct: z.number(),
+      cadastrados: z.number(),
+    }),
+  ),
+  feed: z.array(EquipeFeedItemSchema),
+});
+export type EquipeSnapshot = z.infer<typeof EquipeSnapshotSchema>;
+
+export const EquipeDeltaSchema = z.object({
+  geral: EquipeGeralSchema,
+  porRegiao: z.array(
+    z.object({ id: z.string(), cadastrados: z.number(), pct: z.number(), sparkLast: z.number() }),
+  ),
+  funil: z.object({ lista: z.number(), cadastro: z.number(), engajado: z.number() }),
+  feedNovos: z.array(EquipeFeedItemSchema),
+});
+export type EquipeDelta = z.infer<typeof EquipeDeltaSchema>;
+
+/* ── oportunidades — forças × fraquezas por região, com notícias ── */
+
+export const OportunidadeRegiaoSchema = z.object({
+  id: z.string(),
+  nome: z.string(),
+  forca: z.object({ tema: z.string(), score: z.number() }),
+  fraquezas: z.array(
+    z.object({
+      adversario: z.object({
+        simbolo: z.string(),
+        nome: z.string(),
+        cor: z.string(),
+        foto: z.string().nullable(),
+      }),
+      tema: z.string(),
+      evidencia: z.string(),
+      severidade: z.number(), // 0..100
+    }),
+  ),
+  matriz: z.array(
+    z.object({
+      tema: z.string(),
+      demanda: z.number(),
+      satisfacao: z.number(),
+      potencialVotos: z.number(),
+      urgencia: z.number(),
+      oportunidade: z.number(),
+    }),
+  ),
+  noticias: z.array(
+    z.object({ titulo: z.string(), veiculo: z.string(), tema: z.string(), link: z.string() }),
+  ),
+  discurso: z.object({ tema: z.string(), texto: z.string() }),
+});
+export type OportunidadeRegiao = z.infer<typeof OportunidadeRegiaoSchema>;
+
+export const OportunidadesStateSchema = z.object({
+  regioes: z.array(OportunidadeRegiaoSchema),
+  topGeral: z.array(z.object({ regiao: z.string(), tema: z.string(), indice: z.number() })),
+  municao: z.array(
+    z.object({ titulo: z.string(), veiculo: z.string(), alcance: z.number(), tema: z.string() }),
+  ),
+});
+export type OportunidadesState = z.infer<typeof OportunidadesStateSchema>;
+
+/* ── pesquisas — oficiais + pesquisa própria ao vivo ── */
+
+export const PesqCandidatoSchema = z.object({
+  nome: z.string(),
+  partido: z.string(),
+  cor: z.string(),
+  foto: z.string().nullable(),
+  intencao: z.number(),
+  rejeicao: z.number(),
+});
+export type PesqCandidato = z.infer<typeof PesqCandidatoSchema>;
+
+export const SeriesLiteSchema = z.object({
+  labels: z.array(z.string()),
+  series: z.array(z.object({ nome: z.string(), cor: z.string(), data: z.array(z.number()) })),
+});
+export type SeriesLite = z.infer<typeof SeriesLiteSchema>;
+
+export const PesquisaPropriaSchema = z.object({
+  pergunta: z.string(),
+  opcoes: z.array(z.object({ label: z.string(), cor: z.string() })),
+  live: z.object({
+    disparados: z.number(),
+    entregues: z.number(),
+    abertos: z.number(),
+    respondidos: z.number(),
+    taxaResposta: z.number(),
+    velocidade: z.number(),
+    porOpcao: z.array(
+      z.object({ label: z.string(), cor: z.string(), pct: z.number(), votos: z.number() }),
+    ),
+    porRegiao: z.array(z.object({ nome: z.string(), value: z.number() })),
+    serieTempo: z.array(z.number()),
+    sentimento: z.object({ pos: z.number(), neu: z.number(), neg: z.number() }),
+  }),
+});
+
+export const PesquisasSnapshotSchema = z.object({
+  oficiais: z.object({
+    ranking: z.array(PesqCandidatoSchema),
+    timeline: SeriesLiteSchema,
+    institutos: SeriesLiteSchema,
+    recortes: z.array(SeriesLiteSchema.extend({ recorte: z.string() })),
+  }),
+  propria: PesquisaPropriaSchema,
+  calendario: z.array(
+    z.object({ semana: z.string(), tema: z.string(), objetivo: z.string() }),
+  ),
+});
+export type PesquisasSnapshot = z.infer<typeof PesquisasSnapshotSchema>;
+
+export const PesquisasDeltaSchema = z.object({ propria: PesquisaPropriaSchema });
+export type PesquisasDelta = z.infer<typeof PesquisasDeltaSchema>;
+
+/* ── gastos — execução financeira da campanha ── */
+
+export const GastosStateSchema = z.object({
+  saldo: z.object({
+    total: z.number(),
+    gasto: z.number(),
+    disponivel: z.number(),
+    pctExecutado: z.number(),
+  }),
+  execucao: z.object({
+    labels: z.array(z.string()),
+    planejado: z.array(z.number()),
+    realizado: z.array(z.number()),
+    projecao: z.array(z.number()),
+  }),
+  fontes: z.array(
+    z.object({ nome: z.string(), valor: z.number(), pct: z.number(), cor: z.string() }),
+  ),
+  rubricas: z.array(
+    z.object({
+      nome: z.string(),
+      orcado: z.number(),
+      gasto: z.number(),
+      pct: z.number(),
+      status: z.enum(["ok", "atencao", "estouro"]),
+    }),
+  ),
+  burnRate: z.object({
+    semanaAtual: z.number(),
+    mediaSemanal: z.number(),
+    tendencia: z.enum(["acelerando", "estavel", "desacelerando"]),
+  }),
+  custoPorVoto: z.object({
+    atual: z.number(),
+    projetado: z.number(),
+    benchmark: z.number(),
+  }),
+  alertas: z.array(
+    z.object({ rubrica: z.string(), msg: z.string(), nivel: z.enum(["amarelo", "vermelho"]) }),
+  ),
+});
+export type GastosState = z.infer<typeof GastosStateSchema>;
+
+/* ── voz — chat do eleitorado (WhatsApp + comentários de redes) ── */
+
+export const VozFonteSchema = z.enum(["eleitor", "x", "instagram", "facebook", "youtube"]);
+export type VozFonte = z.infer<typeof VozFonteSchema>;
+
+export const VozMsgSchema = z.object({
+  id: z.string(),
+  t: z.number(),
+  fonte: VozFonteSchema,
+  nome: z.string(),
+  bairro: z.string().optional(),
+  regiao: z.string().optional(),
+  texto: z.string(),
+  sentimento: TomSchema,
+  curtidas: z.number().optional(),
+});
+export type VozMsg = z.infer<typeof VozMsgSchema>;
+
+export const VozContadoresSchema = z.object({
+  totalHoje: z.number(),
+  porMinuto: z.number(),
+  sentimento: z.object({ pos: z.number(), neg: z.number(), neu: z.number() }),
+  porFonte: z.record(z.string(), z.number()),
+});
+
+export const VozSnapshotSchema = z.object({
+  mensagens: z.array(VozMsgSchema),
+  contadores: VozContadoresSchema,
+});
+export type VozSnapshot = z.infer<typeof VozSnapshotSchema>;
+
+export const VozDeltaSchema = z.object({
+  mensagens: z.array(VozMsgSchema),
+  contadores: VozContadoresSchema,
+});
+export type VozDelta = z.infer<typeof VozDeltaSchema>;
+
 /* ── mapa canal → schema (validação no client) ── */
 
 export const CHANNEL_SCHEMAS: Record<Channel, { snapshot: z.ZodTypeAny; delta: z.ZodTypeAny }> = {
@@ -371,6 +685,11 @@ export const CHANNEL_SCHEMAS: Record<Channel, { snapshot: z.ZodTypeAny; delta: z
   plenario: { snapshot: PlenarioStateSchema, delta: PlenarioStateSchema },
   "rio.pulsos": { snapshot: RioPulsosSchema, delta: RioPulsosSchema },
   radar: { snapshot: RadarStateSchema, delta: RadarStateSchema },
-  redes: { snapshot: RedesStateSchema, delta: RedesStateSchema },
+  redes: { snapshot: RedesV2SnapshotSchema, delta: RedesV2DeltaSchema },
   c2026: { snapshot: C2026StateSchema, delta: C2026StateSchema },
+  equipe: { snapshot: EquipeSnapshotSchema, delta: EquipeDeltaSchema },
+  oportunidades: { snapshot: OportunidadesStateSchema, delta: OportunidadesStateSchema },
+  pesquisas: { snapshot: PesquisasSnapshotSchema, delta: PesquisasDeltaSchema },
+  gastos: { snapshot: GastosStateSchema, delta: GastosStateSchema },
+  voz: { snapshot: VozSnapshotSchema, delta: VozDeltaSchema },
 };

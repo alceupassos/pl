@@ -429,3 +429,552 @@ export function mGaugeOption(opts: { pct: number; cor?: string; label: string })
     ],
   };
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Fábricas adicionais (avatares, agrupadas, funil, heatmap, bullet, finanças)
+// ───────────────────────────────────────────────────────────────────────────
+
+const WARN = "#F5A623";
+
+/** Converte hex (#RRGGBB) em rgba com alpha — usado nos gradientes de área. */
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/**
+ * Racing bar horizontal com CABEÇA (avatar) no rótulo do eixo Y.
+ * Sem realtimeSort: a própria fábrica ordena por valor desc — os rich keys
+ * av0..avN seguem a ordem ordenada.
+ */
+export function avatarRacingOption(opts: {
+  items: { nome: string; valor: number; cor: string; img: string }[];
+  max?: number;
+  suffix?: string;
+}): Record<string, unknown> {
+  const { max, suffix = "" } = opts;
+  const items = [...opts.items].sort((a, b) => b.valor - a.valor);
+  const rich: Record<string, Record<string, unknown>> = {
+    nm: { color: TEXT, fontSize: 10, padding: [0, 0, 0, 4] },
+  };
+  items.forEach((it, i) => {
+    rich[`av${i}`] = { backgroundColor: { image: it.img }, width: 20, height: 20, borderRadius: 10 };
+  });
+  return {
+    backgroundColor: "transparent",
+    animationDuration: 0,
+    animationDurationUpdate: 600,
+    tooltip: { ...tooltip, trigger: "item" },
+    grid: { left: 8, right: 46, top: 4, bottom: 4, containLabel: true },
+    xAxis: { type: "value", max, ...axis, splitLine: { show: false }, axisLabel: { ...axis.axisLabel, show: false } },
+    yAxis: {
+      type: "category",
+      inverse: true,
+      data: items.map((i) => i.nome),
+      ...axis,
+      splitLine: { show: false },
+      axisLabel: {
+        ...axis.axisLabel,
+        formatter: (value: string, idx: number) => `{av${idx}|} {nm|${value}}`,
+        rich,
+      },
+    },
+    series: [
+      {
+        type: "bar",
+        data: items.map((i) => ({ value: i.valor, itemStyle: { color: i.cor, borderRadius: 3 } })),
+        barWidth: 14,
+        label: {
+          show: true,
+          position: "right",
+          color: TEXT,
+          fontSize: 9.5,
+          fontFamily: MONO,
+          formatter: (p: { value: number }) => `${p.value}${suffix}`,
+        },
+      },
+    ],
+  };
+}
+
+/** Scatter com avatares (image://) — mapa de posicionamento; quadrante opcional. */
+export function scatterAvatarOption(opts: {
+  pontos: { x: number; y: number; nome: string; cor: string; img: string; destaque?: boolean }[];
+  xLabel: string;
+  yLabel: string;
+  quadrante?: { x: number; y: number };
+}): Record<string, unknown> {
+  const { pontos, xLabel, yLabel, quadrante } = opts;
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: {
+      ...tooltip,
+      trigger: "item",
+      formatter: (p: { data: { nome: string; value: [number, number] } }) =>
+        `${p.data.nome}<br/>${xLabel}: ${p.data.value[0]}<br/>${yLabel}: ${p.data.value[1]}`,
+    },
+    grid: { left: 8, right: 14, top: 12, bottom: 20, containLabel: true },
+    xAxis: {
+      type: "value",
+      name: xLabel,
+      nameTextStyle: { color: TEXT, fontSize: 9 },
+      nameGap: 4,
+      ...axis,
+    },
+    yAxis: {
+      type: "value",
+      name: yLabel,
+      nameTextStyle: { color: TEXT, fontSize: 9 },
+      nameGap: 6,
+      ...axis,
+    },
+    series: [
+      {
+        type: "scatter",
+        data: pontos.map((p) => ({
+          value: [p.x, p.y],
+          nome: p.nome,
+          symbol: `image://${p.img}`,
+          symbolSize: p.destaque ? 34 : 26,
+          itemStyle: { color: p.cor },
+          label: {
+            show: true,
+            position: "bottom",
+            fontSize: 8,
+            color: TEXT,
+            formatter: p.nome.split(" ")[0],
+          },
+        })),
+        markLine: quadrante
+          ? {
+              silent: true,
+              symbol: "none",
+              lineStyle: { color: TEXT, type: "dashed", width: 1, opacity: 0.5 },
+              label: { show: false },
+              data: [{ xAxis: quadrante.x }, { yAxis: quadrante.y }],
+            }
+          : undefined,
+      },
+    ],
+  };
+}
+
+/** Barras agrupadas (vertical ou horizontal) com legenda scroll no rodapé. */
+export function groupedBarsOption(opts: {
+  labels: string[];
+  series: { nome: string; cor: string; data: number[] }[];
+  horizontal?: boolean;
+  suffix?: string;
+}): Record<string, unknown> {
+  const { labels, series, horizontal = false, suffix = "" } = opts;
+  const catAxis = {
+    type: "category",
+    data: labels,
+    ...axis,
+    splitLine: { show: false },
+  };
+  const valAxis = {
+    type: "value",
+    ...axis,
+    axisLabel: { ...axis.axisLabel, fontFamily: MONO, formatter: (v: number) => `${v}${suffix}` },
+  };
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: { ...tooltip, trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: {
+      type: "scroll",
+      bottom: 0,
+      textStyle: { color: TEXT, fontSize: 10 },
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 3,
+      itemGap: 10,
+    },
+    grid: { left: 8, right: 12, top: 8, bottom: 32, containLabel: true },
+    xAxis: horizontal ? valAxis : catAxis,
+    yAxis: horizontal ? catAxis : valAxis,
+    series: series.map((s) => ({
+      name: s.nome,
+      type: "bar",
+      data: s.data,
+      barMaxWidth: 16,
+      itemStyle: { color: s.cor, borderRadius: 3 },
+    })),
+  };
+}
+
+/** Linhas suaves com área gradiente; série secundária opcional no eixo direito. */
+export function areaStackOption(opts: {
+  labels: string[];
+  series: { nome: string; cor: string; data: number[]; area?: boolean }[];
+  series2?: { nome: string; cor: string; data: number[] };
+}): Record<string, unknown> {
+  const { labels, series, series2 } = opts;
+  const yPrimary = {
+    type: "value",
+    scale: true,
+    ...axis,
+    axisLabel: { ...axis.axisLabel, fontFamily: MONO },
+  };
+  const ySecondary = {
+    type: "value",
+    scale: true,
+    position: "right",
+    ...axis,
+    splitLine: { show: false },
+    axisLabel: { ...axis.axisLabel, fontFamily: MONO },
+  };
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: { ...tooltip, trigger: "axis" },
+    legend: {
+      type: "scroll",
+      bottom: 0,
+      textStyle: { color: TEXT, fontSize: 10 },
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 3,
+      itemGap: 10,
+    },
+    grid: { left: 8, right: series2 ? 34 : 12, top: 10, bottom: 32, containLabel: true },
+    xAxis: { type: "category", data: labels, ...axis, boundaryGap: false },
+    yAxis: series2 ? [yPrimary, ySecondary] : yPrimary,
+    series: [
+      ...series.map((s) => ({
+        name: s.nome,
+        type: "line",
+        smooth: true,
+        showSymbol: false,
+        data: s.data,
+        lineStyle: { width: 2, color: s.cor },
+        itemStyle: { color: s.cor },
+        areaStyle: s.area
+          ? {
+              color: {
+                type: "linear",
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: hexToRgba(s.cor, 0.25) },
+                  { offset: 1, color: hexToRgba(s.cor, 0.02) },
+                ],
+              },
+            }
+          : undefined,
+      })),
+      ...(series2
+        ? [
+            {
+              name: series2.nome,
+              type: "line",
+              smooth: true,
+              showSymbol: false,
+              yAxisIndex: 1,
+              data: series2.data,
+              lineStyle: { width: 1.8, color: series2.cor, type: "dashed" },
+              itemStyle: { color: series2.cor },
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/** Donut com valor central via title (sem graphic) e legenda no rodapé. */
+export function donutOption(opts: {
+  items: { nome: string; valor: number; cor: string }[];
+  centro?: { valor: string; label: string };
+}): Record<string, unknown> {
+  const { items, centro } = opts;
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: { ...tooltip, trigger: "item" },
+    title: centro
+      ? {
+          text: centro.valor,
+          subtext: centro.label,
+          left: "center",
+          top: "38%",
+          textStyle: { color: "#e8ecf4", fontSize: 18, fontWeight: 800 },
+          subtextStyle: { color: TEXT, fontSize: 9 },
+        }
+      : undefined,
+    legend: {
+      type: "scroll",
+      bottom: 0,
+      textStyle: { color: TEXT, fontSize: 10 },
+      icon: "circle",
+      itemWidth: 8,
+      itemHeight: 8,
+      itemGap: 10,
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["58%", "78%"],
+        avoidLabelOverlap: true,
+        label: { show: false },
+        labelLine: { show: false },
+        data: items.map((i) => ({
+          name: i.nome,
+          value: i.valor,
+          itemStyle: { color: i.cor },
+        })),
+      },
+    ],
+  };
+}
+
+/** Funil de conversão — rótulo interno escuro sobre as faixas coloridas. */
+export function funnelOption(opts: {
+  etapas: { nome: string; valor: number; cor: string }[];
+}): Record<string, unknown> {
+  const { etapas } = opts;
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: { ...tooltip, trigger: "item" },
+    series: [
+      {
+        type: "funnel",
+        sort: "descending",
+        gap: 3,
+        minSize: "22%",
+        left: 8,
+        right: 8,
+        top: 4,
+        bottom: 4,
+        label: {
+          show: true,
+          position: "inside",
+          color: "#0B0E14",
+          fontWeight: 700,
+          fontSize: 9,
+          formatter: "{b}\n{c}",
+        },
+        labelLine: { show: false },
+        itemStyle: { borderWidth: 0 },
+        data: etapas.map((e) => ({ name: e.nome, value: e.valor, itemStyle: { color: e.cor } })),
+      },
+    ],
+  };
+}
+
+/** Heatmap dias × horas (0–100) — visualMap escondido, células com borda escura. */
+export function heatmapHorasOption(opts: {
+  dias: string[];
+  horas: string[];
+  values: [number, number, number][];
+}): Record<string, unknown> {
+  const { dias, horas, values } = opts;
+  return {
+    backgroundColor: "transparent",
+    animation: false,
+    tooltip: {
+      ...tooltip,
+      trigger: "item",
+      formatter: (p: { value: [number, number, number] }) =>
+        `${dias[p.value[1]]} ${horas[p.value[0]]}h: ${p.value[2]}`,
+    },
+    grid: { left: 8, right: 8, top: 8, bottom: 18, containLabel: true },
+    xAxis: { type: "category", data: horas, ...axis, splitLine: { show: false } },
+    yAxis: { type: "category", data: dias, ...axis, splitLine: { show: false } },
+    visualMap: {
+      show: false,
+      min: 0,
+      max: 100,
+      inRange: { color: ["#121724", "#14532d", UP, WARN] },
+    },
+    series: [
+      {
+        type: "heatmap",
+        data: values,
+        label: { show: false },
+        itemStyle: { borderColor: "#0B0E14", borderWidth: 1 },
+      },
+    ],
+  };
+}
+
+/** Barras bullet (meta cinza de fundo + atual colorida sobreposta) com % da meta. */
+export function bulletBarsOption(opts: {
+  items: { nome: string; atual: number; meta: number; cor?: string }[];
+  suffix?: string;
+}): Record<string, unknown> {
+  const { items, suffix = "" } = opts;
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: {
+      ...tooltip,
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      valueFormatter: (v: number) => `${v}${suffix}`,
+    },
+    grid: { left: 8, right: 46, top: 4, bottom: 4, containLabel: true },
+    xAxis: { type: "value", ...axis, splitLine: { show: false }, axisLabel: { ...axis.axisLabel, show: false } },
+    yAxis: {
+      type: "category",
+      inverse: true,
+      data: items.map((i) => i.nome),
+      ...axis,
+      axisLabel: { ...axis.axisLabel, width: 92, overflow: "truncate", fontSize: 10 },
+      splitLine: { show: false },
+    },
+    series: [
+      {
+        name: "Meta",
+        type: "bar",
+        silent: true,
+        data: items.map((i) => i.meta),
+        barWidth: 14,
+        itemStyle: { color: "rgba(255,255,255,0.08)", borderRadius: 3 },
+      },
+      {
+        name: "Atual",
+        type: "bar",
+        barGap: "-100%",
+        data: items.map((i) => ({ value: i.atual, itemStyle: { color: i.cor ?? UP, borderRadius: 3 } })),
+        barWidth: 14,
+        label: {
+          show: true,
+          position: "right",
+          color: TEXT,
+          fontSize: 9.5,
+          fontFamily: MONO,
+          formatter: (p: { dataIndex: number }) => {
+            const it = items[p.dataIndex];
+            return `${Math.round((it.atual / it.meta) * 100)}%`;
+          },
+        },
+      },
+    ],
+  };
+}
+
+/** Planejado (dashed cinza) × realizado (sólido verde + área) × projeção (dotted âmbar). */
+export function financeLinesOption(opts: {
+  labels: string[];
+  planejado: number[];
+  realizado: number[];
+  projecao: number[];
+}): Record<string, unknown> {
+  const { labels, planejado, realizado, projecao } = opts;
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: { ...tooltip, trigger: "axis" },
+    legend: {
+      bottom: 0,
+      textStyle: { color: TEXT, fontSize: 10 },
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 3,
+      itemGap: 10,
+    },
+    grid: { left: 8, right: 12, top: 10, bottom: 32, containLabel: true },
+    xAxis: { type: "category", data: labels, ...axis, boundaryGap: false },
+    yAxis: {
+      type: "value",
+      scale: true,
+      ...axis,
+      axisLabel: { ...axis.axisLabel, fontFamily: MONO },
+    },
+    series: [
+      {
+        name: "Planejado",
+        type: "line",
+        smooth: true,
+        showSymbol: false,
+        data: planejado,
+        lineStyle: { width: 1.6, color: TEXT, type: "dashed" },
+        itemStyle: { color: TEXT },
+      },
+      {
+        name: "Realizado",
+        type: "line",
+        smooth: true,
+        showSymbol: false,
+        data: realizado,
+        lineStyle: { width: 2.4, color: UP },
+        itemStyle: { color: UP },
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: hexToRgba(UP, 0.18) },
+              { offset: 1, color: hexToRgba(UP, 0.02) },
+            ],
+          },
+        },
+      },
+      {
+        name: "Projeção",
+        type: "line",
+        smooth: true,
+        showSymbol: false,
+        data: projecao,
+        lineStyle: { width: 2, color: WARN, type: "dotted" },
+        itemStyle: { color: WARN },
+      },
+    ],
+  };
+}
+
+/** Timeline de pesquisas multi-série — avatar (markPoint image://) no último ponto. */
+export function pollTimelineAvatarsOption(opts: {
+  labels: string[];
+  series: { nome: string; cor: string; data: number[]; img: string }[];
+}): Record<string, unknown> {
+  const { labels, series } = opts;
+  return {
+    backgroundColor: "transparent",
+    animationDurationUpdate: 400,
+    tooltip: { ...tooltip, trigger: "axis" },
+    legend: {
+      type: "scroll",
+      bottom: 0,
+      textStyle: { color: TEXT, fontSize: 10 },
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 3,
+      itemGap: 10,
+    },
+    grid: { left: 8, right: 26, top: 14, bottom: 32, containLabel: true },
+    xAxis: { type: "category", data: labels, ...axis, boundaryGap: false },
+    yAxis: {
+      type: "value",
+      scale: true,
+      ...axis,
+      axisLabel: { ...axis.axisLabel, formatter: "{value}%", fontFamily: MONO },
+    },
+    series: series.map((s) => ({
+      name: s.nome,
+      type: "line",
+      smooth: true,
+      showSymbol: false,
+      data: s.data,
+      lineStyle: { width: 2, color: s.cor },
+      itemStyle: { color: s.cor },
+      markPoint: {
+        symbol: `image://${s.img}`,
+        symbolSize: 22,
+        data: [{ coord: [labels.length - 1, s.data[s.data.length - 1]] }],
+        label: { show: false },
+      },
+    })),
+  };
+}
