@@ -91,7 +91,6 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       const el = viewportRef.current;
       const next = Math.max(0, Math.min(TABS.length - 1, i));
       setActive(next);
-      window.scrollTo({ top: 0, behavior: "auto" });
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       el?.scrollTo({ left: next * el.clientWidth, behavior: reduced ? "auto" : "smooth" });
     },

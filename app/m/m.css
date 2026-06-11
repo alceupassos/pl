@@ -34,8 +34,15 @@ body:has(.m-app:not(.m-embed)) {
   --m-font-mono: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
   --m-font-sans: var(--font-dm-sans, "Segoe UI", system-ui, sans-serif);
 
-  /* ── base ── */
-  min-height: 100svh;
+  /* ── base: shell de altura FIXA (app nativo) ──
+     O documento não rola; cada aba é o próprio scroller vertical. Gesto
+     vertical nasce num elemento que rola de verdade → o browser nunca o
+     entrega ao snap horizontal (que matava o scroll em tela cheia). */
+  height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--m-bg);
   color: var(--m-text);
   font-family: var(--m-font-sans);
@@ -51,7 +58,10 @@ body:has(.m-app:not(.m-embed)) {
 }
 /* Modo embutido (seções espelho no cockpit desktop) */
 .m-app.m-embed {
+  height: auto;
   min-height: auto;
+  overflow: visible;
+  display: block;
   padding-bottom: 0;
   background: transparent;
 }
@@ -267,18 +277,18 @@ body:has(.m-app:not(.m-embed)) {
   animation: m-pulse 1s infinite;
 }
 
-/* ── track de swipe entre abas — scroll-snap NATIVO ──
-   Nada de gesto JS: o browser desambigua pan vertical (documento) ×
-   horizontal (troca de aba) sozinho via touch-action. */
+/* ── track de swipe entre abas — scroll-snap nativo, painéis rolam ──
+   O viewport rola só no eixo X (snap); CADA painel rola o próprio Y.
+   O browser roteia: pan vertical → painel; pan horizontal → viewport. */
 .m-track-viewport {
+  flex: 1;
+  min-height: 0;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
-  touch-action: pan-x pan-y;
   scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
 }
 .m-track-viewport::-webkit-scrollbar {
   display: none;
@@ -286,18 +296,30 @@ body:has(.m-app:not(.m-embed)) {
 .m-track {
   display: flex;
   width: 100%;
+  height: 100%;
 }
 .m-panel {
   width: 100%;
+  height: 100%;
   flex-shrink: 0;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 12px 12px 24px;
-  min-height: calc(100svh - var(--m-tab-h) - 32px);
 }
 .m-panel[data-hidden="true"] {
   visibility: hidden;
   content-visibility: auto;
+}
+
+/* /m/config e outras páginas fora do shell de abas: viram o scroller. */
+.m-page-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── número-manchete (SOST-IDX) ── */

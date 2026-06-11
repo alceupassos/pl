@@ -98,7 +98,7 @@ export default function MobileConfigPage() {
   };
 
   return (
-    <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="m-page-scroll" style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
       <header className="m-header" style={{ position: "static", padding: 0, border: "none", background: "none" }}>
         <Link href="/m" className="m-btn" aria-label="Voltar ao cockpit">
           <ArrowLeft size={15} /> Cockpit
