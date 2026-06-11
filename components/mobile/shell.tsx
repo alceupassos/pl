@@ -102,7 +102,8 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       <header className="m-header">
         <div className="m-header-brand">
           COCKPIT <span style={{ color: "var(--m-up)" }}>SOST</span>
-          <small>O CANDIDATO · 2026</small>
+          {/* carimbo de versão visível — diagnóstico de cache no aparelho */}
+          <small>O CANDIDATO · 2026 · v4</small>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LiveBadge ch="idx.sost" cadenceMs={2000} showLabel />
