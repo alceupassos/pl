@@ -1,8 +1,14 @@
 "use client";
 
-// Shell do /m: header + track de swipe horizontal entre as 6 abas + tab bar.
+// Shell do /m: header + track de abas com SWIPE NATIVO (scroll-snap) + tab bar.
 // Single-page: trocar de aba NUNCA remonta a página (o stream e o estado
 // vivo sobrevivem); a URL é sincronizada com history.replaceState.
+//
+// O swipe é overflow-x + scroll-snap do próprio browser — nada de gesto JS:
+// foi um drag="x" (framer-motion) no track que travava o scroll VERTICAL no
+// touch (o pan handler disputava o gesto com o pan-y nativo). Com scroll
+// nativo o browser desambigua vertical×horizontal sozinho, inclusive nos
+// carrosséis internos (nested scroll).
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -15,7 +21,6 @@ import {
   RadioTower,
   Settings2,
 } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLiveChannel } from "@/components/mobile/live/use-live";
@@ -45,35 +50,53 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
   const initialIndex = Math.max(0, TAB_IDS.indexOf(initialTab));
   const [index, setIndex] = useState(initialIndex);
   const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([initialIndex]));
-  const [width, setWidth] = useState(0);
-  const [dragEnabled, setDragEnabled] = useState(true);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const reduced = useReducedMotion();
+  const rafRef = useRef(0);
 
   const plenario = useLiveChannel<PlenarioState>("plenario").data;
   const votacaoAtiva = plenario?.votacaoAtiva ?? false;
 
+  // posiciona o scroll na aba inicial (deep link) sem animação
   useEffect(() => {
     const el = viewportRef.current;
-    if (!el) return;
-    const measure = () => setWidth(el.clientWidth);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
+    if (el) el.scrollLeft = initialIndex * el.clientWidth;
+    // intencionalmente só no mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     window.history.replaceState(null, "", `/m/${TABS[index].id}${window.location.search}`);
-    // ao trocar de aba, volta ao topo
-    window.scrollTo({ top: 0, behavior: "auto" });
   }, [index]);
 
-  const goTo = useCallback((i: number) => {
+  const setActive = useCallback((i: number) => {
     const next = Math.max(0, Math.min(TABS.length - 1, i));
     setVisited((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
     setIndex(next);
   }, []);
+
+  // sincroniza o índice com o scroll nativo (coalescido por rAF)
+  const onScroll = useCallback(() => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = 0;
+      const el = viewportRef.current;
+      if (!el || el.clientWidth === 0) return;
+      const idx = Math.round(el.scrollLeft / el.clientWidth);
+      setActive(idx);
+    });
+  }, [setActive]);
+
+  const goTo = useCallback(
+    (i: number) => {
+      const el = viewportRef.current;
+      const next = Math.max(0, Math.min(TABS.length - 1, i));
+      setActive(next);
+      window.scrollTo({ top: 0, behavior: "auto" });
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el?.scrollTo({ left: next * el.clientWidth, behavior: reduced ? "auto" : "smooth" });
+    },
+    [setActive],
+  );
 
   return (
     <>
@@ -90,31 +113,8 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
         </div>
       </header>
 
-      <div className="m-track-viewport" ref={viewportRef}>
-        <motion.div
-          className="m-track"
-          style={{ touchAction: "pan-y" }}
-          drag={width > 0 && dragEnabled ? "x" : false}
-          dragConstraints={{ left: -(TABS.length - 1) * width, right: 0 }}
-          dragElastic={0.12}
-          dragMomentum={false}
-          animate={{ x: -index * width }}
-          transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 34 }}
-          onPointerDownCapture={(event) => {
-            // superfícies com gesto próprio (carrossel, pinch nos gráficos,
-            // feeds horizontais) desligam o swipe de aba durante o toque
-            const target = event.target as HTMLElement | null;
-            setDragEnabled(!target?.closest("[data-no-swipe]"));
-          }}
-          onPointerUp={() => setDragEnabled(true)}
-          onPointerCancel={() => setDragEnabled(true)}
-          onDragEnd={(_, info) => {
-            const threshold = width * 0.22;
-            if (info.offset.x < -threshold || info.velocity.x < -480) goTo(index + 1);
-            else if (info.offset.x > threshold || info.velocity.x > 480) goTo(index - 1);
-            else goTo(index);
-          }}
-        >
+      <div className="m-track-viewport" ref={viewportRef} onScroll={onScroll}>
+        <div className="m-track">
           {TABS.map((tab, i) => {
             const adjacent = Math.abs(i - index) <= 1;
             const mounted = visited.has(i) || adjacent;
@@ -129,7 +129,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
               </section>
             );
           })}
-        </motion.div>
+        </div>
       </div>
 
       <nav className="m-tabbar" aria-label="Abas do cockpit">
