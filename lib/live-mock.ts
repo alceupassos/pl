@@ -10,6 +10,9 @@ import { getRaceTimeline } from "@/lib/mock/races";
 import * as v2 from "@/lib/live-mock-v2";
 import { REGIONS } from "@/lib/mock/rj-regions";
 import { calcularQuociente, projetarBancada } from "@/lib/quociente";
+// Fonte REAL: índice de imprensa do GDELT entra no breakdown do idx.sost.
+// Primeira exceção ao "tudo é função pura do tempo" deste arquivo.
+import { getImprensaIndex } from "@/lib/sources/gdelt";
 import type { Watchlist } from "@/lib/watchlist";
 import type {
   Alert,
@@ -207,13 +210,29 @@ const IDX_PARTS: { key: "mencoes" | "sentimento" | "seguidores" | "imprensa"; p:
   { key: "imprensa", p: { base: 100, vol: 0.13, trend: 0.0011, spikeBoost: 0.9 } },
 ];
 
+// Componentes do índice. imprensa vem do GDELT (real) quando há sinal; senão
+// cai na série sintética. menções/sentimento/seguidores seguem modelados até
+// termos APIs sociais com credencial — então o índice já é PARCIALMENTE real.
+type IdxComponents = { mencoes: number; sentimento: number; seguidores: number; imprensa: number };
+function idxComponents(t: number): IdxComponents {
+  const imprensaReal = getImprensaIndex();
+  return {
+    mencoes: seriesValue("sost:mencoes", t, IDX_PARTS[0].p),
+    sentimento: seriesValue("sost:sentimento", t, IDX_PARTS[1].p),
+    seguidores: seriesValue("sost:seguidores", t, IDX_PARTS[2].p),
+    imprensa: imprensaReal ?? seriesValue("sost:imprensa", t, IDX_PARTS[3].p),
+  };
+}
+
 function idxValueAt(t: number, w: Watchlist): number {
   const pesos = w.pesosIndice;
   const totalPeso = pesos.mencoes + pesos.sentimento + pesos.seguidores + pesos.imprensa || 1;
-  let v = 0;
-  for (const part of IDX_PARTS) {
-    v += seriesValue(`sost:${part.key}`, t, part.p) * (pesos[part.key] / totalPeso);
-  }
+  const c = idxComponents(t);
+  const v =
+    c.mencoes * (pesos.mencoes / totalPeso) +
+    c.sentimento * (pesos.sentimento / totalPeso) +
+    c.seguidores * (pesos.seguidores / totalPeso) +
+    c.imprensa * (pesos.imprensa / totalPeso);
   return v * 1.42; // escala de "índice" (~142 pontos)
 }
 
@@ -246,12 +265,15 @@ export function snapshotIdx(w: Watchlist, now: number): IdxSnapshot {
     variacaoDia: pctChange(valor, vivo.o),
     candles30d: candles,
     candleVivo: vivo,
-    breakdown: {
-      mencoes: round1(seriesValue("sost:mencoes", now, IDX_PARTS[0].p)),
-      sentimento: round1(seriesValue("sost:sentimento", now, IDX_PARTS[1].p)),
-      seguidores: round1(seriesValue("sost:seguidores", now, IDX_PARTS[2].p)),
-      imprensa: round1(seriesValue("sost:imprensa", now, IDX_PARTS[3].p)),
-    },
+    breakdown: (() => {
+      const c = idxComponents(now);
+      return {
+        mencoes: round1(c.mencoes),
+        sentimento: round1(c.sentimento),
+        seguidores: round1(c.seguidores),
+        imprensa: round1(c.imprensa), // ← GDELT real quando disponível
+      };
+    })(),
   };
 }
 
