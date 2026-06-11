@@ -85,3 +85,13 @@ Because state is files under `process.cwd()`, this app assumes a **writable, per
 ## Sensitive files
 
 `senhas.md` (provisional credentials), `data/*.jsonl`, and `data/provisional-credential-ip-bindings.json` contain real-ish login and visitor data and are committed to the repo. Don't paste their contents into commits, PRs, or external services.
+
+## Deploy
+
+Production runs on a self-managed VPS (persistent, writable filesystem — required, see the file-based persistence above). Deploy over SSH:
+
+```bash
+ssh root@62.171.181.241
+```
+
+The root password is **not** stored in the repo (this file is committed and pushed to GitHub) — provide it at connect time or, better, set up an SSH key. Typical deploy on the box: `git pull && npm ci && npm run build &&` restart the service. The `prebuild` step bumps the version stamp (`v4.x`) shown in the `/m` header — see `scripts/bump-version.mjs` + `data/build-counter.json` (gitignored, persists on the server).
