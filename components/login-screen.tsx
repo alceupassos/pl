@@ -43,6 +43,8 @@ type FeatureCard = {
 };
 
 const ALTCHA_WIDGET_ID = "login-altcha-widget";
+// Bypass temporário do ALTCHA para testes mobile — espelha DISABLE_ALTCHA do servidor.
+const ALTCHA_DISABLED = process.env.NEXT_PUBLIC_DISABLE_ALTCHA === "true";
 
 const commandMetrics = [
   { label: "controle diário", value: "24h", detail: "sala de situação sempre pronta" },
@@ -462,7 +464,7 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
     const formData = new FormData(form);
     const altchaToken = String(formData.get("altchaToken") || "");
 
-    if (!altchaToken) {
+    if (!altchaToken && !ALTCHA_DISABLED) {
       setErrorMessage("Conclua a verificação ALTCHA antes de entrar no cockpit.");
       setShowError(true);
       return;
@@ -1213,16 +1215,24 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
                 />
               </div>
 
-              <div className="login-altcha-wrap">
-                <div className="login-field-label">Verificação anti-bot</div>
-                {createElement("altcha-widget", {
-                  id: ALTCHA_WIDGET_ID,
-                  auto: "onload",
-                  challenge: challengeUrl,
-                  name: "altchaToken",
-                  type: "checkbox",
-                })}
-              </div>
+              {ALTCHA_DISABLED ? (
+                <div className="login-altcha-wrap">
+                  <div className="login-altcha-note" role="status">
+                    Verificação anti-bot temporariamente desativada (modo de teste)
+                  </div>
+                </div>
+              ) : (
+                <div className="login-altcha-wrap">
+                  <div className="login-field-label">Verificação anti-bot</div>
+                  {createElement("altcha-widget", {
+                    id: ALTCHA_WIDGET_ID,
+                    auto: "onload",
+                    challenge: challengeUrl,
+                    name: "altchaToken",
+                    type: "checkbox",
+                  })}
+                </div>
+              )}
 
               <button className="login-btn" id="login-btn" disabled={isSubmitting || isUnlocking} type="submit">
                 {isSubmitting || isUnlocking ? "Autenticando..." : "Entrar no Cockpit"}

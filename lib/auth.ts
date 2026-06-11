@@ -7,7 +7,15 @@ const AUTH_PASSWORD = process.env.AUTH_PASSWORD || "p0l1t1c4@#";
 const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "politica_session";
 const ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET || "dev-altcha-secret-change-me";
 const AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET || "dev-jwt-secret-change-me";
+// Bypass temporário do ALTCHA para testes (mobile) — controlado por .env.local.
+const DISABLE_ALTCHA = process.env.DISABLE_ALTCHA === "true";
 const JWT_TTL_SECONDS = 60 * 60 * 24 * 5;
+
+if (DISABLE_ALTCHA) {
+  console.warn(
+    "⚠️ [AUTH] BYPASS ALTCHA ATIVO (DISABLE_ALTCHA=true) — REMOVER ANTES DE PRODUÇÃO",
+  );
+}
 
 export function getAuthCookieName() {
   return AUTH_COOKIE_NAME;
@@ -75,6 +83,11 @@ export function getClientIp(headers: Headers) {
 }
 
 export async function verifyAltchaPayload(payload: string) {
+  if (DISABLE_ALTCHA) {
+    console.warn("⚠️ [AUTH] verificação ALTCHA pulada por DISABLE_ALTCHA");
+    return { verified: true, reason: "bypassed_env_flag" };
+  }
+
   if (!payload) {
     return { verified: false, reason: "missing_payload" };
   }

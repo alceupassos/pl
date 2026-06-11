@@ -10,19 +10,35 @@ const BG = "transparent";
 
 const axisCommon = {
   axisLine: { lineStyle: { color: GRID } },
-  axisLabel: { color: TXT, fontSize: 10 },
+  axisLabel: { color: TXT, fontSize: 10, hideOverlap: true },
   splitLine: { lineStyle: { color: GRID } },
 };
+
+// Transições suaves quando os dados mudam (monitor vivo).
+// Respeita prefers-reduced-motion — animações de canvas não são cobertas por CSS.
+function liveUpdate() {
+  const reduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return {
+    animationDurationUpdate: reduced ? 0 : 700,
+    animationEasingUpdate: "cubicOut",
+  };
+}
 
 const tooltipDark = {
   backgroundColor: "rgba(16,16,24,0.96)",
   borderColor: "rgba(255,255,255,0.08)",
   textStyle: { color: "#e6e6f0", fontSize: 12 },
+  // Mantém o tooltip dentro do canvas (evita corte com overflow-x hidden no mobile).
+  confine: true,
 };
 
 const legendDark = {
   textStyle: { color: TXT, fontSize: 10 },
   icon: "circle",
+  itemWidth: 12,
+  itemGap: 10,
   bottom: 0,
 };
 
@@ -35,6 +51,7 @@ export function donutOption(
 ) {
   return {
     backgroundColor: BG,
+    ...liveUpdate(),
     tooltip: {
       ...tooltipDark,
       trigger: "item",
@@ -116,6 +133,7 @@ export function orgTreeOption(root: unknown) {
 export function lineOption(series: Series, opts: { area?: boolean } = {}) {
   return {
     backgroundColor: BG,
+    ...liveUpdate(),
     tooltip: { ...tooltipDark, trigger: "axis" },
     legend:
       series.datasets.length > 1
@@ -163,10 +181,25 @@ export function lineOption(series: Series, opts: { area?: boolean } = {}) {
 
 /** Barras (agrupadas) a partir de um `Series`. */
 export function barOption(series: Series, opts: { horizontal?: boolean } = {}) {
-  const cat = { type: "category", data: series.labels, ...axisCommon };
+  const cat = {
+    type: "category",
+    data: series.labels,
+    ...axisCommon,
+    // Nomes longos (regiões) viram reticências em vez de serem cortados pelo canvas.
+    ...(opts.horizontal
+      ? {
+          axisLabel: {
+            ...axisCommon.axisLabel,
+            width: 92,
+            overflow: "truncate" as const,
+          },
+        }
+      : {}),
+  };
   const val = { type: "value", ...axisCommon };
   return {
     backgroundColor: BG,
+    ...liveUpdate(),
     tooltip: {
       ...tooltipDark,
       trigger: "axis",
@@ -176,12 +209,14 @@ export function barOption(series: Series, opts: { horizontal?: boolean } = {}) {
       series.datasets.length > 1
         ? { ...legendDark, data: series.datasets.map((d) => d.label) }
         : { show: false },
-    grid: {
-      left: 44,
-      right: 18,
-      top: 16,
-      bottom: series.datasets.length > 1 ? 36 : 24,
-    },
+    grid: opts.horizontal
+      ? { left: 8, right: 18, top: 8, bottom: 8, containLabel: true }
+      : {
+          left: 44,
+          right: 18,
+          top: 16,
+          bottom: series.datasets.length > 1 ? 36 : 24,
+        },
     xAxis: opts.horizontal ? val : cat,
     yAxis: opts.horizontal ? cat : val,
     series: series.datasets.map((ds) => ({
@@ -217,6 +252,7 @@ export function gaugeOption(
 ) {
   return {
     backgroundColor: BG,
+    ...liveUpdate(),
     series: [
       {
         type: "gauge",

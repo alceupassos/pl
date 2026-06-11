@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefatos de páginas salvas (não são código do projeto).
+    "sostenes/**",
   ]),
 ]);
 

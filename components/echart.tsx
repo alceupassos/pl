@@ -14,10 +14,14 @@ type EChartProps = {
 };
 
 type EInstance = {
-  setOption: (o: unknown, replace?: boolean) => void;
+  setOption: (
+    o: unknown,
+    opts?: boolean | { notMerge?: boolean; replaceMerge?: string[] },
+  ) => void;
   resize: () => void;
   dispose: () => void;
   on: (e: string, cb: (p: { name?: string }) => void) => void;
+  dispatchAction: (action: { type: string }) => void;
 };
 type EModule = {
   init: (
@@ -96,7 +100,12 @@ export function EChart({
   }, [use3D]);
 
   useEffect(() => {
-    chartRef.current?.setOption(option, true);
+    // Fecha tooltip aberto por toque antes de mudar os dados — no mobile ele
+    // ficaria mostrando números antigos.
+    chartRef.current?.dispatchAction({ type: "hideTip" });
+    // replaceMerge em `series` mantém transições animadas nos updates
+    // (notMerge=true reiniciaria a animação de entrada a cada tick).
+    chartRef.current?.setOption(option, { replaceMerge: ["series"] });
   }, [option]);
 
   return (

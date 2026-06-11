@@ -3559,9 +3559,38 @@ input[type="range"] {
 .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 22px 46px -22px rgba(0,0,0,0.85); }
 .kpi-value { font-variant-numeric: tabular-nums; letter-spacing: -0.5px; text-shadow: 0 0 26px rgba(34,197,94,0.16); }
 
+/* ── Monitor vivo: carimbo "atualizado às" nos cards ── */
+/* Agrupa os badges do card-header para não se espalharem ao quebrar linha. */
+.card-badge-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+/* Nota do modo de teste no login (ALTCHA desativado) — não é label de campo. */
+.login-altcha-note {
+  font-size: 12px;
+  color: var(--texto-sec);
+  line-height: 1.5;
+}
+.card-live-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--verde-ok);
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 20px;
+  padding: 3px 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card, .kpi-card { transition: none; }
   .card:hover, .kpi-card:hover { transform: none; }
+  .dot-live, .login-dot-live { animation: none; }
 }
 
 /* ── MOBILE (override final) ── */
@@ -3572,6 +3601,8 @@ input[type="range"] {
     width: min(82vw, 280px) !important; min-width: 0 !important;
     transform: translateX(-100%); transition: transform .28s cubic-bezier(.4,0,.2,1);
     overflow-y: auto;
+    /* Folga para a bottom nav fixa (z-index maior) não cobrir os últimos itens. */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
   #app.sidebar-open #sidebar { transform: translateX(0); }
   #main { width: 100%; max-width: 100%; }
@@ -3694,6 +3725,10 @@ body.cfg-contrast { --texto-sec: #aab; }
     linear-gradient(rgba(8,9,15,0.86), rgba(8,9,15,0.93)),
     url("/ai/login-bg.png");
   background-size: cover; background-position: center; background-attachment: fixed;
+}
+/* iOS Safari quebra com fixed+cover; Android repinta a cada frame de scroll. */
+@media (max-width: 900px) {
+  #login-screen { background-attachment: scroll; }
 }
 
 /* ── Avatares de figuras (social) ── */
@@ -3890,6 +3925,9 @@ body.cfg-contrast { --texto-sec: #aab; }
 .raiox-region-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .raiox-rcard { text-align: left; background: #15151d; border: 1px solid var(--cinza-borda); border-radius: 12px; padding: 12px; cursor: pointer; transition: transform .15s, border-color .15s; }
 .raiox-rcard:hover { transform: translateY(-3px); border-color: rgba(34,197,94,0.3); }
+/* Toque não tem hover — feedback no :active e foco visível por teclado. */
+.raiox-rcard:active { transform: scale(0.98); border-color: rgba(34,197,94,0.45); }
+.raiox-rcard:focus-visible { outline: 2px solid var(--verde-ok); outline-offset: 2px; }
 .rrc-top { display: flex; align-items: baseline; justify-content: space-between; }
 .rrc-nome { font-weight: 800; font-size: 13px; }
 .rrc-votos { font-family: var(--font-mono), monospace; font-weight: 700; color: var(--branco); font-size: 15px; }
@@ -3900,7 +3938,12 @@ body.cfg-contrast { --texto-sec: #aab; }
 .rrc-bar { height: 5px; background: #2a2a38; border-radius: 3px; overflow: hidden; }
 .rrc-bar span { display: block; height: 100%; border-radius: 3px; }
 @media (max-width: 900px) { .raiox-region-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 520px) { .raiox-region-grid { grid-template-columns: 1fr; } }
+/* Em telas estreitas, 2 colunas compactas (sem temas) escaneiam melhor que
+   8 cards de largura cheia empurrando os gráficos para baixo. */
+@media (max-width: 520px) {
+  .raiox-region-grid { grid-template-columns: repeat(2, 1fr); }
+  .raiox-rcard .rrc-temas { display: none; }
+}
 
 /* ── Hover resumo (Ranking Redes) ── */
 .hp-resumo { margin-bottom: 8px; }

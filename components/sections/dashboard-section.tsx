@@ -16,9 +16,14 @@ import {
   getFaixaEtaria,
   getIntencaoEvolution,
 } from "@/lib/mock/campaign-metrics";
+import { driftSeries, driftShare, driftValue } from "@/lib/mock/live-drift";
 import { getOpportunityRanking } from "@/lib/mock/priorities";
 import { REGIONS, getRegion, regionEleitorado } from "@/lib/mock/rj-regions";
 import type { RegionId } from "@/lib/mock/types";
+import { useIsMobile } from "@/lib/use-is-mobile";
+
+// Cadência do monitor vivo — dados mock "respiram" a cada tick.
+const LIVE_TICK_MS = 15000;
 
 const KPI_COLORS = ["#22c55e", "#60a5fa", "#f0c030", "#8b5cf6"];
 const REGION_COLORS = [
@@ -43,26 +48,44 @@ export function DashboardSection({
   const r = getRegion(region);
   const nomeRegiao = r?.nome ?? "Todo o RJ";
   const [tick, setTick] = useState(0);
+  // Inicializador preguiçoso: carimbo já no primeiro paint (texto divergente
+  // entre servidor/cliente é tolerado pelos suppressHydrationWarning abaixo).
+  const [lastSync, setLastSync] = useState(() =>
+    new Date().toLocaleTimeString("pt-BR"),
+  );
+  const isMobile = useIsMobile();
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 3500);
+    const id = setInterval(() => {
+      // Pausa o monitor quando a aba está em segundo plano (bateria/CPU).
+      if (document.visibilityState === "hidden") return;
+      setTick((t) => t + 1);
+      setLastSync(new Date().toLocaleTimeString("pt-BR"));
+    }, LIVE_TICK_MS);
     return () => clearInterval(id);
   }, []);
 
   const kpis = useMemo(() => getDashboardKpis(region), [region]);
   const evoOpt = useMemo(
-    () => lineOption(getIntencaoEvolution(region), { area: true }),
-    [region],
+    () =>
+      lineOption(
+        driftSeries(getIntencaoEvolution(region), tick, {
+          lastN: 3,
+          amplitude: 0.02,
+        }),
+        { area: true },
+      ),
+    [region, tick],
   );
   const faixa = useMemo(() => getFaixaEtaria(region), [region]);
   const faixaOpt = useMemo(
     () =>
       donutOption(
         faixa.labels,
-        faixa.datasets[0].data as number[],
+        driftShare(faixa.datasets[0].data as number[], tick, "faixa"),
         faixa.datasets[0].palette ?? ["#22c55e"],
         "%",
       ),
-    [faixa],
+    [faixa, tick],
   );
   const expected = useMemo(() => getExpectedVotesByRegion(), []);
   const expectedBarOpt = useMemo(
@@ -74,7 +97,9 @@ export function DashboardSection({
             {
               label: "Votos esperados",
               color: "#22c55e",
-              data: expected.regioes.map((x) => x.votos),
+              data: expected.regioes.map((x) =>
+                Math.round(driftValue(x.votos, tick, `votos:${x.id}`, 0.015)),
+              ),
               palette: expected.regioes.map(
                 (_, i) => REGION_COLORS[i % REGION_COLORS.length],
               ),
@@ -83,7 +108,7 @@ export function DashboardSection({
         },
         { horizontal: true },
       ),
-    [expected],
+    [expected, tick],
   );
   const temasByRegion = useMemo(() => {
     const map: Record<string, { tema: string; oportunidade: number }[]> = {};
@@ -149,11 +174,17 @@ export function DashboardSection({
         <div className="card">
           <div className="card-header">
             <div className="card-title">Votos Esperados por Região</div>
-            <span className="card-badge badge-real">
-              total {nf(expected.total)}
+            <span className="card-badge-group">
+              <span className="card-badge badge-real">
+                total {nf(expected.total)}
+              </span>
+              <span className="card-badge card-live-meta" title="Última atualização">
+                <span className="dot-live" aria-hidden="true" />
+                <span suppressHydrationWarning>{lastSync || "agora"}</span>
+              </span>
             </span>
           </div>
-          <EChart option={expectedBarOpt} height={320} />
+          <EChart option={expectedBarOpt} height={isMobile ? 240 : 320} />
         </div>
         <div className="card">
           <div className="card-header">
@@ -237,16 +268,22 @@ export function DashboardSection({
             <div className="card-title">
               Evolução da Intenção de Voto — 2026
             </div>
-            <span className="card-badge badge-azul">série</span>
+            <span className="card-badge card-live-meta" title="Última atualização">
+              <span className="dot-live" aria-hidden="true" />
+              <span suppressHydrationWarning>{lastSync || "agora"}</span>
+            </span>
           </div>
-          <EChart option={evoOpt} height={250} />
+          <EChart option={evoOpt} height={isMobile ? 220 : 250} />
         </div>
         <div className="card">
           <div className="card-header">
             <div className="card-title">Perfil do Eleitor</div>
-            <span className="card-badge badge-est">faixa etária</span>
+            <span className="card-badge card-live-meta" title="Última atualização">
+              <span className="dot-live" aria-hidden="true" />
+              <span suppressHydrationWarning>{lastSync || "agora"}</span>
+            </span>
           </div>
-          <EChart option={faixaOpt} height={250} />
+          <EChart option={faixaOpt} height={isMobile ? 220 : 250} />
         </div>
       </div>
 

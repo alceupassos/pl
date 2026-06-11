@@ -37,7 +37,7 @@ function chartCard(
 ): string {
   return `
     <div class="card">
-      <div class="card-header"><div class="card-title">${title}</div><span class="card-badge badge-azul">${badge}</span></div>
+      <div class="card-header"><div class="card-title">${title}</div><span class="card-badge-group"><span class="card-badge badge-azul">${badge}</span><span class="card-badge card-live-meta" title="Última atualização"><span class="dot-live" aria-hidden="true"></span> <span data-live-updated>agora</span></span></span></div>
       <div class="chart-wrap" style="height:${height}px;"><canvas id="${canvasId}"></canvas></div>
     </div>`;
 }

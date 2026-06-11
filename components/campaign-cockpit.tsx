@@ -14,7 +14,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { candidateDetails, pageTitles } from "@/components/campaign-data";
-import { renderSectionCharts } from "@/components/campaign-charts";
+import {
+  renderSectionCharts,
+  updateSectionCharts,
+} from "@/components/campaign-charts";
 import {
   navigationGroups,
   refreshableSections,
@@ -188,6 +191,7 @@ export function CampaignCockpit() {
     useState<CandidateKey>(DEFAULT_CANDIDATE);
   const [lastUpdate, setLastUpdate] = useState("—");
   const [refreshTick, setRefreshTick] = useState(0);
+  const [liveTick, setLiveTick] = useState(0);
   const [openLoginOnGuest, setOpenLoginOnGuest] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [activeRegion, setActiveRegion] = useState<RegionId>("all");
@@ -258,6 +262,11 @@ export function CampaignCockpit() {
       updateCountdownElement();
       if (refreshableSections.has(activeSection)) {
         renderSectionCharts(activeSection, activeRegion);
+        // Carimbo inicial — sem ele os cards mostrariam "agora" até o 1º tick.
+        const stamp = new Date().toLocaleTimeString("pt-BR");
+        document.querySelectorAll("[data-live-updated]").forEach((element) => {
+          element.textContent = stamp;
+        });
       }
       if (activeSection === "calculadora") {
         syncCalculatorOutputs();
@@ -268,6 +277,37 @@ export function CampaignCockpit() {
       if (app) app.classList.remove("logado");
     };
   }, [authStatus, activeSection, activeRegion, refreshTick]);
+
+  // Tick do monitor vivo — só roda em seções com gráficos Chart.js (a
+  // dashboard tem o próprio tick) e pausa com a aba em segundo plano. O
+  // carimbo "atualizado às" dos cards HTML é escrito direto no DOM
+  // (sobrevive ao tick porque o markup não é reinjetado).
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    if (!refreshableSections.has(activeSection)) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      setLiveTick((value) => value + 1);
+      setLastUpdate(formatLastUpdate());
+      const stamp = new Date().toLocaleTimeString("pt-BR");
+      document.querySelectorAll("[data-live-updated]").forEach((element) => {
+        element.textContent = stamp;
+      });
+    }, 20000);
+    return () => window.clearInterval(interval);
+  }, [authStatus, activeSection]);
+
+  // Atualiza os gráficos em vigor sem destruí-los (transição animada).
+  // Separado do efeito principal acima, que faz destrói-e-recria via
+  // renderSectionCharts.
+  useEffect(() => {
+    if (authStatus !== "authenticated" || liveTick === 0) return;
+    if (refreshableSections.has(activeSection)) {
+      updateSectionCharts(activeSection, activeRegion, liveTick);
+    }
+    // Intencionalmente disparado só pelo tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveTick]);
 
   // Ao trocar de seção, volta ao topo (mobile rola o documento; desktop rola #content).
   useEffect(() => {
