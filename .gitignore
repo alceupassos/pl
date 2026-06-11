@@ -16,5 +16,5 @@ out/
 # contador de build do carimbo de versão (persiste no servidor, fora do git)
 /data/build-counter.json
 
-# cache do índice de imprensa real (GDELT) — runtime, persiste no servidor
-/data/gdelt-imprensa.json
+# cache dos índices reais (GDELT) — runtime, persiste no servidor
+/data/gdelt-cache.json

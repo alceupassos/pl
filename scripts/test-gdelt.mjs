@@ -3,7 +3,7 @@
 //   node scripts/test-gdelt.mjs
 //   node scripts/test-gdelt.mjs "Outro Nome"
 //
-// A fórmula aqui espelha lib/sources/gdelt.ts (parseImprensaIndex). Se mexer
+// A fórmula aqui espelha lib/sources/gdelt.ts (indiceDeTimeline). Se mexer
 // numa, ajuste a outra. O objetivo é confirmar que, do IP do servidor, o GDELT
 // devolve JSON e o índice ~100 sai num valor sensato.
 

@@ -1,150 +1,228 @@
-// Fonte REAL de imprensa para o índice SOST — GDELT DOC 2.0 (grátis, sem chave).
-// https://api.gdeltproject.org/api/v2/doc/doc — modo timelinevol devolve a
-// "intensidade de volume" (fração da cobertura global) do termo ao longo do
-// tempo. Convertemos isso num índice ~100 (100 = cobertura típica da janela;
-// >100 = candidato em alta na imprensa) que entra no breakdown.imprensa.
+// Fonte REAL para o cockpit — GDELT DOC 2.0 (grátis, sem chave).
+// https://api.gdeltproject.org/api/v2/doc/doc
 //
-// Regras de ouro deste módulo:
-//  • getImprensaIndex() é SÍNCRONO e nunca lança — o tick do SSE lê o cache.
-//  • a busca é assíncrona, fora de banda (ensureFreshImprensa), com TTL e
-//    guarda de "em voo" — respeita o limite de 1 req/5s do GDELT de sobra.
-//  • falhou (throttle 429, rede, JSON inválido)? mantém o último bom; se nunca
-//    houve um, getImprensaIndex() devolve null e o live-mock cai no sintético.
-//  • o último valor bom é persistido em data/ para warm-start após restart.
+// Três feeds, todos sobre o termo principal da watchlist:
+//   • imprensa   → mode=timelinevol  (intensidade de cobertura)   → índice ~100
+//   • sentimento → mode=timelinetone (tom médio das notícias)     → índice ~100
+//   • alertas    → mode=artlist      (manchetes reais)            → Alert[]
+//
+// Regras de ouro:
+//  • os getters são SÍNCRONOS e nunca lançam — o tick do SSE só lê cache.
+//  • toda chamada ao GDELT passa por uma FILA com ≥6s de espaçamento (o limite
+//    é 1 req/5s) — várias conexões compartilham a mesma atualização.
+//  • falhou (429/rede/JSON inválido)? mantém o último bom; sem nenhum, os
+//    getters devolvem null/[] e o live-mock cai no sintético. Nunca quebra.
+//  • o último bom é persistido em data/ para warm-start após restart/deploy.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import type { Alert } from "@/lib/live-schemas";
+
 const TTL_MS = 15 * 60 * 1000; // 15 min — muito acima da etiqueta do GDELT
 const FETCH_TIMEOUT_MS = 20_000;
-const CACHE_FILE = join(process.cwd(), "data", "gdelt-imprensa.json");
+const MIN_GAP_MS = 6_000; // espaçamento entre chamadas ao GDELT (limite é 5s)
+const CACHE_FILE = join(process.cwd(), "data", "gdelt-cache.json");
 
-// Faixa sã do índice — protege o headline de spikes/zeros bizarros do GDELT.
+// Faixa sã dos índices — protege o headline de spikes/zeros bizarros.
 const IDX_MIN = 40;
 const IDX_MAX = 220;
+const MAX_ALERTAS = 50;
 
-type Cache = { at: number; value: number | null };
+type NumCache = { at: number; value: number | null };
 
-// Warm-start: tenta reidratar o último valor bom do disco (após deploy/restart).
-function loadDisk(): Cache {
-  try {
-    const raw = JSON.parse(readFileSync(CACHE_FILE, "utf8"));
-    if (typeof raw.value === "number" && Number.isFinite(raw.value)) {
-      return { at: 0, value: raw.value }; // at=0 força um refresh já no 1º tick
-    }
-  } catch {
-    /* sem cache em disco — primeira execução */
-  }
-  return { at: 0, value: null };
-}
+type DiskShape = { imprensa?: number; sentimento?: number };
 
-let cache: Cache = loadDisk();
+// ── estado em memória ────────────────────────────────────────────────────────
+let imprensa: NumCache = { at: 0, value: null };
+let sentimento: NumCache = { at: 0, value: null };
+let alertas: Alert[] = []; // rolling, mais novo primeiro
+const urlsVistas = new Set<string>();
 let inFlight = false;
 
-/** Índice de imprensa real (~100). null = sem sinal ainda → usar o sintético. */
+// Warm-start: reidrata os índices do disco (após deploy/restart).
+(function loadDisk() {
+  try {
+    const raw = JSON.parse(readFileSync(CACHE_FILE, "utf8")) as DiskShape;
+    if (typeof raw.imprensa === "number") imprensa = { at: 0, value: raw.imprensa };
+    if (typeof raw.sentimento === "number") sentimento = { at: 0, value: raw.sentimento };
+  } catch {
+    /* primeira execução — sem cache em disco */
+  }
+})();
+
+// ── getters síncronos (lidos pelo live-mock / rota SSE) ──────────────────────
+
+/** Índice de imprensa real (~100). null = sem sinal → usar o sintético. */
 export function getImprensaIndex(): number | null {
-  return cache.value;
+  return imprensa.value;
 }
 
-/** True se temos um valor real recente (para marcar a fonte na UI/diagnóstico). */
-export function imprensaIsLive(): boolean {
-  return cache.value !== null && Date.now() - cache.at < TTL_MS;
+/** Índice de sentimento real (~100; >100 = imprensa mais positiva). */
+export function getSentimentoIndex(): number | null {
+  return sentimento.value;
+}
+
+/** Alertas reais (manchetes) com tempo de DESCOBERTA em (from, to]. */
+export function realAlertasBetween(from: number, to: number): Alert[] {
+  return alertas.filter((a) => a.t > from && a.t <= to).sort((x, y) => x.t - y.t);
+}
+
+/** Backlog de alertas reais (mais novo primeiro) — para o snapshot inicial. */
+export function realAlertasRecentes(max = 20): Alert[] {
+  return alertas.slice(0, max);
 }
 
 /**
- * Dispara um refresh se o cache venceu e não há busca em voo. NÃO bloqueia:
- * pode ser chamado de dentro do loop de 1s do SSE à vontade — só dispara de
- * fato a cada TTL, e várias conexões compartilham a mesma busca.
+ * Dispara um refresh de todos os feeds vencidos. NÃO bloqueia: pode ser chamado
+ * do loop de 1s do SSE à vontade — só dispara a cada TTL e dedup entre conexões.
  */
-export function ensureFreshImprensa(termos: string[]): void {
+export function ensureFreshGdelt(termos: string[]): void {
   if (inFlight) return;
-  if (Date.now() - cache.at < TTL_MS && cache.value !== null) return;
+  const venceu =
+    Date.now() - imprensa.at >= TTL_MS ||
+    Date.now() - sentimento.at >= TTL_MS ||
+    imprensa.value === null;
+  if (!venceu) return;
   inFlight = true;
-  void refresh(termos).finally(() => {
+  void refreshAll(termos).finally(() => {
     inFlight = false;
   });
 }
 
-// Monta a query GDELT a partir dos termos da watchlist (1º termo é o principal).
-function buildUrl(termos: string[]): string {
-  const termo = termos[0] ?? "Sóstenes Cavalcante";
-  const query = `"${termo}"`; // aspas = frase exata
-  const params = new URLSearchParams({
-    query,
-    mode: "timelinevol",
-    timespan: "1week",
-    format: "json",
-  });
+// ── busca (assíncrona, fora de banda) ────────────────────────────────────────
+
+const termoPadrao = "Sóstenes Cavalcante";
+
+function urlFor(termo: string, extra: Record<string, string>): string {
+  const params = new URLSearchParams({ query: `"${termo}"`, format: "json", ...extra });
   return `https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`;
 }
 
-async function refresh(termos: string[]): Promise<void> {
+// Fila global: garante MIN_GAP_MS entre quaisquer chamadas ao GDELT.
+let ultimaChamada = 0;
+async function gdeltGet(url: string): Promise<string | null> {
+  const espera = MIN_GAP_MS - (Date.now() - ultimaChamada);
+  if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+  ultimaChamada = Date.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    let body: string;
-    try {
-      const res = await fetch(buildUrl(termos), {
-        signal: ctrl.signal,
-        headers: { "User-Agent": "sostenes-cockpit/1.0 (campaign monitor)" },
-      });
-      body = await res.text();
-      if (!res.ok) return; // 429/5xx → mantém o último bom
-    } finally {
-      clearTimeout(timer);
-    }
-    const idx = parseImprensaIndex(body);
-    if (idx === null) return; // throttle text / JSON vazio → mantém o último bom
-    cache = { at: Date.now(), value: idx };
-    persist(idx);
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "sostenes-cockpit/1.0 (campaign monitor)" },
+    });
+    const body = await res.text();
+    return res.ok ? body : null; // 429/5xx → mantém o último bom
   } catch {
-    /* rede caiu / abort — mantém o último valor bom em cache */
+    return null; // rede/abort
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-/**
- * Converte o JSON do timelinevol num índice ~100. Exportada para o script de
- * teste (scripts/test-gdelt.mjs) exercitar o parser com payload real.
- */
-export function parseImprensaIndex(body: string): number | null {
-  // O GDELT responde o throttle em texto puro ("Please limit requests…").
-  const trimmed = body.trimStart();
-  if (!trimmed.startsWith("{")) return null;
+async function refreshAll(termos: string[]): Promise<void> {
+  const termo = termos[0] ?? termoPadrao;
 
+  // 1) imprensa — volume de cobertura
+  const volBody = await gdeltGet(urlFor(termo, { mode: "timelinevol", timespan: "1week" }));
+  const volIdx = volBody ? indiceDeTimeline(volBody) : null;
+  if (volIdx !== null) imprensa = { at: Date.now(), value: volIdx };
+
+  // 2) sentimento — tom médio das notícias (-100..100) → índice ~100
+  const toneBody = await gdeltGet(urlFor(termo, { mode: "timelinetone", timespan: "1week" }));
+  const toneIdx = toneBody ? indiceDeTom(toneBody) : null;
+  if (toneIdx !== null) sentimento = { at: Date.now(), value: toneIdx };
+
+  // 3) alertas — manchetes recentes (descoberta = agora)
+  const artBody = await gdeltGet(
+    urlFor(termo, { mode: "artlist", maxrecords: "20", timespan: "1day", sort: "datedesc" }),
+  );
+  if (artBody) ingerirArtigos(artBody);
+
+  persist();
+}
+
+// ── parsers (exportados para o script de teste exercitar) ────────────────────
+
+/** Extrai os valores numéricos de um timeline do GDELT (vol ou tone). */
+function valoresDeTimeline(body: string): number[] | null {
+  const trimmed = body.trimStart();
+  if (!trimmed.startsWith("{")) return null; // throttle vem em texto puro
   let json: unknown;
   try {
     json = JSON.parse(trimmed);
   } catch {
     return null;
   }
-  const timeline = (json as { timeline?: { data?: { value?: number }[] }[] }).timeline;
-  const data = timeline?.[0]?.data;
-  if (!Array.isArray(data) || data.length < 3) return null;
-
-  const valores = data
+  const data = (json as { timeline?: { data?: { value?: number }[] }[] }).timeline?.[0]?.data;
+  if (!Array.isArray(data)) return null;
+  const vs = data
     .map((d) => d.value)
     .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
-  if (valores.length < 3) return null;
-
-  // "Hoje" = média dos 2 pontos mais recentes; baseline = mediana da janela
-  // (robusta a picos). Índice = quanto a cobertura atual está acima/abaixo do
-  // normal da semana, ancorado em 100.
-  const recente = (valores[valores.length - 1] + valores[valores.length - 2]) / 2;
-  const baseline = mediana(valores) || media(valores);
-  if (baseline <= 0) return null;
-
-  const idx = (recente / baseline) * 100;
-  return round1(clamp(idx, IDX_MIN, IDX_MAX));
+  return vs.length >= 3 ? vs : null;
 }
 
-function persist(value: number): void {
+/** Volume → índice ~100: cobertura recente vs mediana da janela. */
+export function indiceDeTimeline(body: string): number | null {
+  const vs = valoresDeTimeline(body);
+  if (!vs) return null;
+  const recente = (vs[vs.length - 1] + vs[vs.length - 2]) / 2;
+  const baseline = mediana(vs) || media(vs);
+  if (baseline <= 0) return null;
+  return round1(clamp((recente / baseline) * 100, IDX_MIN, IDX_MAX));
+}
+
+/** Tom médio (-100..100, tipicamente -10..10) → índice ~100 (100 = neutro). */
+export function indiceDeTom(body: string): number | null {
+  const vs = valoresDeTimeline(body);
+  if (!vs) return null;
+  const tomRecente = (vs[vs.length - 1] + vs[vs.length - 2]) / 2;
+  return round1(clamp(100 + tomRecente * 5, IDX_MIN, IDX_MAX));
+}
+
+function ingerirArtigos(body: string): void {
+  const trimmed = body.trimStart();
+  if (!trimmed.startsWith("{")) return;
+  let arts: { url?: string; title?: string; domain?: string }[] | undefined;
   try {
-    writeFileSync(CACHE_FILE, `${JSON.stringify({ at: Date.now(), value })}\n`);
+    arts = (JSON.parse(trimmed) as { articles?: typeof arts }).articles;
   } catch {
-    /* FS read-only — segue só com o cache em memória */
+    return;
+  }
+  if (!Array.isArray(arts)) return;
+  const agora = Date.now();
+  const novos: Alert[] = [];
+  for (const art of arts) {
+    if (!art.url || !art.title || urlsVistas.has(art.url)) continue;
+    urlsVistas.add(art.url);
+    novos.push({
+      id: `gdelt:${hash(art.url)}`,
+      t: agora, // tempo de DESCOBERTA — entra na janela do delta do SSE
+      nivel: "info",
+      tipo: "falaram_de_mim",
+      titulo: truncar(art.title, 90),
+      corpo: art.domain ? `Imprensa · ${art.domain}` : "Imprensa",
+      tab: "radar",
+    });
+  }
+  if (novos.length) {
+    alertas = [...novos, ...alertas].slice(0, MAX_ALERTAS);
   }
 }
 
+function persist(): void {
+  try {
+    const data: DiskShape = {};
+    if (imprensa.value !== null) data.imprensa = imprensa.value;
+    if (sentimento.value !== null) data.sentimento = sentimento.value;
+    writeFileSync(CACHE_FILE, `${JSON.stringify(data)}\n`);
+  } catch {
+    /* FS read-only — segue só com cache em memória */
+  }
+}
+
+// ── utilitários ──────────────────────────────────────────────────────────────
 function mediana(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
@@ -158,4 +236,12 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 function round1(v: number): number {
   return Math.round(v * 10) / 10;
+}
+function truncar(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+function hash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
 }
