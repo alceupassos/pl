@@ -15,6 +15,7 @@ import {
 } from "@/lib/live-mock";
 import type { Channel, Envelope } from "@/lib/live-schemas";
 import { sendPushToAll } from "@/lib/push";
+import { ensureFreshCamara } from "@/lib/sources/camara";
 import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
 import { readWatchlist } from "@/lib/watchlist";
 
@@ -76,9 +77,11 @@ export async function GET(request: NextRequest) {
       write("retry: 3000\n\n");
 
       const watchlist = await readWatchlist();
-      // Dispara a busca real de imprensa/manchetes (Google News RSS) já na
-      // conexão; o módulo respeita TTL e dedup entre conexões — é barato.
+      // Dispara as buscas reais já na conexão (cada módulo respeita TTL e dedup
+      // entre conexões — é barato): imprensa/manchetes (Google News) e a cota
+      // parlamentar (Câmara) que alimenta a aba gastos.
       ensureFreshNews(watchlist.termos);
+      ensureFreshCamara();
       const t0 = Date.now();
       for (const env of buildAllSnapshots(watchlist, t0, opts)) {
         send(env);
@@ -92,8 +95,9 @@ export async function GET(request: NextRequest) {
         if (closed) return;
         const now = Date.now();
 
-        // Mantém o feed de imprensa fresco (só refaz a cada TTL — ~15min).
+        // Mantém os feeds reais frescos (cada um só refaz no seu TTL).
         ensureFreshNews(watchlist.termos);
+        ensureFreshCamara();
 
         for (const ch of DELTA_CHANNELS) {
           // plenário acelera para 1s com votação em andamento

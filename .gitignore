@@ -21,3 +21,6 @@ out/
 
 # cache do índice de imprensa (Google News) — runtime, persiste no servidor
 /data/google-news-cache.json
+
+# cache da cota parlamentar real (Câmara) — runtime, persiste no servidor
+/data/camara-cache.json

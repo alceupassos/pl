@@ -10,6 +10,8 @@ import {
 } from "@/lib/mock/campaign-metrics";
 import { ORCAMENTO_TOTAL, RUBRICAS } from "@/lib/mock/gastos-rubricas";
 import { MUNICAO } from "@/lib/mock/media";
+// Fonte REAL: cota parlamentar (Câmara) alimenta a aba gastos quando disponível.
+import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
 import {
   getActivityFeed,
   getOrgAggregates,
@@ -492,7 +494,84 @@ export function deltaPesquisas(now: number): PesquisasDelta {
 
 /* ══ gastos ══ */
 
+// Teto anual de referência da Cota Parlamentar (CEAP) para deputados do RJ,
+// em R$ mil (~R$ 47k/mês). Aproximado — base para o saldo disponível.
+const COTA_ANUAL_MIL = 565;
+const MESES_ABREV = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** Constrói a aba gastos a partir da cota parlamentar REAL (Câmara). */
+function gastosReais(cota: CotaReal, now: number): GastosState {
+  const mil = (reais: number) => Math.round((reais / 1000) * 10) / 10; // R$ → R$ mil (1 casa)
+  const gasto = mil(cota.totalReais);
+  const total = COTA_ANUAL_MIL;
+  const d = new Date(now);
+  const inicioAno = new Date(d.getFullYear(), 0, 1).getTime();
+  const fracaoAno = Math.max(0.04, (now - inicioAno) / (365 * 86_400_000));
+  const votos = getExpectedVotesByRegion().total;
+
+  // rubricas: categorias REAIS; orcado = projeção anual no ritmo atual.
+  const rubricas = cota.categorias.slice(0, 8).map((c) => {
+    const g = mil(c.reais);
+    const orcado = Math.max(g, Math.round(g / fracaoAno));
+    const pct = Math.round((g / Math.max(0.1, orcado)) * 100);
+    return {
+      nome: c.nome,
+      orcado,
+      gasto: g,
+      pct,
+      status: pct > 100 ? ("estouro" as const) : pct > 85 ? ("atencao" as const) : ("ok" as const),
+    };
+  });
+
+  // execução mensal REAL (cumulativa) + linha plana planejada + projeção no ritmo.
+  const labels: string[] = [];
+  const realizado: number[] = [];
+  let acc = 0;
+  for (const m of cota.porMes) {
+    acc += m.reais;
+    labels.push(MESES_ABREV[(m.mes - 1) % 12]);
+    realizado.push(mil(acc));
+  }
+  const nMes = Math.max(1, labels.length);
+  const planejado = realizado.map((_, i) => round1((total * (i + 1)) / 12));
+  const ritmoMes = realizado.length ? realizado[realizado.length - 1] / nMes : 0;
+  const projecao = realizado.map((_, i) => round1(ritmoMes * (i + 1)));
+
+  const ultimoMes = cota.porMes.length ? mil(cota.porMes[cota.porMes.length - 1].reais) : 0;
+  const penultimo = cota.porMes.length > 1 ? mil(cota.porMes[cota.porMes.length - 2].reais) : ultimoMes;
+
+  return {
+    saldo: { total, gasto, disponivel: round1(total - gasto), pctExecutado: round1((gasto / total) * 100) },
+    execucao: { labels, planejado, realizado, projecao },
+    fontes: [{ nome: "Cota parlamentar (CEAP)", valor: gasto, pct: 100, cor: "#16C784" }],
+    rubricas,
+    burnRate: {
+      semanaAtual: round1(ultimoMes / 4.3),
+      mediaSemanal: round1(gasto / nMes / 4.3),
+      tendencia:
+        ultimoMes > penultimo * 1.1 ? "acelerando" : ultimoMes < penultimo * 0.9 ? "desacelerando" : "estavel",
+    },
+    custoPorVoto: {
+      atual: round1((gasto * 1000) / Math.max(1, votos)),
+      projetado: round1((total * 1000) / Math.max(1, votos)),
+      benchmark: 38,
+    },
+    alertas: rubricas
+      .filter((r) => r.status !== "ok")
+      .map((r) => ({
+        rubrica: r.nome,
+        msg: `${r.nome} consumiu ${r.pct}% do projetado para o ano`,
+        nivel: r.status === "estouro" ? ("vermelho" as const) : ("amarelo" as const),
+      })),
+  };
+}
+
 export function snapshotGastos(now: number): GastosState {
+  // Cota parlamentar real (Câmara) quando disponível; senão, rubricas sintéticas.
+  const cota = getCotaReal();
+  if (cota && cota.totalReais > 0 && cota.categorias.length) {
+    return gastosReais(cota, now);
+  }
   const exec = getFinanceiroExecucao();
   const num = (v: number | null) => (typeof v === "number" ? v : 0);
   const planejado = exec.datasets[0].data.map(num);
