@@ -12,6 +12,7 @@ import { ORCAMENTO_TOTAL, RUBRICAS } from "@/lib/mock/gastos-rubricas";
 import { MUNICAO } from "@/lib/mock/media";
 // Fonte REAL: cota parlamentar (Câmara) alimenta a aba gastos quando disponível.
 import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
+import { META_ELEITORES, diasAteEleicao } from "@/lib/mock/campaign-goal";
 import {
   getActivityFeed,
   getOrgAggregates,
@@ -234,14 +235,22 @@ function cadastrosHoje(now: number, seed: string, ratePerMin: number): number {
 export function snapshotEquipe(now: number): EquipeSnapshot {
   const agg = getOrgAggregates("all");
   const cadHoje = cadastrosHoje(now, "cad:all", 2.6);
-  const cadastrados = agg.metas.atual.cadastro + cadHoje;
-  const velocidadeMin = round1(2.6 * (1 + 0.35 * noise("vel:all", now, 2)) + 0.4);
+  // Escala todos os totais de eleitores para cravar a meta consolidada em 79k.
+  const escala = META_ELEITORES / Math.max(1, agg.metas.lista.cadastro);
+  const sc = (v: number) => Math.round(v * escala);
+  const cadastrados = sc(agg.metas.atual.cadastro + cadHoje);
+  // Ritmo realista: levemente abaixo do necessário para fechar 79k até outubro
+  // (conta a história de "muito trabalho pela frente").
+  const ritmoNecessarioDia = (META_ELEITORES - cadastrados) / diasAteEleicao(now);
+  const velocidadeMin = round1(
+    Math.max(0.1, (ritmoNecessarioDia / (60 * 14)) * (0.85 + 0.1 * Math.abs(noise("vel:all", now, 2)))),
+  );
 
   const porRegiao = REGIONS.map((r) => {
     const a = getOrgAggregates(r.id);
     const extra = cadastrosHoje(now, `cad:${r.id}`, 0.34 * r.escala);
-    const cad = a.metas.atual.cadastro + extra;
-    const meta = a.metas.lista.cadastro;
+    const cad = sc(a.metas.atual.cadastro + extra);
+    const meta = sc(a.metas.lista.cadastro);
     return {
       id: r.id,
       nome: r.apelido,
@@ -283,8 +292,8 @@ export function snapshotEquipe(now: number): EquipeSnapshot {
       plural: "Eleitores na base",
       cor: "#60a5fa",
       avatar: LEVEL_AVATAR.eleitor,
-      count: agg.eleitores + cadHoje,
-      cadastroPct: round1((cadastrados / Math.max(1, agg.metas.lista.cadastro)) * 100),
+      count: sc(agg.eleitores + cadHoje),
+      cadastroPct: round1((cadastrados / META_ELEITORES) * 100),
       engajadoPct: round1((agg.metas.atual.engajado / Math.max(1, agg.metas.atual.cadastro)) * 100),
       topPerformer: { nome: "Comunidade Frade (Angra)", pct: 112 },
     },
@@ -296,25 +305,25 @@ export function snapshotEquipe(now: number): EquipeSnapshot {
       nivel: o.nivel,
       regiao: o.regiao,
       atingimentoPct: round1((o.atual.cadastro / Math.max(1, o.meta.cadastro)) * 100),
-      cadastrados: o.atual.cadastro,
+      cadastrados: sc(o.atual.cadastro),
     }))
     .sort((a, b) => b.atingimentoPct - a.atingimentoPct)
     .slice(0, 10);
 
   return {
     geral: {
-      lista: agg.metas.atual.lista + Math.floor(cadHoje * 1.6),
+      lista: sc(agg.metas.atual.lista + Math.floor(cadHoje * 1.6)),
       cadastrados,
-      engajados: agg.metas.atual.engajado + Math.floor(cadHoje * 0.45),
-      meta: agg.metas.lista.cadastro,
+      engajados: sc(agg.metas.atual.engajado + Math.floor(cadHoje * 0.45)),
+      meta: META_ELEITORES,
       velocidadeMin,
     },
     porRegiao,
     tiers,
     funil: {
-      lista: agg.metas.atual.lista + Math.floor(cadHoje * 1.6),
+      lista: sc(agg.metas.atual.lista + Math.floor(cadHoje * 1.6)),
       cadastro: cadastrados,
-      engajado: agg.metas.atual.engajado + Math.floor(cadHoje * 0.45),
+      engajado: sc(agg.metas.atual.engajado + Math.floor(cadHoje * 0.45)),
     },
     ranking,
     feed: feedBase(now),

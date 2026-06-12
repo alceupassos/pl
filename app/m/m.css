@@ -331,6 +331,81 @@ body:has(.m-app:not(.m-embed)) {
   }
 }
 
+/* ── barra da meta de eleitores (com marcador "previsto p/ hoje") ── */
+.m-meta-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-top: 8px;
+}
+.m-meta-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+.m-meta-tick {
+  position: absolute;
+  top: -3px;
+  height: 16px;
+  width: 2px;
+  background: #e8ecf4;
+  border-radius: 2px;
+  transform: translateX(-1px);
+}
+
+/* ── cards de sinal (imprensa/sentimento/seguidores/menções) ── */
+.m-signal {
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.m-signal-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+}
+.m-signal-label {
+  font-weight: 700;
+  color: #cfd6e4;
+}
+.m-signal-val {
+  font-family: var(--m-font-mono);
+  font-size: 22px;
+  font-weight: 800;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.m-signal-frase {
+  font-size: 10.5px;
+  color: var(--m-muted);
+}
+.m-signal-tag {
+  align-self: flex-start;
+  margin-top: 3px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+.m-signal-tag.real {
+  color: #16c784;
+  background: rgba(22, 199, 132, 0.1);
+  border: 1px solid rgba(22, 199, 132, 0.3);
+}
+.m-signal-tag.mock {
+  color: var(--m-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--m-border);
+}
+
 /* ── tab bar inferior ── */
 .m-tabbar {
   position: fixed;
