@@ -7,7 +7,9 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+
+import { logClientAccess } from "@/lib/log-client-access";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
@@ -97,6 +99,10 @@ export default function MobileIndicePage() {
   const formula = pesos
     ? COMPONENTES.map((c) => `${Math.round(pesos[c.key] * 100)}% × ${c.nome.toLowerCase()}`).join("  +  ")
     : null;
+
+  useEffect(() => {
+    logClientAccess("mobile_page_view", "/m/indice");
+  }, []);
 
   return (
     <div

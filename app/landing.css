@@ -1220,6 +1220,8 @@ body:has(.mapa-page) {
   max-width: 92%;
   aspect-ratio: 613 / 639;
   transform: translate(-50%, -50%);
+  transform-origin: center center;
+  transition: transform 0.15s ease;
 }
 .mapa-brazil {
   display: block;
@@ -1280,11 +1282,94 @@ body:has(.mapa-page) {
   background: #a6ffd0;
   box-shadow: 0 0 16px rgba(166, 255, 208, 0.9);
 }
+.mapa-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
 .mapa-filter-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+.mapa-zoom-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.mapa-zoom-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 255, 176, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8fff4;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.mapa-zoom-btn:hover {
+  border-color: rgba(125, 255, 176, 0.45);
+  background: rgba(71, 255, 132, 0.1);
+}
+.mapa-zoom-reset {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mapa-zoom-label {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #b8ffd4;
+}
+.mapa-canvas--scroll {
+  overflow: auto;
+}
+.mapa-map-scroller {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+}
+.mapa-side-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
+}
+.mapa-side-head h2 {
+  margin: 0;
+}
+.mapa-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #89fdb5;
+}
+.mapa-sort select {
+  min-width: 148px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 255, 176, 0.22);
+  background: rgba(6, 10, 14, 0.92);
+  color: #e8fff4;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 .mapa-filter-btn {
   padding: 8px 12px;

@@ -31,6 +31,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { TAB_IDS, type TabId } from "@/components/mobile/tabs";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { logClientAccess } from "@/lib/log-client-access";
 import type { PlenarioState } from "@/lib/live-schemas";
 
 const ghost = () => <div className="m-ghost">carregando módulo…</div>;
@@ -88,6 +89,11 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
     tabbarRef.current
       ?.querySelectorAll<HTMLButtonElement>(".m-tab")
       [index]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [index]);
+
+  useEffect(() => {
+    const tab = TABS[index];
+    logClientAccess("mobile_tab_view", `/m/${tab.id}`, { tab: tab.id });
   }, [index]);
 
   const setActive = useCallback((i: number) => {
