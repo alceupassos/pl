@@ -88,10 +88,24 @@ Because state is files under `process.cwd()`, this app assumes a **writable, per
 
 ## Deploy
 
-Production runs on a self-managed VPS (persistent, writable filesystem — required, see the file-based persistence above). Deploy over SSH:
+Production runs on a **self-managed VPS** (Ubuntu, host `vmi3199324`, persistent writable filesystem — required, see file-based persistence above). Connect:
 
 ```bash
-ssh root@62.171.181.241
+ssh root@62.171.181.241      # root password provided out-of-band; NOT stored in repo
 ```
 
-The root password is **not** stored in the repo (this file is committed and pushed to GitHub) — provide it at connect time or, better, set up an SSH key. Typical deploy on the box: `git pull && npm ci && npm run build &&` restart the service. The `prebuild` step bumps the version stamp (`v4.x`) shown in the `/m` header — see `scripts/bump-version.mjs` + `data/build-counter.json` (gitignored, persists on the server).
+The box runs **PM2** with several unrelated apps — `sostenes`, `camara-angra`, `agente`, `gama`, `pesquisa`, `capataz`, `strategy`, `whatsgate`. **This project is the PM2 app `candidato`** (do not touch the others).
+
+- **App dir**: `/opt/candidato`
+- **Tracks**: `origin` = `github.com/alceupassos/pl`, branch `candidato-deploy`
+- **Deploy** (no dependency changes → skip install; otherwise add `npm ci`):
+
+  ```bash
+  cd /opt/candidato
+  git pull --ff-only origin candidato-deploy
+  npm run build                 # prebuild bumps v4.x; data/build-counter.json (gitignored) persists here
+  pm2 restart candidato --update-env
+  ```
+
+- `data/access-log.jsonl` is **mutated at runtime** on the server (shows as locally modified). It isn't touched by app-code commits, so a fast-forward pull preserves the server's live copy — never overwrite it with the repo's older version.
+- The version stamp (`v4.x`) shows in the `/m` header for cache diagnosis on the device — see `scripts/bump-version.mjs` + `next.config.ts`.
