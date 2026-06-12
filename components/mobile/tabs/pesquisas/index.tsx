@@ -20,6 +20,7 @@ import {
 } from "@/components/mobile/m-chart-options";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -65,7 +66,7 @@ function PesquisaPropriaCard({ propria }: { propria: PesquisasSnapshot["propria"
     <FlashCard watch={live.respondidos}>
       <div className="m-card-head">
         <span className="m-card-title">PESQUISA PRÓPRIA · AO VIVO</span>
-        <span className="m-signal-tag mock">modelado</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <p style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px" }}>{propria.pergunta}</p>
@@ -122,6 +123,7 @@ function PlacarOficial({ ranking }: { ranking: PesquisasSnapshot["oficiais"]["ra
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Placar oficial · Dep. Federal RJ</span>
+        <FonteBadge real={false} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {posSost > 0 ? <span className="m-pill amarelo">você</span> : null}
           <LiveBadge ch="pesquisas" cadenceMs={5000} />
@@ -174,6 +176,7 @@ function Tendencia({ oficiais }: { oficiais: PesquisasSnapshot["oficiais"] }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Tendência · 6 ondas</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <LazyChart option={option} height={200} />
@@ -218,6 +221,7 @@ function IntencaoRejeicao({ ranking }: { ranking: PesquisasSnapshot["oficiais"][
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Intenção × Rejeição — a ameaça real</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <LazyChart option={option} height={220} />
@@ -255,6 +259,7 @@ function PorInstituto({ institutos }: { institutos: PesquisasSnapshot["oficiais"
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Por instituto</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <LazyChart option={option} height={190} />
@@ -293,6 +298,7 @@ function Recortes({ recortes }: { recortes: PesquisasSnapshot["oficiais"]["recor
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Recortes demográficos</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
@@ -339,6 +345,7 @@ function Sentimento({ sentimento }: { sentimento: { pos: number; neu: number; ne
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Sentimento da amostra própria</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <LazyChart option={option} height={150} />
@@ -358,6 +365,7 @@ function Calendario({ calendario }: { calendario: PesquisasSnapshot["calendario"
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Calendário de campo</span>
+        <FonteBadge real={false} />
         <span className="m-pill">{calendario.length} semanas</span>
       </div>
       <div>

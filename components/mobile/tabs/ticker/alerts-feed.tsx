@@ -10,7 +10,11 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { donutOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
+
+const AUTO_FLIP_MS = 10_000;
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { AlertsSnapshot } from "@/lib/live-schemas";
 
@@ -37,6 +41,7 @@ function AlertsFront() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Alertas</span>
+        <FonteBadge real={true} como={FONTE_COMO.newsRadar} />
         <LiveBadge ch="alerts" cadenceMs={20000} />
       </div>
       {alertas.length ? (
@@ -125,5 +130,5 @@ export function AlertsFeed() {
       </div>
     );
   }
-  return <FlipCard front={<AlertsFront />} back={<AlertsBack />} />;
+  return <FlipCard autoFlipMs={AUTO_FLIP_MS} front={<AlertsFront />} back={<AlertsBack />} />;
 }

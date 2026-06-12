@@ -11,7 +11,10 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { avatarRacingOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+
+const AUTO_FLIP_MS = 10_000;
 import { avatarForChart } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -44,6 +47,7 @@ function ResumoFront({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Equipe de campo</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "2px 0 6px" }}>
@@ -125,7 +129,13 @@ export function EquipeResumo() {
       </div>
     );
   }
-  return <FlipCard front={<ResumoFront equipe={equipe} />} back={<ResumoBack equipe={equipe} />} />;
+  return (
+    <FlipCard
+      autoFlipMs={AUTO_FLIP_MS}
+      front={<ResumoFront equipe={equipe} />}
+      back={<ResumoBack equipe={equipe} />}
+    />
+  );
 }
 
 function Num({ label, valor }: { label: string; valor: number }) {

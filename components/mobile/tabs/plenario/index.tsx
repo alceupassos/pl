@@ -17,10 +17,12 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { donutOption, mGaugeOption, racingBarOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { PlenarioState } from "@/lib/live-schemas";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 
 /* ── PLACAR DE VOTAÇÃO ── */
 
@@ -38,6 +40,7 @@ function PlacarFront({ plenario }: { plenario: PlenarioState }) {
             EM VOTAÇÃO
           </span>
         </span>
+        <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={1000} />
       </div>
       <div className="m-feed-title" style={{ marginBottom: 10 }}>
@@ -88,6 +91,7 @@ function PlacarBack({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Placar detalhado</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={1000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -108,6 +112,7 @@ export function PlacarVotacao({ plenario }: { plenario: PlenarioState }) {
       <div className="m-card">
         <div className="m-card-head">
           <span className="m-card-title">Votação nominal</span>
+          <FonteBadge real={false} />
           <LiveBadge ch="plenario" cadenceMs={10000} />
         </div>
         <div className="m-ghost">plenário sem votação nominal em andamento</div>
@@ -133,6 +138,7 @@ function FidelidadeFront({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Fidelidade da bancada PL</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <EChart option={option} height={140} />
@@ -174,6 +180,7 @@ function FidelidadeBack({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Disciplina da bancada</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -225,6 +232,7 @@ export function CaboDeGuerra({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Cabo de guerra narrativo · hoje</span>
+        <FonteBadge real={false} />
         <span className="m-mono m-muted-c" style={{ fontSize: 10 }}>
           share of voice
         </span>
@@ -270,6 +278,7 @@ function VozFront({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Quem fala pela oposição · 6h</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -292,6 +301,7 @@ function VozBack({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Ranking de vozes · oposição</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -320,9 +330,10 @@ export default function PlenarioTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <span className={`m-signal-tag ${plenario.fonte === "real" ? "real" : "mock"}`}>
-          {plenario.fonte === "real" ? "real · Câmara" : "modelado"}
-        </span>
+        <FonteBadge
+          real={plenario.fonte === "real"}
+          como={FONTE_COMO.plenario}
+        />
       </div>
       <PlacarVotacao plenario={plenario} />
       <FidelidadeBancada plenario={plenario} />

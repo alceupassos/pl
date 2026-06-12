@@ -12,7 +12,11 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { compareLinesOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
+
+const AUTO_FLIP_MS = 10_000;
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { getAvatar } from "@/lib/avatars";
@@ -64,6 +68,10 @@ function CompetitorFront() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Você vs concorrentes · RJ</span>
+        <FonteBadge
+          real={!!idx?.fontes && Object.values(idx.fontes).some((f) => f === "real")}
+          como={`${FONTE_COMO.idxComposto} Base 2022: ${FONTE_COMO.votos2022}`}
+        />
         <LiveBadge ch="quotes.rj" cadenceMs={5000} />
       </div>
       {dados ? (
@@ -214,5 +222,7 @@ export function CompetitorTape() {
     );
   }
 
-  return <FlipCard front={<CompetitorFront />} back={<CompetitorBack />} />;
+  return (
+    <FlipCard autoFlipMs={AUTO_FLIP_MS} front={<CompetitorFront />} back={<CompetitorBack />} />
+  );
 }

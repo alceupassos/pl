@@ -15,6 +15,7 @@ import {
 } from "@/components/mobile/m-chart-options";
 import { MapaRj } from "@/components/mobile/tabs/rio/mapa-rj";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -29,6 +30,7 @@ function RegionCardsFront({ rio }: { rio: RioPulsos }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Regiões · menções agora</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -85,6 +87,7 @@ function RegionCardsBack({ rio }: { rio: RioPulsos }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Momentum de menções · por região</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={190} />
@@ -121,6 +124,7 @@ function RacingRjFront({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlis
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Racing · concorrentes no RJ (menções)</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -160,6 +164,7 @@ function RacingRjBack({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Quem cresce mais · RJ</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={190} />
@@ -192,6 +197,7 @@ function EqualizadorEvangelicoFront({ rio, watchlist }: { rio: RioPulsos; watchl
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Equalizador · ecossistema evangélico RJ</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 110, padding: "0 2px" }}>
@@ -261,6 +267,7 @@ function EqualizadorEvangelicoBack({ rio, watchlist }: { rio: RioPulsos; watchli
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Entidades mais ativas · evangélico RJ</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={190} />

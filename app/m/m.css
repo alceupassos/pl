@@ -286,6 +286,9 @@ body:has(.m-app:not(.m-embed)) {
 .m-flip.virado .m-flip-inner {
   transform: rotateY(180deg);
 }
+.m-flip.eixo-x.virado .m-flip-inner {
+  transform: rotateX(180deg);
+}
 .m-flip-face {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -298,6 +301,9 @@ body:has(.m-app:not(.m-embed)) {
   position: absolute;
   inset: 0;
   transform: rotateY(180deg);
+}
+.m-flip.eixo-x .m-flip-back {
+  transform: rotateX(180deg);
 }
 /* o verso ocupa a mesma caixa do front e rola por dentro */
 .m-flip-back > .m-card {
@@ -326,9 +332,92 @@ body:has(.m-app:not(.m-embed)) {
   z-index: 2;
 }
 @media (prefers-reduced-motion: reduce) {
-  .m-flip-inner {
+  .m-flip-inner,
+  .m-rotate-inner {
     transition: none;
   }
+  .m-countdown-fill {
+    animation: none !important;
+    width: 0 !important;
+  }
+}
+
+/* ── slot rotativo (2+ cards, flip horizontal) ── */
+.m-rotate-slot,
+.m-flip-wrap {
+  position: relative;
+}
+.m-rotate {
+  position: relative;
+  perspective: 1400px;
+}
+.m-rotate-inner {
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.m-rotate.virado .m-rotate-inner {
+  transform: rotateY(180deg);
+}
+.m-rotate-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.m-rotate-front {
+  position: relative;
+}
+.m-rotate-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+/* ── contagem regressiva do ciclo automático ── */
+.m-countdown-track {
+  height: 2px;
+  margin-top: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.m-countdown-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--m-muted);
+  opacity: 0.55;
+  transform-origin: left center;
+  animation: m-countdown-run linear forwards;
+}
+@keyframes m-countdown-run {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* ── badge DADO SIMULADO / DADOS REAIS ── */
+.m-fonte-badge {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+  cursor: default;
+}
+.m-fonte-badge.real {
+  color: #16c784;
+  background: rgba(22, 199, 132, 0.12);
+  border: 1px solid rgba(22, 199, 132, 0.35);
+}
+.m-fonte-badge.mock {
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.35);
 }
 
 /* ── barra da meta de eleitores (com marcador "previsto p/ hoje") ── */
@@ -401,9 +490,9 @@ body:has(.m-app:not(.m-embed)) {
   border: 1px solid rgba(22, 199, 132, 0.3);
 }
 .m-signal-tag.mock {
-  color: var(--m-muted);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--m-border);
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.35);
 }
 
 /* ── tab bar inferior ── */

@@ -561,6 +561,7 @@ function gastosReais(cota: CotaReal, now: number): GastosState {
   const penultimo = cota.porMes.length > 1 ? mil(cota.porMes[cota.porMes.length - 2].reais) : ultimoMes;
 
   return {
+    fonteDados: "real" as const,
     saldo: { total, gasto, disponivel: round1(total - gasto), pctExecutado: round1((gasto / total) * 100) },
     execucao: { labels, planejado, realizado, projecao },
     fontes: [{ nome: "Cota parlamentar (CEAP)", valor: gasto, pct: 100, cor: "#16C784" }],
@@ -623,6 +624,7 @@ export function snapshotGastos(now: number): GastosState {
   const votosEsperados = getExpectedVotesByRegion().total;
 
   return {
+    fonteDados: "modelado" as const,
     saldo: {
       total,
       gasto,

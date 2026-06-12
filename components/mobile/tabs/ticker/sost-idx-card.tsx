@@ -13,11 +13,14 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { candlestickOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { InfoTip } from "@/components/mobile/ui/info-tip";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { EquipeSnapshot, IdxSnapshot } from "@/lib/live-schemas";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
+import { META_ELEITORES } from "@/lib/mock/campaign-goal";
 import type { Watchlist } from "@/lib/watchlist";
 
 // 1º turno das eleições 2026 (referência fixa para a projeção de cadastro).
@@ -62,20 +65,52 @@ const PARTES: {
   },
 ];
 
+function idxTemReal(idx: IdxSnapshot): boolean {
+  if (!idx.fontes) return false;
+  return Object.values(idx.fontes).some((f) => f === "real");
+}
+
 /* ── FRENTE — o índice de hoje ── */
-function IdxFront({ idx, watchlist }: { idx: IdxSnapshot; watchlist: Watchlist | null }) {
+function IdxFront({
+  idx,
+  watchlist,
+  equipe,
+}: {
+  idx: IdxSnapshot;
+  watchlist: Watchlist | null;
+  equipe: EquipeSnapshot | null;
+}) {
   const option = useMemo(
     () => candlestickOption({ candles: [...idx.candles30d, idx.candleVivo] }),
     [idx],
   );
   const positivo = idx.variacaoDia >= 0;
+  const cadastrados = equipe?.geral.cadastrados ?? 0;
+  const dentroMeta = cadastrados >= META_ELEITORES;
   return (
     <FlashCard watch={idx.valor}>
       <div className="m-card-head">
         <span className="m-card-title">
           {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
         </span>
+        <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
         <LiveBadge ch="idx.sost" cadenceMs={2000} />
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 3,
+          }}
+        >
+          <span className="m-pill amarelo" style={{ fontSize: 9 }}>
+            meta {META_ELEITORES.toLocaleString("pt-BR")}
+          </span>
+          <span className={`m-pill ${dentroMeta ? "up" : "amarelo"}`} style={{ fontSize: 9 }}>
+            alcançado {cadastrados.toLocaleString("pt-BR")}
+          </span>
+        </span>
       </div>
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
@@ -171,6 +206,11 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
         É o <strong>termômetro da campanha</strong>: junta 4 sinais num número só, como uma ação na
         bolsa. <strong>Subiu = candidato em alta.</strong>
       </p>
+      <p style={{ fontSize: 11.5, lineHeight: 1.45, margin: "0 0 8px", color: "var(--m-muted)" }}>
+        Mesma filosofia do <strong>Brandwatch</strong> e de índices de reputação: um número único que
+        resume a imagem pública do candidato — imprensa, sentimento, base online e buzz de busca —
+        para qualquer campanha entender de relance se está ganhando ou perdendo terreno.
+      </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
         {PARTES.map((p) => (
           <div key={p.key} style={{ fontSize: 11, color: "var(--m-muted)" }}>
@@ -254,7 +294,7 @@ export function SostIdxCard() {
 
   return (
     <FlipCard
-      front={<IdxFront idx={idx} watchlist={watchlist} />}
+      front={<IdxFront idx={idx} watchlist={watchlist} equipe={equipe.data} />}
       back={<IdxBack equipe={equipe.data} agora={equipe.lastAt} />}
     />
   );

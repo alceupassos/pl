@@ -16,6 +16,7 @@ import {
   sparklineOption,
 } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -59,6 +60,7 @@ function HeroCadastros({ equipe }: { equipe: EquipeSnapshot }) {
     <FlashCard watch={g.cadastrados}>
       <div className="m-card-head">
         <span className="m-card-title">Eleitores cadastrados</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <div className="m-headline-num">
@@ -121,6 +123,7 @@ function PorRegiao({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Cadastros por região · tempo real</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -145,6 +148,7 @@ function Camadas({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">As 3 camadas da operação</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <div className="m-carousel" data-no-swipe>
@@ -212,6 +216,7 @@ function FunilBase({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Funil da base</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <LazyChart option={option} height={170} />
@@ -247,6 +252,7 @@ function RankingLideres({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Ranking de líderes</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <div data-no-swipe>
@@ -307,6 +313,7 @@ function AtividadeAoVivo({
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Atividade ao vivo</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
       <div>

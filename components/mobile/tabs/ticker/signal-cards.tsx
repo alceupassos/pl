@@ -13,7 +13,18 @@ import { candlestickOption } from "@/components/mobile/m-chart-options";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
+
+const AUTO_FLIP_MS = 10_000;
+
+const FONTE_COMO_SINAL: Record<keyof IdxSnapshot["breakdown"], string> = {
+  imprensa: FONTE_COMO.imprensa,
+  sentimento: FONTE_COMO.sentimento,
+  seguidores: FONTE_COMO.seguidores,
+  mencoes: FONTE_COMO.mencoes,
+};
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { getAvatar } from "@/lib/avatars";
 import type { IdxSnapshot } from "@/lib/live-schemas";
@@ -93,7 +104,7 @@ function SignalCard({ sinal, valor }: { sinal: SinalDef; valor: number }) {
         </span>
       </div>
       <div className="m-signal-frase">{sinal.frase(valor)}</div>
-      <span className={`m-signal-tag ${sinal.real ? "real" : "mock"}`}>{sinal.fonte}</span>
+      <FonteBadge real={sinal.real} como={FONTE_COMO_SINAL[sinal.key]} />
     </div>
   );
 }
@@ -111,6 +122,10 @@ function SignalsFront({ idx }: { idx: IdxSnapshot }) {
         }}
       >
         <span className="m-card-title">Imagem do candidato · 4 sinais</span>
+        <FonteBadge
+          real={!!idx.fontes && Object.values(idx.fontes).some((f) => f === "real")}
+          como={FONTE_COMO.idxComposto}
+        />
         <LiveBadge ch="idx.sost" cadenceMs={2000} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -200,5 +215,11 @@ export function SignalCards() {
     );
   }
 
-  return <FlipCard front={<SignalsFront idx={idx} />} back={<SignalsBack idx={idx} />} />;
+  return (
+    <FlipCard
+      autoFlipMs={AUTO_FLIP_MS}
+      front={<SignalsFront idx={idx} />}
+      back={<SignalsBack idx={idx} />}
+    />
+  );
 }

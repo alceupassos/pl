@@ -19,6 +19,7 @@ import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news"
 import { getPlenarioReal } from "@/lib/sources/plenario";
 import { getSentimentoReal } from "@/lib/sources/sentiment";
 import { getTrendsReal, hasTrendsReal } from "@/lib/sources/trends";
+import { idxOpenToday, mergeIdxCandles, recordIdxClose } from "@/lib/sources/idx-history";
 import { getSeguidoresReal } from "@/lib/sources/youtube";
 import { getFontePesquisa, getPesquisas, getPresidencial, type CandKey } from "@/lib/sources/pesquisas";
 import type { Watchlist } from "@/lib/watchlist";
@@ -274,9 +275,12 @@ export type MockOptions = { demoVotacao?: boolean };
 
 export function snapshotIdx(w: Watchlist, now: number): IdxSnapshot {
   const valor = idxValueAt(now, w);
-  const candles = dailyCandles("sost:idx", 30, now, IDX_AS_SERIES);
+  recordIdxClose(now, valor);
+  const synthetic = dailyCandles("sost:idx", 30, now, IDX_AS_SERIES);
+  const candles = mergeIdxCandles(synthetic, now);
   const vivo = liveCandle("sost:idx", now, IDX_AS_SERIES);
   // o candle vivo fecha no valor composto real — índice e candles nunca divergem
+  vivo.o = round2(idxOpenToday(now, vivo.o));
   vivo.c = round2(valor);
   vivo.h = Math.max(vivo.h, vivo.c);
   vivo.l = Math.min(vivo.l, vivo.c);

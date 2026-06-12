@@ -17,6 +17,7 @@ import {
   scatterAvatarOption,
 } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -46,6 +47,7 @@ function SeletorRegiao({
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Oportunidades por região</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div
@@ -80,6 +82,7 @@ function OndeAtacarFront({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Onde atacar · {regiao.nome}</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div
@@ -163,6 +166,7 @@ function OndeAtacarBack({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Demanda × satisfação · {regiao.nome}</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -222,6 +226,7 @@ function MatrizRegiao({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Matriz da região · demanda × satisfação</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div data-no-swipe>
@@ -258,6 +263,7 @@ function RankingTemasFront({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Ranking de temas</span>
+        <FonteBadge real={false} />
         <span className="m-pill">índice de oportunidade 0–100</span>
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -296,6 +302,7 @@ function RankingTemasBack({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Onde focar · corrida de temas</span>
+        <FonteBadge real={false} />
         <span className="m-pill">índice 0–100</span>
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -325,6 +332,7 @@ function Manchetes({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Manchetes que sustentam o discurso</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div>
@@ -364,6 +372,7 @@ function DiscursoRecomendado({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card" style={{ borderColor: "var(--m-warn)" }}>
       <div className="m-card-head">
         <span className="m-card-title">Discurso recomendado</span>
+        <FonteBadge real={false} />
         <span className="m-pill amarelo">{regiao.discurso.tema}</span>
       </div>
       <p style={{ fontStyle: "italic", fontSize: 13, lineHeight: 1.5, margin: "4px 0 10px" }}>
@@ -387,6 +396,7 @@ function MunicaoFront({ municao }: { municao: OportunidadesState["municao"] }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Munição contra o governo</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div>
@@ -436,6 +446,7 @@ function MunicaoBack({ municao }: { municao: OportunidadesState["municao"] }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Alcance da munição por tema</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -477,6 +488,7 @@ function VisaoGeral({ topGeral }: { topGeral: OportunidadesState["topGeral"] }) 
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Visão geral · melhor tema por região</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
       <div data-no-swipe>

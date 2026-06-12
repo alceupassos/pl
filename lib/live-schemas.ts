@@ -652,6 +652,7 @@ export type PesquisasDelta = z.infer<typeof PesquisasDeltaSchema>;
 /* ── gastos — execução financeira da campanha ── */
 
 export const GastosStateSchema = z.object({
+  fonteDados: z.enum(["real", "modelado"]).optional(),
   saldo: z.object({
     total: z.number(),
     gasto: z.number(),

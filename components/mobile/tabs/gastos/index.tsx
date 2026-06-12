@@ -18,6 +18,7 @@ import {
 } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
@@ -25,6 +26,7 @@ import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { StatPill } from "@/components/mobile/ui/stat-pill";
 import type { GastosState } from "@/lib/live-schemas";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 
 // % da campanha já decorrida (referência fixa para ritmo de execução).
 const PCT_CAMPANHA_DECORRIDA = 65;
@@ -38,6 +40,12 @@ function fmtRS(v: number): string {
     })} mi`;
   }
   return `R$ ${Math.round(v).toLocaleString("pt-BR")} mil`;
+}
+
+function GastoFonteBadge({ gastos }: { gastos: GastosState }) {
+  return (
+    <FonteBadge real={gastos.fonteDados === "real"} como={FONTE_COMO.gastosCamara} />
+  );
 }
 
 /* ① HERO — caixa da campanha. FRENTE: disponível gigante + gauge de execução.
@@ -63,6 +71,7 @@ function CaixaHeroFront({ gastos }: { gastos: GastosState }) {
     <FlashCard watch={saldo.gasto}>
       <div className="m-card-head">
         <span className="m-card-title">Caixa da campanha</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       <div className="m-headline-num">
@@ -112,6 +121,7 @@ function CaixaHeroBack({ gastos }: { gastos: GastosState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Ritmo do caixa</span>
+        <GastoFonteBadge gastos={gastos} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={210} />
@@ -155,6 +165,7 @@ function ExecucaoSemanal({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Execução semanal</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       <LazyChart option={option} height={190} />
@@ -195,6 +206,7 @@ function BurnRate({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Burn rate</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
@@ -228,6 +240,7 @@ function FontesFront({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">De onde vem o dinheiro</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       <LazyChart option={option} height={170} />
@@ -268,6 +281,7 @@ function FontesBack({ gastos }: { gastos: GastosState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Quanto cada fonte traz</span>
+        <GastoFonteBadge gastos={gastos} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={190} />
@@ -310,6 +324,7 @@ function RubricasFront({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Orçado × gasto por rubrica</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -348,6 +363,7 @@ function RubricasBack({ gastos }: { gastos: GastosState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Orçado × gasto · proximidade do teto</span>
+        <GastoFonteBadge gastos={gastos} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={Math.max(200, ord.length * 34 + 56)} />
@@ -375,6 +391,7 @@ function CustoPorVoto({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Custo por voto</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -405,6 +422,7 @@ function AlertasEstouro({ gastos }: { gastos: GastosState }) {
     <div className="m-card" role={temVermelho ? "alert" : undefined}>
       <div className="m-card-head">
         <span className="m-card-title">Alertas de estouro</span>
+        <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
       {alertas.length === 0 ? (

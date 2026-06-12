@@ -13,7 +13,11 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { compareLinesOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
+
+const AUTO_FLIP_MS = 10_000;
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -59,6 +63,7 @@ function NationalFront() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Corrida presidencial · 2026</span>
+        <FonteBadge real={dados?.temReal ?? false} como={FONTE_COMO.pesquisasPres} />
         <LiveBadge ch="quotes.nac" cadenceMs={5000} />
       </div>
       {dados ? (
@@ -198,5 +203,5 @@ export function NationalActors() {
     );
   }
 
-  return <FlipCard front={<NationalFront />} back={<NationalBack />} />;
+  return <FlipCard autoFlipMs={AUTO_FLIP_MS} front={<NationalFront />} back={<NationalBack />} />;
 }

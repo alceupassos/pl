@@ -10,6 +10,7 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { donutOption, racingBarOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { RadarItem, RadarState, Tom } from "@/lib/live-schemas";
@@ -94,7 +95,7 @@ function FeedsFront({ radar }: { radar: RadarState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Radar de imprensa</span>
-        <span className="m-signal-tag mock">modelado</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="radar" cadenceMs={10000} />
       </div>
 
@@ -165,6 +166,7 @@ function FeedsBack({ radar }: { radar: RadarState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Tom da cobertura · 24h</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={200} />
@@ -253,6 +255,7 @@ function ScatterColunistasFront({ radar }: { radar: RadarState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Colunistas · tom × alcance</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="radar" cadenceMs={10000} />
       </div>
       <div data-no-swipe>
@@ -283,6 +286,7 @@ function ScatterColunistasBack({ radar }: { radar: RadarState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Colunistas · alcance (k)</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={200} />

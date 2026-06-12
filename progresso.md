@@ -231,6 +231,9 @@ Arquivo: `app/api/stream/route.ts`
 | 2026-06-12 | Scripts | `validate-mobile.mjs`, `validate-plenario.mjs`, `validate-sources.mjs` |
 | 2026-06-12 | Deploy VPS | `aed2f33` em `/opt/candidato`; pm2 `candidato` + `sentiment` reiniciados |
 | 2026-06-12 | Validação VPS | Plenário real OK; Trends/YouTube-videos bloqueados → fallback modelado |
+| 2026-06-12 | Ticker rotação 10s | RotatingSlot SOST-IDX↔Meta; auto-flip vertical nos demais cards + countdown |
+| 2026-06-12 | FonteBadge global | DADO SIMULADO (amarelo) / DADOS REAIS (verde + tooltip) em todo `/m` |
+| 2026-06-12 | idx-history | Cache diário real para velas candlestick do SOST-IDX |
 
 ### Notas T2 (correção API)
 

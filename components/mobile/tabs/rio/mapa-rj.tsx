@@ -7,9 +7,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { getVotos2022Municipio } from "@/lib/data/votos-2022-sostenes";
 import type { RioPulsos } from "@/lib/live-schemas";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 
 type EInstance = {
   setOption: (o: unknown, opts?: { replaceMerge?: string[] }) => void;
@@ -145,6 +147,10 @@ export function MapaRj() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Mapa vivo · RJ por município</span>
+        <FonteBadge
+          real={camada === "v2022"}
+          como={camada === "v2022" ? FONTE_COMO.votos2022 : undefined}
+        />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>

@@ -13,6 +13,7 @@ import { donutOption, groupedBarsOption } from "@/components/mobile/m-chart-opti
 import { ChatBubble } from "@/components/mobile/ui/chat-bubble";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
 import { Odometer } from "@/components/mobile/ui/odometer";
@@ -55,7 +56,7 @@ function HeroVozFront({ voz }: { voz: VozSnapshot }) {
     <FlashCard watch={c.totalHoje}>
       <div className="m-card-head">
         <span className="m-card-title">Voz do eleitorado · hoje</span>
-        <span className="m-signal-tag mock">modelado</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>
       <div className="m-headline-num">
@@ -103,6 +104,7 @@ function HeroVozBack({ voz }: { voz: VozSnapshot }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Clima do eleitorado</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={donut} height={170} />
@@ -136,6 +138,7 @@ function PorFonteFront({ voz }: { voz: VozSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">De onde vem a voz</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -189,6 +192,7 @@ function PorFonteBack({ voz }: { voz: VozSnapshot }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Onde a voz é mais forte</span>
+        <FonteBadge real={false} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={bars} height={180} />
@@ -212,6 +216,7 @@ function ChatAoVivo({ voz, lastAt }: { voz: VozSnapshot; lastAt: number }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Chat ao vivo</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>
       <div>

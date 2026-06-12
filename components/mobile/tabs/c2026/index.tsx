@@ -10,6 +10,7 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { divergingBarsOption, pollBandsOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import type { C2026State } from "@/lib/live-schemas";
@@ -20,6 +21,7 @@ function PollOfPolls({ c }: { c: C2026State }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Poll of polls · presidencial</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
       <div data-no-swipe>
@@ -38,6 +40,7 @@ function BancadaPl({ c }: { c: C2026State }) {
     <FlashCard watch={b.votosLegendaPL}>
       <div className="m-card-head">
         <span className="m-card-title">Projeção de bancada · PL federal RJ</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
       <div className="m-headline-num" style={{ fontSize: "clamp(34px, 11vw, 48px)" }}>
@@ -73,6 +76,7 @@ function PesqEleRadar({ c }: { c: C2026State }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Radar PesqEle</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
@@ -92,6 +96,7 @@ function Polymarket({ c }: { c: C2026State }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Mercados · Polymarket</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
       {c.polymarket.map((m) => (
@@ -112,6 +117,7 @@ function Aprovacao({ c }: { c: C2026State }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Aprovação do governo · por segmento</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
       <div style={{ display: "flex", gap: 14, marginBottom: 6 }}>

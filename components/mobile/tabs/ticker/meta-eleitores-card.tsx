@@ -11,7 +11,9 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { bulletBarsOption, funnelOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
+import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -89,6 +91,7 @@ function MetaFront() {
     <FlashCard watch={calc?.cadastrados}>
       <div className="m-card-head">
         <span className="m-card-title">Cadastro de eleitores · meta 79.000</span>
+        <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
 
