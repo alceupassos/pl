@@ -8,6 +8,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import yt_dlp
 from pysentimiento import create_analyzer
 
 app = FastAPI(title="cockpit-sentiment")
@@ -40,3 +41,21 @@ def sentiment(req: Req):
     n = len(saidas)
     indice = round(100 + ((pos - neg) / n) * 100, 1) if n else None
     return {"pos": pos, "neg": neg, "neu": neu, "n": n, "indice": indice}
+
+
+@app.get("/youtube")
+def youtube(channel: str):
+    """Inscritos + nº de vídeos de um canal do YouTube, via yt-dlp (sem chave).
+    channel = URL do canal (.../channel/UC... ou .../@handle)."""
+    opts = {"quiet": True, "skip_download": True, "extract_flat": True, "playlist_items": "0"}
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(channel, download=False)
+        return {
+            "subscribers": info.get("channel_follower_count"),
+            "videos": info.get("playlist_count"),
+            "nome": info.get("channel") or info.get("title"),
+        }
+    except Exception:
+        return {"subscribers": None, "videos": None, "nome": None}
+

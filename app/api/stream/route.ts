@@ -18,6 +18,7 @@ import { sendPushToAll } from "@/lib/push";
 import { ensureFreshCamara } from "@/lib/sources/camara";
 import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
 import { ensureFreshSentimento } from "@/lib/sources/sentiment";
+import { ensureFreshYoutube } from "@/lib/sources/youtube";
 import { readWatchlist } from "@/lib/watchlist";
 
 export const runtime = "nodejs";
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
         ensureFreshNews(watchlist.termos);
         ensureFreshCamara();
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
+        ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)
 
         for (const ch of DELTA_CHANNELS) {
           // plenário acelera para 1s com votação em andamento

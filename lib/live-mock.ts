@@ -17,6 +17,7 @@ import { calcularQuociente, projetarBancada } from "@/lib/quociente";
 import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/sources/gdelt";
 import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
 import { getSentimentoReal } from "@/lib/sources/sentiment";
+import { getSeguidoresReal } from "@/lib/sources/youtube";
 import type { Watchlist } from "@/lib/watchlist";
 import type {
   Alert,
@@ -224,7 +225,8 @@ function idxComponents(t: number): IdxComponents {
     // sentimento: sidecar pysentimiento (real) → GDELT tone → série sintética.
     sentimento:
       getSentimentoReal() ?? getSentimentoIndex() ?? seriesValue("sost:sentimento", t, IDX_PARTS[1].p),
-    seguidores: seriesValue("sost:seguidores", t, IDX_PARTS[2].p),
+    // seguidores: inscritos do YouTube (real, via yt-dlp) → série sintética.
+    seguidores: getSeguidoresReal() ?? seriesValue("sost:seguidores", t, IDX_PARTS[2].p),
     // imprensa: Google News (primária) → GDELT (fallback) → série sintética.
     imprensa: getNewsImprensa() ?? getGdeltImprensa() ?? seriesValue("sost:imprensa", t, IDX_PARTS[3].p),
   };

@@ -38,7 +38,7 @@ const PARTES: {
     key: "seguidores",
     label: "seguidores",
     explica: (v, p) =>
-      `Crescimento da base de seguidores nas redes (peso ${p}%). Valor ${v}. Modelado — sem fonte gratuita de contagem ainda.`,
+      `Crescimento de inscritos no YouTube do candidato (peso ${p}%), real via yt-dlp. Valor ${v}; acima de 100 = base crescendo. Outras redes (X/IG) exigem credencial.`,
   },
   {
     key: "imprensa",
