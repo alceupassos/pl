@@ -15,7 +15,7 @@ import {
 } from "@/lib/live-mock";
 import type { Channel, Envelope } from "@/lib/live-schemas";
 import { sendPushToAll } from "@/lib/push";
-import { ensureFreshGdelt, realAlertasBetween } from "@/lib/sources/gdelt";
+import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
 import { readWatchlist } from "@/lib/watchlist";
 
 export const runtime = "nodejs";
@@ -76,9 +76,9 @@ export async function GET(request: NextRequest) {
       write("retry: 3000\n\n");
 
       const watchlist = await readWatchlist();
-      // Dispara a busca real (GDELT: imprensa, sentimento, manchetes) já na
+      // Dispara a busca real de imprensa/manchetes (Google News RSS) já na
       // conexão; o módulo respeita TTL e dedup entre conexões — é barato.
-      ensureFreshGdelt(watchlist.termos);
+      ensureFreshNews(watchlist.termos);
       const t0 = Date.now();
       for (const env of buildAllSnapshots(watchlist, t0, opts)) {
         send(env);
@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
         if (closed) return;
         const now = Date.now();
 
-        // Mantém os feeds reais frescos (só refaz a cada TTL — ~15min).
-        ensureFreshGdelt(watchlist.termos);
+        // Mantém o feed de imprensa fresco (só refaz a cada TTL — ~15min).
+        ensureFreshNews(watchlist.termos);
 
         for (const ch of DELTA_CHANNELS) {
           // plenário acelera para 1s com votação em andamento
@@ -122,9 +122,9 @@ export async function GET(request: NextRequest) {
             });
           }
         }
-        // Manchetes reais (GDELT) descobertas nesta janela — SSE só, sem push
-        // para não spammar notificação a cada artigo indexado.
-        for (const alerta of realAlertasBetween(lastAlertCheck, now)) {
+        // Manchetes reais (Google News) descobertas nesta janela — SSE só, sem
+        // push para não spammar notificação a cada artigo indexado.
+        for (const alerta of newsAlertasBetween(lastAlertCheck, now)) {
           send({ ch: "alerts", kind: "delta", t: now, data: { alerta } });
         }
         lastAlertCheck = now;

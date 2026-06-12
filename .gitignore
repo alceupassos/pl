@@ -18,3 +18,6 @@ out/
 
 # cache dos índices reais (GDELT) — runtime, persiste no servidor
 /data/gdelt-cache.json
+
+# cache do índice de imprensa (Google News) — runtime, persiste no servidor
+/data/google-news-cache.json

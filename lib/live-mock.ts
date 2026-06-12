@@ -10,14 +10,12 @@ import { getRaceTimeline } from "@/lib/mock/races";
 import * as v2 from "@/lib/live-mock-v2";
 import { REGIONS } from "@/lib/mock/rj-regions";
 import { calcularQuociente, projetarBancada } from "@/lib/quociente";
-// Fontes REAIS (GDELT): imprensa + sentimento entram no breakdown do idx.sost,
-// e manchetes reais entram no canal de alertas. As exceções ao "tudo é função
-// pura do tempo" deste arquivo — todas com fallback para o sintético.
-import {
-  getImprensaIndex,
-  getSentimentoIndex,
-  realAlertasRecentes,
-} from "@/lib/sources/gdelt";
+// Fontes REAIS: Google News (imprensa + manchetes) é a primária; GDELT é
+// fallback secundário (endpoint grátis é throttled). sentimento ainda vem do
+// GDELT até o sidecar pysentimiento. Exceções ao "tudo é função pura do tempo"
+// — todas com fallback para o sintético.
+import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/sources/gdelt";
+import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
 import type { Watchlist } from "@/lib/watchlist";
 import type {
   Alert,
@@ -224,7 +222,8 @@ function idxComponents(t: number): IdxComponents {
     mencoes: seriesValue("sost:mencoes", t, IDX_PARTS[0].p),
     sentimento: getSentimentoIndex() ?? seriesValue("sost:sentimento", t, IDX_PARTS[1].p),
     seguidores: seriesValue("sost:seguidores", t, IDX_PARTS[2].p),
-    imprensa: getImprensaIndex() ?? seriesValue("sost:imprensa", t, IDX_PARTS[3].p),
+    // imprensa: Google News (primária) → GDELT (fallback) → série sintética.
+    imprensa: getNewsImprensa() ?? getGdeltImprensa() ?? seriesValue("sost:imprensa", t, IDX_PARTS[3].p),
   };
 }
 
@@ -479,9 +478,9 @@ export function alertsBetween(from: number, to: number, opts: MockOptions = {}):
 }
 
 export function snapshotAlerts(now: number, opts: MockOptions = {}): { alertas: Alert[] } {
-  // Manchetes reais do GDELT (mais novas) na frente dos alertas sintéticos.
+  // Manchetes reais do Google News (mais novas) na frente dos alertas sintéticos.
   const mock = alertsBetween(now - 24 * HOUR, now, opts).reverse();
-  const todos = [...realAlertasRecentes(20), ...mock].sort((a, b) => b.t - a.t);
+  const todos = [...newsAlertasRecentes(20), ...mock].sort((a, b) => b.t - a.t);
   return { alertas: todos.slice(0, 20) };
 }
 
