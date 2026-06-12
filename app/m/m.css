@@ -273,6 +273,64 @@ body:has(.m-app:not(.m-embed)) {
   opacity: 1;
 }
 
+/* ── card que vira em 3D (front ↔ back) ── */
+.m-flip {
+  position: relative;
+  perspective: 1400px;
+}
+.m-flip-inner {
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.m-flip.virado .m-flip-inner {
+  transform: rotateY(180deg);
+}
+.m-flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.m-flip-front {
+  position: relative;
+  cursor: pointer;
+}
+.m-flip-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+/* o verso ocupa a mesma caixa do front e rola por dentro */
+.m-flip-back > .m-card {
+  height: 100%;
+}
+.m-flip-hint {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--m-muted);
+  opacity: 0.85;
+}
+.m-flip-voltar {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: var(--m-card-2);
+  border: 1px solid var(--m-border);
+  color: #cfd6e4;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 99px;
+  cursor: pointer;
+  z-index: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .m-flip-inner {
+    transition: none;
+  }
+}
+
 /* ── tab bar inferior ── */
 .m-tabbar {
   position: fixed;
