@@ -91,7 +91,10 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       [index]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [index]);
 
+  const prevTabIndex = useRef(index);
   useEffect(() => {
+    if (prevTabIndex.current === index) return;
+    prevTabIndex.current = index;
     const tab = TABS[index];
     logClientAccess("mobile_tab_view", `/m/${tab.id}`, { tab: tab.id });
   }, [index]);

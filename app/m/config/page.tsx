@@ -7,16 +7,10 @@ import Link from "next/link";
 import { ArrowLeft, BellRing } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { logClientAccess } from "@/lib/log-client-access";
-
 export default function MobileConfigPage() {
   const [texto, setTexto] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [pushStatus, setPushStatus] = useState<string>("verificando…");
-
-  useEffect(() => {
-    logClientAccess("mobile_page_view", "/m/config");
-  }, []);
 
   useEffect(() => {
     let on = true;

@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
       { source: "/log", headers: noStore },
       { source: "/cadastrados", headers: noStore },
       { source: "/mapa", headers: noStore },
+      { source: "/m", headers: noStore },
+      { source: "/m/:path*", headers: noStore },
     ];
   },
 };
