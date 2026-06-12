@@ -598,7 +598,7 @@ export function CampaignCockpit() {
             </div>
           </div>
 
-          <div id="content" ref={sectionHostRef} className="section-workbench">
+          <div id="content" ref={sectionHostRef}>
             {(() => {
               const sectionBody =
                 activeSection === "candidato-detalhe" ? (
