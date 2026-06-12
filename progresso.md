@@ -12,9 +12,9 @@ Documento **incremental**: o que foi pedido no prompt, o que já foi feito, o qu
 
 | Tarefa | Escopo | Código | Lint/Build | Validado em runtime |
 |--------|--------|--------|------------|---------------------|
-| T1 YouTube por vídeo | Redes | ✅ | ✅ | ✅ sidecar local (`/youtube/videos`) |
+| T1 YouTube por vídeo | Redes | ✅ | ✅ | ⚠️ vídeos OK em dev; VPS bloqueado (bot yt-dlp) → fallback |
 | T2 Plenário real | Plenário | ✅ | ✅ | ✅ API Câmara (órgão 180 + parse placar) |
-| T3 Google Trends | Menções (idx) | ✅ | ✅ | ✅ fallback se série zerada; validar índice no VPS |
+| T3 Google Trends | Menções (idx) | ✅ | ✅ | ✅ fallback modelado (série zerada dev + VPS) |
 | T4 Votos 2022 TSE | Mapa RJ + comparativo | ✅ | ✅ | ✅ constante (sem fetch) |
 | T5 Tags modelado | UI abas | ✅ | ✅ | ✅ tags em redes/pesquisas/radar/voz |
 | T6 Atualizar wow.md | Docs | ✅ | — | ✅ |
@@ -198,11 +198,13 @@ Arquivo: `app/api/stream/route.ts`
 
 ### VPS (`/opt/candidato`, pm2 `candidato` + `sentiment`)
 
-- [ ] `git pull` + `npm run build` + `pm2 restart candidato` *(em andamento nesta sessão)*
-- [ ] No sidecar: `pip install -r requirements.txt` (inclui **pytrends**)
-- [ ] `pm2 restart sentiment`
-- [ ] Smoke test: `/m` → abas Redes, Plenário, Ticker (menções), Rio (mapa v2022)
-- [ ] `curl -s http://127.0.0.1:8088/trends?termo=Sóstenes%20Cavalcante` no VPS
+- [x] `git pull` + `npm run build` + `pm2 restart candidato` — commit `aed2f33`, build v4.17
+- [x] Sidecar: `pip install pytrends` + `pm2 restart sentiment`
+- [x] `validate-plenario.mjs` + `validate-mobile.mjs` OK no VPS
+- [x] Plenário real (`fonte: real`) confirmado no servidor
+- [x] Trends: `{"indice":null}` no VPS → menções ficam **modelado** (esperado)
+- [ ] Smoke visual `/m` no browser (login + abas) — manual
+- **Nota T1 VPS:** `/youtube/videos` retorna `[]` (YouTube anti-bot no datacenter); `/youtube` inscritos funciona; app cai no sintético sem erro
 
 ### Fora do escopo do `composer.md` (permanecem modelados)
 
@@ -227,6 +229,8 @@ Arquivo: `app/api/stream/route.ts`
 | 2026-06-12 | T5 completo | `FonteTag` em todos os cards sintéticos de `redes/index.tsx` |
 | 2026-06-12 | T3 fix | Rejeita série/índice zerados → fallback modelado em `app.py` + `trends.ts` |
 | 2026-06-12 | Scripts | `validate-mobile.mjs`, `validate-plenario.mjs`, `validate-sources.mjs` |
+| 2026-06-12 | Deploy VPS | `aed2f33` em `/opt/candidato`; pm2 `candidato` + `sentiment` reiniciados |
+| 2026-06-12 | Validação VPS | Plenário real OK; Trends/YouTube-videos bloqueados → fallback modelado |
 
 ### Notas T2 (correção API)
 

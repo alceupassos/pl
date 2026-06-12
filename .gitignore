@@ -27,6 +27,7 @@ out/
 
 # venv do sidecar de sentimento (instalado no servidor, fora do git)
 /sidecar/sentiment/.venv/
+/sidecar/sentiment/__pycache__/
 
 # cache de inscritos do YouTube (yt-dlp) — runtime, persiste no servidor
 /data/youtube-cache.json
