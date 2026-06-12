@@ -65,6 +65,8 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
   const initialIndex = Math.max(0, TAB_IDS.indexOf(initialTab));
   const [index, setIndex] = useState(initialIndex);
   const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([initialIndex]));
+  // Incrementar ao tocar em Ticker remonta a aba — todos os cards voltam compactos.
+  const [tickerKey, setTickerKey] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const tabbarRef = useRef<HTMLElement>(null);
   const rafRef = useRef(0);
@@ -106,6 +108,15 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
     });
   }, [setActive]);
 
+  const resetTickerTab = useCallback(() => {
+    setTickerKey((k) => k + 1);
+    requestAnimationFrame(() => {
+      const tickerIndex = TAB_IDS.indexOf("ticker");
+      const panel = viewportRef.current?.querySelectorAll<HTMLElement>(".m-panel")[tickerIndex];
+      panel?.scrollTo({ top: 0, behavior: "auto" });
+    });
+  }, []);
+
   const goTo = useCallback(
     (i: number) => {
       const el = viewportRef.current;
@@ -115,6 +126,14 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       el?.scrollTo({ left: next * el.clientWidth, behavior: reduced ? "auto" : "smooth" });
     },
     [setActive],
+  );
+
+  const onTabClick = useCallback(
+    (i: number) => {
+      if (TABS[i]?.id === "ticker") resetTickerTab();
+      goTo(i);
+    },
+    [goTo, resetTickerTab],
   );
 
   return (
@@ -146,7 +165,13 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
                 data-hidden={!adjacent}
                 aria-hidden={i !== index}
               >
-                {mounted ? <tab.Component /> : null}
+                {mounted ? (
+                  tab.id === "ticker" ? (
+                    <TickerTab key={tickerKey} />
+                  ) : (
+                    <tab.Component />
+                  )
+                ) : null}
               </section>
             );
           })}
@@ -160,7 +185,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
             type="button"
             className={`m-tab ${i === index ? "active" : ""}`.trim()}
             aria-current={i === index ? "page" : undefined}
-            onClick={() => goTo(i)}
+            onClick={() => onTabClick(i)}
           >
             {tab.id === "plenario" && votacaoAtiva ? <span className="m-tab-badge" aria-label="Votação em andamento" /> : null}
             <tab.Icon aria-hidden />
