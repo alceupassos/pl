@@ -49,10 +49,10 @@ const VozTab = dynamic(() => import("@/components/mobile/tabs/voz"), { ssr: fals
 
 const TABS: { id: TabId; label: string; Icon: typeof Activity; Component: React.ComponentType }[] = [
   { id: "ticker", label: "Ticker", Icon: Activity, Component: TickerTab },
+  { id: "redes", label: "Redes", Icon: RadioTower, Component: RedesTab },
   { id: "plenario", label: "Plenário", Icon: Landmark, Component: PlenarioTab },
   { id: "rio", label: "Rio", Icon: MapIcon, Component: RioTab },
   { id: "radar", label: "Radar", Icon: Radar, Component: RadarTab },
-  { id: "redes", label: "Redes", Icon: RadioTower, Component: RedesTab },
   { id: "equipe", label: "Equipe", Icon: Users, Component: EquipeTab },
   { id: "oportunidades", label: "Oportun.", Icon: Crosshair, Component: OportunidadesTab },
   { id: "pesquisas", label: "Pesquisas", Icon: ClipboardList, Component: PesquisasTab },

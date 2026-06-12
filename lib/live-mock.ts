@@ -18,7 +18,7 @@ import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/
 import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
 import { getSentimentoReal } from "@/lib/sources/sentiment";
 import { getSeguidoresReal } from "@/lib/sources/youtube";
-import { getFontePesquisa, getPresidencial, type CandKey } from "@/lib/sources/pesquisas";
+import { getFontePesquisa, getPesquisas, getPresidencial, type CandKey } from "@/lib/sources/pesquisas";
 import type { Watchlist } from "@/lib/watchlist";
 import type {
   Alert,
@@ -443,7 +443,7 @@ export function snapshotQuotesNac(w: Watchlist, now: number): QuotesNacSnapshot 
     // intenção de voto REAL (Wikipédia) quando disponível; score acompanha.
     return real ? { ...q, pct: real.pct, dir: real.dir, score: Math.round((real.pct - 25) * 2) } : q;
   });
-  return { atores, fonte: getFontePesquisa() ?? undefined };
+  return { atores, fonte: getFontePesquisa() ?? undefined, presidencial: getPesquisas().slice(0, 6) };
 }
 
 export function deltaQuotesNac(w: Watchlist, now: number): QuotesNacDelta {

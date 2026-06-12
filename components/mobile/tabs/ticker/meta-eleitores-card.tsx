@@ -8,10 +8,14 @@ import { useMemo } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { bulletBarsOption, funnelOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
+import { getAvatar } from "@/lib/avatars";
 import {
   ELEICAO_MS,
   META_ELEITORES,
@@ -20,7 +24,8 @@ import {
 } from "@/lib/mock/campaign-goal";
 import type { EquipeSnapshot } from "@/lib/live-schemas";
 
-export function MetaEleitoresCard() {
+/* ── FRENTE: o placar do cadastro de eleitores vs a meta ── */
+function MetaFront() {
   const { data: equipe, lastAt } = useLiveChannel<EquipeSnapshot>("equipe");
 
   const calc = useMemo(() => {
@@ -132,12 +137,96 @@ export function MetaEleitoresCard() {
                 ? `Adiantado em relação ao plano: ${(calc.cadastrados - calc.previsto).toLocaleString("pt-BR")} à frente. Mantendo ${calc.ritmoDia}/dia, a meta de 79 mil é batida antes de outubro.`
                 : `No ritmo planejado. Para garantir os 79 mil até outubro, manter ~${calc.ritmoNec} cadastros/dia.`}
           </SectionLeitura>
+
+          <div className="m-flip-hint">↻ toque para ver de onde vêm os cadastros</div>
         </>
       ) : (
         <div className="m-ghost">sincronizando o placar…</div>
       )}
     </FlashCard>
   );
+}
+
+/* ── VERSO: de onde vêm os cadastros — por região e funil de conversão ── */
+function MetaBack() {
+  const equipe = useLiveChannel<EquipeSnapshot>("equipe").data;
+
+  const charts = useMemo(() => {
+    if (!equipe) return null;
+    const regioes = equipe.porRegiao.slice(0, 6);
+    // barras-alvo: cadastrados vs meta por região
+    const bullet = bulletBarsOption({
+      items: regioes.map((r) => ({ nome: r.nome, atual: r.cadastrados, meta: r.meta })),
+      suffix: "",
+    });
+    // funil de conversão: lista → cadastrados → engajados
+    const f = equipe.funil;
+    const funnel = funnelOption({
+      etapas: [
+        { nome: "Lista", valor: f.lista, cor: "#3b82f6" },
+        { nome: "Cadastrados", valor: f.cadastro, cor: "#16C784" },
+        { nome: "Engajados", valor: f.engajado, cor: "#F5A623" },
+      ],
+    });
+    // região mais fraca (menor % da meta) — para reforçar
+    const fraca = [...equipe.porRegiao].sort((a, b) => a.pct - b.pct)[0];
+    return { bullet, funnel, fraca };
+  }, [equipe]);
+
+  if (!equipe || !charts) {
+    return (
+      <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+        <div className="m-ghost">sincronizando origens…</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <MAvatar src={getAvatar("eleitor")} nome="Eleitores" cor="#16C784" size={26} />
+          <span className="m-card-title">De onde vêm os cadastros</span>
+        </span>
+      </div>
+
+      {/* cadastrados vs meta por região */}
+      <div className="m-muted-c" style={{ fontSize: 10.5, margin: "2px 0 2px" }}>
+        cadastrados × meta por região
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={charts.bullet} height={150} />
+      </div>
+
+      {/* funil: lista → cadastrados → engajados */}
+      <div className="m-muted-c" style={{ fontSize: 10.5, margin: "8px 0 2px" }}>
+        funil de conversão
+      </div>
+      <EChart option={charts.funnel} height={150} />
+
+      <SectionLeitura>
+        {charts.fraca
+          ? `${charts.fraca.nome} é a região mais fraca (${charts.fraca.pct.toFixed(0)}% da meta) — reforce o cadastro por lá para não travar o placar geral.`
+          : "Acompanhe as origens para reforçar as regiões que estão puxando o placar para baixo."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+export function MetaEleitoresCard() {
+  const equipe = useLiveChannel<EquipeSnapshot>("equipe").data;
+  if (!equipe) {
+    return (
+      <FlashCard watch={undefined}>
+        <div className="m-card-head">
+          <span className="m-card-title">Cadastro de eleitores · meta 79.000</span>
+          <LiveBadge ch="equipe" cadenceMs={2000} />
+        </div>
+        <div className="m-ghost">sincronizando o placar…</div>
+      </FlashCard>
+    );
+  }
+  return <FlipCard front={<MetaFront />} back={<MetaBack />} />;
 }
 
 function Stat({ label, valor, sub }: { label: string; valor: string; sub?: string }) {

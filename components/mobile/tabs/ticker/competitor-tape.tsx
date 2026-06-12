@@ -1,14 +1,21 @@
 "use client";
 
 // Você vs concorrentes do RJ — ranking claro (substitui a "fita de ações").
-// Ordena candidato + 5 concorrentes por força na disputa (relevância) e mostra
-// barras com você destacado e a sua posição. Sem candlestick nem jargão.
+// FRENTE: ordena candidato + 5 concorrentes por força na disputa (relevância) e
+// mostra barras com você destacado e a sua posição. Sem candlestick nem jargão.
+// VERSO (toque): traz de volta a comparação estilo bolsa — evolução em 30 dias
+// (você × concorrentes) em linhas normalizadas. Toque no nome liga/desliga série.
 
 import { useMemo } from "react";
 
+import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { compareLinesOption } from "@/components/mobile/m-chart-options";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
+import { getAvatar } from "@/lib/avatars";
 import type { IdxSnapshot, QuotesRjSnapshot } from "@/lib/live-schemas";
 import type { Watchlist } from "@/lib/watchlist";
 
@@ -21,7 +28,8 @@ type Linha = {
   voce: boolean;
 };
 
-export function CompetitorTape() {
+/* ── FRENTE: ranking de força na disputa (mantido 100% intacto) ── */
+function CompetitorFront() {
   const watchlist = useLiveChannel<Watchlist>("watchlist").data;
   const quotes = useLiveChannel<QuotesRjSnapshot>("quotes.rj").data;
   const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
@@ -99,6 +107,109 @@ export function CompetitorTape() {
       ) : (
         <div className="m-ghost">sincronizando…</div>
       )}
+      <div className="m-flip-hint">↻ toque para ver a evolução em 30 dias</div>
     </div>
   );
+}
+
+/* ── VERSO: comparação estilo bolsa — evolução de 30 dias (você × concorrentes) ── */
+function CompetitorBack() {
+  const watchlist = useLiveChannel<Watchlist>("watchlist").data;
+  const quotes = useLiveChannel<QuotesRjSnapshot>("quotes.rj").data;
+  const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
+
+  const opt = useMemo(() => {
+    if (!watchlist || !quotes || !idx) return null;
+    // Eixo X: datas dd/mm derivadas dos candles do índice do candidato.
+    const labels = idx.candles30d.map((c) => {
+      const d = new Date(c.t);
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    });
+    // Séries: candidato + cada concorrente que tenha cotação correspondente.
+    const series = [
+      { nome: watchlist.principal.nome, cor: watchlist.principal.cor, data: idx.candles30d.map((c) => c.c) },
+      ...watchlist.concorrentes_rj
+        .map((c) => {
+          const q = quotes.quotes.find((x) => x.simbolo === c.simbolo);
+          return q ? { nome: c.nome, cor: c.cor, data: q.candles30d.map((k) => k.c) } : null;
+        })
+        .filter((x): x is { nome: string; cor: string; data: number[] } => Boolean(x)),
+    ];
+    return compareLinesOption({ labels, series });
+  }, [watchlist, quotes, idx]);
+
+  // Leitura simples: você × concorrente mais próximo (em força) nos 30 dias.
+  const leitura = useMemo(() => {
+    if (!watchlist || !idx) return null;
+    const candles = idx.candles30d;
+    if (candles.length < 2) return null;
+    const ini = candles[0].c;
+    const fim = candles[candles.length - 1].c;
+    const delta = ini !== 0 ? ((fim - ini) / ini) * 100 : 0;
+    const subindo = delta >= 0;
+    // concorrente mais próximo pelo valor atual de cada cotação.
+    const bySimbolo = new Map((quotes?.quotes ?? []).map((q) => [q.simbolo, q]));
+    const proximo = watchlist.concorrentes_rj
+      .map((c) => {
+        const q = bySimbolo.get(c.simbolo);
+        return q ? { nome: c.nome, valor: q.valor } : null;
+      })
+      .filter((x): x is { nome: string; valor: number } => Boolean(x))
+      .sort((a, b) => Math.abs(a.valor - idx.valor) - Math.abs(b.valor - idx.valor))[0];
+    return { subindo, delta: Math.abs(delta), proximo };
+  }, [watchlist, quotes, idx]);
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {watchlist ? (
+            <MAvatar src={getAvatar("SOST")} nome="Sóstenes" cor={watchlist.principal.cor} size={26} />
+          ) : null}
+          <span className="m-card-title">Você × concorrentes · 30 dias</span>
+        </span>
+        <LiveBadge ch="quotes.rj" cadenceMs={5000} />
+      </div>
+      {opt ? (
+        <>
+          <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+            <EChart option={opt} height={220} />
+          </div>
+          <SectionLeitura>
+            {leitura ? (
+              <>
+                Você está <strong>{leitura.subindo ? "subindo" : "caindo"}</strong>{" "}
+                {leitura.delta.toFixed(1)}% nos 30 dias
+                {leitura.proximo ? <> · concorrente mais próximo: <strong>{leitura.proximo.nome}</strong></> : null}.
+              </>
+            ) : (
+              "Compare a sua curva com a dos concorrentes ao longo dos 30 dias."
+            )}
+          </SectionLeitura>
+        </>
+      ) : (
+        <div className="m-ghost">sincronizando…</div>
+      )}
+    </div>
+  );
+}
+
+export function CompetitorTape() {
+  const watchlist = useLiveChannel<Watchlist>("watchlist").data;
+  const quotes = useLiveChannel<QuotesRjSnapshot>("quotes.rj").data;
+  const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
+
+  if (!watchlist || !quotes || !idx) {
+    return (
+      <div className="m-card">
+        <div className="m-card-head">
+          <span className="m-card-title">Você vs concorrentes · RJ</span>
+          <LiveBadge ch="quotes.rj" cadenceMs={5000} />
+        </div>
+        <div className="m-ghost">sincronizando…</div>
+      </div>
+    );
+  }
+
+  return <FlipCard front={<CompetitorFront />} back={<CompetitorBack />} />;
 }

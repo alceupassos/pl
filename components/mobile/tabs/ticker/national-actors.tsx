@@ -4,10 +4,15 @@
 // via sidecar) dos 5 nomes que o usuário acompanha: Lula, Flávio Bolsonaro,
 // Renan Santos, Ronaldo Caiado, Zema. Ranking com rosto + barra + a fonte
 // (instituto · data). Sem dado real → cai no momentum modelado (subindo/caindo).
+// VERSO (toque): evolução REAL das pesquisas — uma linha por candidato ao
+// longo das últimas rodadas, para enxergar quem sobe e quem cai.
 
 import { useMemo } from "react";
 
+import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { compareLinesOption } from "@/components/mobile/m-chart-options";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
@@ -30,7 +35,8 @@ function dirArrow(dir: QuoteNac["dir"]): { txt: string; cls: string } {
   return { txt: "▬", cls: "m-muted-c" };
 }
 
-export function NationalActors() {
+/* ── FRENTE: ranking da corrida presidencial (intacto) ── */
+function NationalFront() {
   const watchlist = useLiveChannel<Watchlist>("watchlist").data;
   const nac = useLiveChannel<QuotesNacSnapshot>("quotes.nac").data;
 
@@ -103,10 +109,94 @@ export function NationalActors() {
                 }`
               : "Momentum nacional (modelado) — pesquisa real entra assim que o sidecar sincroniza."}
           </SectionLeitura>
+          <div className="m-flip-hint">↻ toque para ver a evolução das pesquisas</div>
         </>
       ) : (
         <div className="m-ghost">sincronizando…</div>
       )}
     </div>
   );
+}
+
+/* ── VERSO: evolução REAL das pesquisas (uma linha por candidato) ── */
+function NationalBack() {
+  const nac = useLiveChannel<QuotesNacSnapshot>("quotes.nac").data;
+
+  // Pesquisas em ordem cronológica (a snapshot vem com a mais recente primeiro).
+  const polls = useMemo(() => {
+    const pres = nac?.presidencial;
+    if (!pres || pres.length < 2) return null;
+    return [...pres].reverse();
+  }, [nac]);
+
+  const opt = useMemo(() => {
+    if (!polls) return null;
+    const labels = polls.map((p) => p.data);
+    const candidatos = [
+      { key: "lula", nome: "Lula", cor: "#EA3943" },
+      { key: "flavio", nome: "Flávio", cor: "#3b82f6" },
+      { key: "caiado", nome: "Caiado", cor: "#16C784" },
+      { key: "zema", nome: "Zema", cor: "#F5A623" },
+      { key: "renan", nome: "Renan", cor: "#8b5cf6" },
+    ];
+    const series = candidatos.map((c) => ({
+      nome: c.nome,
+      cor: c.cor,
+      data: polls.map((p) => (p as Record<string, number | null | string>)[c.key] as number | null ?? 0),
+    }));
+    return compareLinesOption({ labels, series, normalize: false });
+  }, [polls]);
+
+  // Leitura simples: compara o primeiro vs o último valor de Lula e Flávio.
+  const leitura = useMemo(() => {
+    if (!polls) return null;
+    const delta = (key: "lula" | "flavio") => {
+      const ini = polls[0][key] ?? 0;
+      const fim = polls[polls.length - 1][key] ?? 0;
+      return fim - ini;
+    };
+    const dLula = delta("lula");
+    const dFlavio = delta("flavio");
+    const sinal = (d: number) =>
+      d > 0.5 ? `subiu ${d.toFixed(0)} pts` : d < -0.5 ? `caiu ${Math.abs(d).toFixed(0)} pts` : "estável";
+    return `Nas últimas pesquisas: Lula ${sinal(dLula)}, Flávio ${sinal(dFlavio)}.`;
+  }, [polls]);
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <MAvatar src={getAvatar("lula")} nome="Lula" cor="#EA3943" size={24} />
+          Evolução das pesquisas
+        </span>
+        <LiveBadge ch="quotes.nac" cadenceMs={5000} />
+      </div>
+      {opt ? (
+        <>
+          <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+            <EChart option={opt} height={220} />
+          </div>
+          <SectionLeitura>{leitura}</SectionLeitura>
+        </>
+      ) : (
+        <div className="m-ghost">sincronizando pesquisas…</div>
+      )}
+    </div>
+  );
+}
+
+export function NationalActors() {
+  const watchlist = useLiveChannel<Watchlist>("watchlist").data;
+  const nac = useLiveChannel<QuotesNacSnapshot>("quotes.nac").data;
+
+  // Sem dados ainda → mesmo ghost de antes.
+  if (!watchlist || !nac) {
+    return (
+      <div className="m-card">
+        <div className="m-ghost">sincronizando…</div>
+      </div>
+    );
+  }
+
+  return <FlipCard front={<NationalFront />} back={<NationalBack />} />;
 }

@@ -3,10 +3,10 @@
 
 export const TAB_IDS = [
   "ticker",
+  "redes",
   "plenario",
   "rio",
   "radar",
-  "redes",
   "equipe",
   "oportunidades",
   "pesquisas",
