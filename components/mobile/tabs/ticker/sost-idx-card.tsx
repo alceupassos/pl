@@ -9,16 +9,43 @@ import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { candlestickOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { InfoTip } from "@/components/mobile/ui/info-tip";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import type { IdxSnapshot } from "@/lib/live-schemas";
 import type { Watchlist } from "@/lib/watchlist";
 
-const PARTES: { key: keyof IdxSnapshot["breakdown"]; label: string }[] = [
-  { key: "mencoes", label: "menções" },
-  { key: "sentimento", label: "sentimento" },
-  { key: "seguidores", label: "seguidores" },
-  { key: "imprensa", label: "imprensa" },
+// Cada componente do índice + a explicação do que move aquele número (o "ponto
+// forte de mudança"), incluindo a fonte e se é dado real ou modelado.
+const PARTES: {
+  key: keyof IdxSnapshot["breakdown"];
+  label: string;
+  explica: (valor: number, pesoPct: number) => string;
+}[] = [
+  {
+    key: "mencoes",
+    label: "menções",
+    explica: (v, p) =>
+      `Volume de menções nas redes sociais (peso ${p}% do índice). Valor ${v}. Modelado — fonte social real (Bluesky/Google Trends) chega na próxima fatia.`,
+  },
+  {
+    key: "sentimento",
+    label: "sentimento",
+    explica: (v, p) =>
+      `Tom das notícias e posts sobre o candidato — positivo vs negativo (peso ${p}%). Valor ${v}; acima de 100 = clima mais favorável. Modelado até o analisador PT (pysentimiento).`,
+  },
+  {
+    key: "seguidores",
+    label: "seguidores",
+    explica: (v, p) =>
+      `Crescimento da base de seguidores nas redes (peso ${p}%). Valor ${v}. Modelado — sem fonte gratuita de contagem ainda.`,
+  },
+  {
+    key: "imprensa",
+    label: "imprensa",
+    explica: (v, p) =>
+      `Cobertura de imprensa REAL via Google News (peso ${p}%). Valor ${v}: ritmo de matérias dos últimos dias vs o normal do candidato — acima de 100 = em alta na imprensa.`,
+  },
 ];
 
 export function SostIdxCard() {
@@ -53,13 +80,18 @@ export function SostIdxCard() {
           </div>
 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "10px 0 4px" }}>
-            {PARTES.map((p) => (
-              <span className="m-pill" key={p.key}>
-                {p.label}{" "}
-                {watchlist ? `${Math.round(watchlist.pesosIndice[p.key] * 100)}%` : ""} ·{" "}
-                <Odometer value={idx.breakdown[p.key]} decimals={1} />
-              </span>
-            ))}
+            {PARTES.map((p) => {
+              const pesoPct = watchlist ? Math.round(watchlist.pesosIndice[p.key] * 100) : 0;
+              const valor = idx.breakdown[p.key];
+              return (
+                <InfoTip key={p.key} texto={p.explica(valor, pesoPct)}>
+                  <span className="m-pill">
+                    {p.label} {watchlist ? `${pesoPct}%` : ""} ·{" "}
+                    <Odometer value={valor} decimals={1} />
+                  </span>
+                </InfoTip>
+              );
+            })}
           </div>
 
           {option ? (
