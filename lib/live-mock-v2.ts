@@ -165,7 +165,9 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
       seguidoresAgora: Math.round(seriesValue(`segs:${rede}`, now, p)),
       engajamentoAgora: round1(seriesValue(`engh:${rede}`, now, { base: REDE_BASE[rede].eng, vol: 0.16, spikeBoost: 0.6 })),
       concorrentes: concorrentesDaRede(w, rede, now),
-      melhorHorario: { dia: DIAS[(h % 4) + 3], hora: HORAS_POST[(h >> 3) % HORAS_POST.length] },
+      // >>> (sem sinal) garante índice não-negativo — senão hora vinha undefined
+      // e o snapshot inteiro era descartado pela validação (aba Redes não carregava).
+      melhorHorario: { dia: DIAS[(h >>> 0) % DIAS.length], hora: HORAS_POST[(h >>> 3) % HORAS_POST.length] },
     };
   });
 
