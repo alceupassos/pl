@@ -165,10 +165,23 @@ export const QuoteNacSchema = z.object({
 });
 export type QuoteNac = z.infer<typeof QuoteNacSchema>;
 
+export const PesquisaPresSchema = z.object({
+  instituto: z.string(),
+  data: z.string(),
+  lula: z.number().nullable(),
+  flavio: z.number().nullable(),
+  caiado: z.number().nullable(),
+  zema: z.number().nullable(),
+  renan: z.number().nullable(),
+});
+export type PesquisaPres = z.infer<typeof PesquisaPresSchema>;
+
 export const QuotesNacSnapshotSchema = z.object({
   atores: z.array(QuoteNacSchema),
   /** Fonte da pesquisa presidencial real (instituto + data). */
   fonte: z.object({ instituto: z.string(), data: z.string() }).optional(),
+  /** Tabela das últimas pesquisas presidenciais reais (página Cenário). */
+  presidencial: z.array(PesquisaPresSchema).optional(),
 });
 export type QuotesNacSnapshot = z.infer<typeof QuotesNacSnapshotSchema>;
 
