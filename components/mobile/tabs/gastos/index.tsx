@@ -13,9 +13,11 @@ import {
   bulletBarsOption,
   donutOption,
   financeLinesOption,
+  groupedBarsOption,
   mGaugeOption,
 } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
@@ -38,8 +40,10 @@ function fmtRS(v: number): string {
   return `R$ ${Math.round(v).toLocaleString("pt-BR")} mil`;
 }
 
-/* ① HERO — caixa da campanha: disponível gigante + gauge de execução */
-function CaixaHero({ gastos }: { gastos: GastosState }) {
+/* ① HERO — caixa da campanha. FRENTE: disponível gigante + gauge de execução.
+   VERSO (toque): execução planejado × realizado × projeção — quando o caixa
+   acaba e em que ritmo. */
+function CaixaHeroFront({ gastos }: { gastos: GastosState }) {
   const { saldo } = gastos;
   const emMi = saldo.disponivel >= 1000;
   const corGauge =
@@ -82,7 +86,51 @@ function CaixaHero({ gastos }: { gastos: GastosState }) {
         Executou {saldo.pctExecutado.toFixed(1)}% do caixa com {PCT_CAMPANHA_DECORRIDA}% da
         campanha decorrida — {ritmo}.
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver o ritmo e quando o caixa acaba</div>
     </FlashCard>
+  );
+}
+
+function CaixaHeroBack({ gastos }: { gastos: GastosState }) {
+  const { execucao } = gastos;
+  const option = useMemo(
+    () =>
+      financeLinesOption({
+        labels: execucao.labels,
+        planejado: execucao.planejado,
+        realizado: execucao.realizado,
+        projecao: execucao.projecao,
+      }),
+    [execucao],
+  );
+  const ultProjecao = execucao.projecao[execucao.projecao.length - 1] ?? 0;
+  const ultPlanejado = execucao.planejado[execucao.planejado.length - 1] ?? 0;
+  const ultRealizado = execucao.realizado[execucao.realizado.length - 1] ?? 0;
+  const fura = ultProjecao > ultPlanejado;
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Ritmo do caixa</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={210} />
+      </div>
+      <SectionLeitura>
+        No ritmo atual ({fmtRS(ultRealizado)} realizados), a projeção{" "}
+        {fura ? "fura o teto" : "fecha abaixo do teto"} na última semana ({fmtRS(ultProjecao)} vs{" "}
+        {fmtRS(ultPlanejado)} planejados) — {fura ? "freie o gasto para o caixa chegar à urna" : "há fôlego de caixa para a reta final"}.
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function CaixaHero({ gastos }: { gastos: GastosState }) {
+  return (
+    <FlipCard
+      front={<CaixaHeroFront gastos={gastos} />}
+      back={<CaixaHeroBack gastos={gastos} />}
+    />
   );
 }
 
@@ -159,8 +207,9 @@ function BurnRate({ gastos }: { gastos: GastosState }) {
   );
 }
 
-/* ④ DE ONDE VEM O DINHEIRO — donut de fontes + lista */
-function Fontes({ gastos }: { gastos: GastosState }) {
+/* ④ DE ONDE VEM O DINHEIRO. FRENTE: donut + lista por fonte. VERSO (toque):
+   donut por valor (R$) de cada fonte — quanto cada origem pesa no caixa. */
+function FontesFront({ gastos }: { gastos: GastosState }) {
   const { fontes } = gastos;
   const option = useMemo(
     () =>
@@ -196,12 +245,52 @@ function Fontes({ gastos }: { gastos: GastosState }) {
         Campanha depende {fundo ? `${fundo.pct.toFixed(0)}% de ${fundo.nome.toLowerCase()}` : "de fundo público"}
         {doacoes ? ` — doações são só ${doacoes.pct.toFixed(0)}%.` : "."}
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver o peso em R$ de cada fonte</div>
     </div>
   );
 }
 
-/* ⑤ ORÇADO × GASTO POR RUBRICA — bullet bars com cor por status */
-function Rubricas({ gastos }: { gastos: GastosState }) {
+function FontesBack({ gastos }: { gastos: GastosState }) {
+  const { fontes } = gastos;
+  const ord = useMemo(() => [...fontes].sort((a, b) => b.valor - a.valor), [fontes]);
+  const option = useMemo(
+    () =>
+      donutOption({
+        items: ord.map((f) => ({ nome: f.nome, valor: f.valor, cor: f.cor })),
+        centro: ord[0] ? { valor: fmtRS(ord[0].valor), label: ord[0].nome } : undefined,
+      }),
+    [ord],
+  );
+  const maior = ord[0];
+  const menor = ord[ord.length - 1];
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Quanto cada fonte traz</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={190} />
+      </div>
+      <SectionLeitura>
+        {maior
+          ? `${maior.nome} é a maior origem (${fmtRS(maior.valor)})${menor && menor !== maior ? `, contra só ${fmtRS(menor.valor)} de ${menor.nome.toLowerCase()}` : ""} — concentração de risco se essa fonte secar.`
+          : "Sem fontes registradas até aqui."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function Fontes({ gastos }: { gastos: GastosState }) {
+  return (
+    <FlipCard front={<FontesFront gastos={gastos} />} back={<FontesBack gastos={gastos} />} />
+  );
+}
+
+/* ⑤ ORÇADO × GASTO POR RUBRICA. FRENTE: bullet bars com cor por status.
+   VERSO (toque): barras agrupadas orçado × gasto por rubrica — qual está mais
+   perto do estouro. */
+function RubricasFront({ gastos }: { gastos: GastosState }) {
   const { rubricas } = gastos;
   const option = useMemo(
     () =>
@@ -223,7 +312,7 @@ function Rubricas({ gastos }: { gastos: GastosState }) {
         <span className="m-card-title">Orçado × gasto por rubrica</span>
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
-      <div data-no-swipe>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={240} />
       </div>
       <SectionLeitura>
@@ -232,7 +321,49 @@ function Rubricas({ gastos }: { gastos: GastosState }) {
           ? `${estourada.nome} estourou o orçamento (${estourada.pct.toFixed(0)}% do orçado) — remanejar agora.`
           : "Nenhuma rubrica estourada até aqui."}
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para comparar orçado × gasto rubrica a rubrica</div>
     </div>
+  );
+}
+
+function RubricasBack({ gastos }: { gastos: GastosState }) {
+  const { rubricas } = gastos;
+  const ord = useMemo(() => [...rubricas].sort((a, b) => b.pct - a.pct), [rubricas]);
+  const option = useMemo(
+    () =>
+      groupedBarsOption({
+        labels: ord.map((r) => r.nome),
+        series: [
+          { nome: "orçado", cor: "#3b82f6", data: ord.map((r) => r.orcado) },
+          { nome: "gasto", cor: "#16C784", data: ord.map((r) => r.gasto) },
+        ],
+        horizontal: true,
+        suffix: "",
+      }),
+    [ord],
+  );
+  const critica = ord[0];
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Orçado × gasto · proximidade do teto</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={Math.max(200, ord.length * 34 + 56)} />
+      </div>
+      <SectionLeitura>
+        {critica
+          ? `${critica.nome} é a rubrica mais perto do teto (${critica.pct.toFixed(0)}% do orçado) — ${critica.pct >= 100 ? "já estourou, remaneje hoje" : "vigie antes que estoure"}.`
+          : "Sem rubricas para comparar até aqui."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function Rubricas({ gastos }: { gastos: GastosState }) {
+  return (
+    <FlipCard front={<RubricasFront gastos={gastos} />} back={<RubricasBack gastos={gastos} />} />
   );
 }
 

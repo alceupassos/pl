@@ -12,8 +12,11 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import {
   avatarRacingOption,
   bulletBarsOption,
+  groupedBarsOption,
+  racingBarOption,
   scatterAvatarOption,
 } from "@/components/mobile/m-chart-options";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -71,7 +74,7 @@ function SeletorRegiao({
 }
 
 /* ② ONDE ATACAR — seu ponto forte × fraquezas dos adversários na região */
-function OndeAtacar({ regiao }: { regiao: OportunidadeRegiao }) {
+function OndeAtacarFront({ regiao }: { regiao: OportunidadeRegiao }) {
   const alvo = regiao.fraquezas[0];
   return (
     <div className="m-card">
@@ -123,7 +126,63 @@ function OndeAtacar({ regiao }: { regiao: OportunidadeRegiao }) {
         Em {regiao.nome}, bata em {alvo?.tema ?? regiao.forca.tema}:{" "}
         {alvo ? `${alvo.adversario.nome} está exposto` : "nenhum adversário exposto agora"}.
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver a matriz de temas (demanda × satisfação)</div>
     </div>
+  );
+}
+
+/* VERSO ② — temas posicionados por demanda vs. satisfação: a folga (demanda −
+   satisfação) é a oportunidade de ataque. */
+function OndeAtacarBack({ regiao }: { regiao: OportunidadeRegiao }) {
+  const ordenado = useMemo(
+    () => [...regiao.matriz].sort((a, b) => b.oportunidade - a.oportunidade),
+    [regiao.matriz],
+  );
+  const option = useMemo(
+    () =>
+      groupedBarsOption({
+        labels: ordenado.map((m) => m.tema),
+        series: [
+          {
+            nome: "demanda",
+            cor: "#16C784",
+            data: ordenado.map((m) => Math.round(m.demanda)),
+          },
+          {
+            nome: "satisfação",
+            cor: "#3b82f6",
+            data: ordenado.map((m) => Math.round(m.satisfacao)),
+          },
+        ],
+        horizontal: true,
+      }),
+    [ordenado],
+  );
+  const alvo = ordenado[0];
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Demanda × satisfação · {regiao.nome}</span>
+        <LiveBadge ch="oportunidades" cadenceMs={30000} />
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={210} />
+      </div>
+      <SectionLeitura>
+        {alvo
+          ? `Maior folga: ${alvo.tema} — demanda ${Math.round(alvo.demanda)} contra satisfação ${Math.round(alvo.satisfacao)}. Aí mora a oportunidade.`
+          : "Sem temas mapeados nesta região."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function OndeAtacar({ regiao }: { regiao: OportunidadeRegiao }) {
+  return (
+    <FlipCard
+      front={<OndeAtacarFront regiao={regiao} />}
+      back={<OndeAtacarBack regiao={regiao} />}
+    />
   );
 }
 
@@ -177,7 +236,7 @@ function MatrizRegiao({ regiao }: { regiao: OportunidadeRegiao }) {
 }
 
 /* ④ RANKING DE TEMAS — índice de oportunidade de 0 a 100 */
-function RankingTemas({ regiao }: { regiao: OportunidadeRegiao }) {
+function RankingTemasFront({ regiao }: { regiao: OportunidadeRegiao }) {
   const ordenado = useMemo(
     () => [...regiao.matriz].sort((a, b) => b.oportunidade - a.oportunidade),
     [regiao.matriz],
@@ -201,7 +260,7 @@ function RankingTemas({ regiao }: { regiao: OportunidadeRegiao }) {
         <span className="m-card-title">Ranking de temas</span>
         <span className="m-pill">índice de oportunidade 0–100</span>
       </div>
-      <div data-no-swipe>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <LazyChart option={option} height={200} />
       </div>
       <SectionLeitura>
@@ -209,7 +268,54 @@ function RankingTemas({ regiao }: { regiao: OportunidadeRegiao }) {
           ? `${top.tema} é o tema nº 1 da região (índice ${Math.round(top.oportunidade)}) — priorize na agenda e nos posts.`
           : "Sem temas ranqueados nesta região."}
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver a corrida do índice de oportunidade</div>
     </div>
+  );
+}
+
+/* VERSO ④ — corrida animada dos temas pelo índice de oportunidade: onde focar. */
+function RankingTemasBack({ regiao }: { regiao: OportunidadeRegiao }) {
+  const ordenado = useMemo(
+    () => [...regiao.matriz].sort((a, b) => b.oportunidade - a.oportunidade),
+    [regiao.matriz],
+  );
+  const option = useMemo(
+    () =>
+      racingBarOption({
+        items: ordenado.map((m) => ({
+          nome: m.tema,
+          valor: Math.round(m.oportunidade),
+          cor: corOportunidade(m.oportunidade),
+        })),
+        max: 100,
+      }),
+    [ordenado],
+  );
+  const top = ordenado[0];
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Onde focar · corrida de temas</span>
+        <span className="m-pill">índice 0–100</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={200} />
+      </div>
+      <SectionLeitura>
+        {top
+          ? `${top.tema} lidera a corrida (índice ${Math.round(top.oportunidade)}). Concentre tempo, verba e palanque aí.`
+          : "Sem temas ranqueados nesta região."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function RankingTemas({ regiao }: { regiao: OportunidadeRegiao }) {
+  return (
+    <FlipCard
+      front={<RankingTemasFront regiao={regiao} />}
+      back={<RankingTemasBack regiao={regiao} />}
+    />
   );
 }
 
@@ -275,7 +381,7 @@ function DiscursoRecomendado({ regiao }: { regiao: OportunidadeRegiao }) {
 }
 
 /* ⑦ MUNIÇÃO — matérias negativas sobre o governo, por alcance */
-function Municao({ municao }: { municao: OportunidadesState["municao"] }) {
+function MunicaoFront({ municao }: { municao: OportunidadesState["municao"] }) {
   const top5 = municao.slice(0, 5);
   return (
     <div className="m-card">
@@ -298,7 +404,58 @@ function Municao({ municao }: { municao: OportunidadesState["municao"] }) {
       <SectionLeitura>
         Matérias negativas sobre o governo nas últimas 24h, ranqueadas por alcance.
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver o alcance somado por tema</div>
     </div>
+  );
+}
+
+/* VERSO ⑦ — alcance total da munição agregado por tema: qual frente bate mais. */
+function MunicaoBack({ municao }: { municao: OportunidadesState["municao"] }) {
+  const porTema = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const m of municao) {
+      mapa.set(m.tema, (mapa.get(m.tema) ?? 0) + m.alcance);
+    }
+    return [...mapa.entries()]
+      .map(([tema, alcance]) => ({ tema, alcance: Math.round(alcance) }))
+      .sort((a, b) => b.alcance - a.alcance);
+  }, [municao]);
+
+  const option = useMemo(
+    () =>
+      groupedBarsOption({
+        labels: porTema.map((t) => t.tema),
+        series: [{ nome: "alcance (k)", cor: "#EA3943", data: porTema.map((t) => t.alcance) }],
+        horizontal: true,
+        suffix: "k",
+      }),
+    [porTema],
+  );
+  const lider = porTema[0];
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Alcance da munição por tema</span>
+        <LiveBadge ch="oportunidades" cadenceMs={30000} />
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={210} />
+      </div>
+      <SectionLeitura>
+        {lider
+          ? `"${lider.tema}" é a frente de maior alcance somado (${lider.alcance}k). Concentre o ataque onde a indignação já circula.`
+          : "Sem munição catalogada agora."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function Municao({ municao }: { municao: OportunidadesState["municao"] }) {
+  return (
+    <FlipCard
+      front={<MunicaoFront municao={municao} />}
+      back={<MunicaoBack municao={municao} />}
+    />
   );
 }
 

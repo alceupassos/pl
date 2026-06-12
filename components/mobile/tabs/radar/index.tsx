@@ -8,7 +8,10 @@ import { useMemo, useRef, useState } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { donutOption, racingBarOption } from "@/components/mobile/m-chart-options";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { RadarItem, RadarState, Tom } from "@/lib/live-schemas";
 
 const TOM_PILL: Record<Tom, { label: string; className: string }> = {
@@ -16,6 +19,14 @@ const TOM_PILL: Record<Tom, { label: string; className: string }> = {
   neg: { label: "crítico", className: "down" },
   neu: { label: "neutro", className: "" },
 };
+
+// cores por tom para o donut do verso
+const TOM_COR: Record<Tom, string> = {
+  pos: "#16C784",
+  neg: "#EA3943",
+  neu: "#8a93a8",
+};
+const nome1 = (n: string) => n.split(" ")[0];
 
 const FEEDS = [
   { id: "falaramDeMim", label: "Falaram de mim" },
@@ -68,7 +79,7 @@ function FeedItem({ item, municao }: { item: RadarItem; municao?: boolean }) {
   );
 }
 
-function Feeds({ radar }: { radar: RadarState }) {
+function FeedsFront({ radar }: { radar: RadarState }) {
   const [ativo, setAtivo] = useState<FeedId>("falaramDeMim");
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -125,11 +136,55 @@ function Feeds({ radar }: { radar: RadarState }) {
           </div>
         ))}
       </div>
+      <div className="m-flip-hint">↻ toque para ver o tom da cobertura</div>
     </div>
   );
 }
 
-function ScatterColunistas({ radar }: { radar: RadarState }) {
+/* ── VERSO do radar de imprensa: donut do tom de TODAS as matérias (24h) ── */
+function FeedsBack({ radar }: { radar: RadarState }) {
+  // junta os três feeds e conta por tom (positivo / neutro / negativo)
+  const { option, total, neg, negPct } = useMemo(() => {
+    const todas = [...radar.falaramDeMim, ...radar.pauta, ...radar.municao];
+    const cont: Record<Tom, number> = { pos: 0, neu: 0, neg: 0 };
+    for (const m of todas) cont[m.tom] += 1;
+    const tot = todas.length || 1;
+    const opt = donutOption({
+      items: [
+        { nome: "favorável", valor: cont.pos, cor: TOM_COR.pos },
+        { nome: "neutro", valor: cont.neu, cor: TOM_COR.neu },
+        { nome: "crítico", valor: cont.neg, cor: TOM_COR.neg },
+      ],
+      centro: { valor: String(todas.length), label: "matérias · 24h" },
+    });
+    return { option: opt, total: todas.length, neg: cont.neg, negPct: Math.round((cont.neg / tot) * 100) };
+  }, [radar.falaramDeMim, radar.pauta, radar.municao]);
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Tom da cobertura · 24h</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={200} />
+      </div>
+      <SectionLeitura>
+        {total
+          ? negPct >= 35
+            ? `Alerta: ${negPct}% da cobertura (${neg} de ${total}) está crítica — picos de matérias negativas pedem resposta hoje.`
+            : `${negPct}% de cobertura crítica (${neg} de ${total}) — sob controle; monitore se passar de 35%.`
+          : "Sem matérias nas últimas 24h."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function Feeds({ radar }: { radar: RadarState }) {
+  return <FlipCard front={<FeedsFront radar={radar} />} back={<FeedsBack radar={radar} />} />;
+}
+
+/* ── FRENTE dos colunistas: scatter tom × alcance ── */
+function ScatterColunistasFront({ radar }: { radar: RadarState }) {
   const option = useMemo(
     () => ({
       backgroundColor: "transparent",
@@ -193,7 +248,6 @@ function ScatterColunistas({ radar }: { radar: RadarState }) {
     [radar.colunistas],
   );
 
-  if (!radar.colunistas.length) return null;
   return (
     <div className="m-card">
       <div className="m-card-head">
@@ -203,7 +257,52 @@ function ScatterColunistas({ radar }: { radar: RadarState }) {
       <div data-no-swipe>
         <EChart option={option} height={210} />
       </div>
+      <div className="m-flip-hint">↻ toque para ver quem tem mais alcance</div>
     </div>
+  );
+}
+
+/* ── VERSO dos colunistas: racing bar por alcance, colorido pelo tom ── */
+function ScatterColunistasBack({ radar }: { radar: RadarState }) {
+  const { option, critico } = useMemo(() => {
+    const ord = [...radar.colunistas].sort((a, b) => b.alcance - a.alcance).slice(0, 8);
+    const opt = racingBarOption({
+      items: ord.map((c) => ({
+        nome: nome1(c.nome),
+        valor: c.alcance,
+        cor: c.tom > 0.15 ? "#16C784" : c.tom < -0.15 ? "#EA3943" : "#8a93a8",
+      })),
+    });
+    // colunista crítico de maior alcance (quem mais machuca)
+    const crit = ord.find((c) => c.tom < -0.15) ?? null;
+    return { option: opt, critico: crit };
+  }, [radar.colunistas]);
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Colunistas · alcance (k)</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={200} />
+      </div>
+      <SectionLeitura>
+        {critico
+          ? `${nome1(critico.nome)} (${critico.veiculo}) é o crítico de maior alcance (${critico.alcance}k) — priorize contato e contraponto.`
+          : "Nenhum colunista de grande alcance está crítico — terreno favorável na imprensa de opinião."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function ScatterColunistas({ radar }: { radar: RadarState }) {
+  // guarda fora do FlipCard: sem colunistas, não renderiza nada (sem hooks condicionais)
+  if (!radar.colunistas.length) return null;
+  return (
+    <FlipCard
+      front={<ScatterColunistasFront radar={radar} />}
+      back={<ScatterColunistasBack radar={radar} />}
+    />
   );
 }
 

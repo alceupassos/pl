@@ -9,9 +9,10 @@ import { useMemo } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import { donutOption } from "@/components/mobile/m-chart-options";
+import { donutOption, groupedBarsOption } from "@/components/mobile/m-chart-options";
 import { ChatBubble } from "@/components/mobile/ui/chat-bubble";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
 import { Odometer } from "@/components/mobile/ui/odometer";
@@ -30,6 +31,11 @@ const FONTES: { id: VozFonte; rotulo: string; cor: string }[] = [
 
 /* ① HERO — volume do dia + termômetro de sentimento */
 function HeroVoz({ voz }: { voz: VozSnapshot }) {
+  return <FlipCard front={<HeroVozFront voz={voz} />} back={<HeroVozBack voz={voz} />} />;
+}
+
+/* ── FRENTE ── */
+function HeroVozFront({ voz }: { voz: VozSnapshot }) {
   const c = voz.contadores;
   const donut = useMemo(
     () =>
@@ -70,12 +76,52 @@ function HeroVoz({ voz }: { voz: VozSnapshot }) {
           ? `O clima pende positivo: ${c.sentimento.pos.toFixed(0)}% de mensagens a favor contra ${c.sentimento.neg.toFixed(0)}% contra (saldo +${saldo.toFixed(0)} pts).`
           : `Atenção: o negativo passou o positivo — ${c.sentimento.neg.toFixed(0)}% contra ${c.sentimento.pos.toFixed(0)}% a favor (saldo ${saldo.toFixed(0)} pts). Hora de responder.`}
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver o clima do eleitorado</div>
     </FlashCard>
+  );
+}
+
+/* ── VERSO — clima do eleitorado (volume absoluto por sentimento) ── */
+function HeroVozBack({ voz }: { voz: VozSnapshot }) {
+  const c = voz.contadores;
+  const donut = useMemo(
+    () =>
+      donutOption({
+        items: [
+          { nome: "Positivo", valor: c.sentimento.pos, cor: "#16C784" },
+          { nome: "Neutro", valor: c.sentimento.neu, cor: "#8a93a8" },
+          { nome: "Negativo", valor: c.sentimento.neg, cor: "#EA3943" },
+        ],
+        centro: { valor: String(c.totalHoje), label: "hoje" },
+      }),
+    [c.sentimento.pos, c.sentimento.neu, c.sentimento.neg, c.totalHoje],
+  );
+  const saldo = c.sentimento.pos - c.sentimento.neg;
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Clima do eleitorado</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={donut} height={170} />
+      </div>
+      <SectionLeitura>
+        {saldo >= 0
+          ? `Entre as ${c.totalHoje} mensagens de hoje, o positivo (${c.sentimento.pos.toFixed(0)}%) supera o negativo (${c.sentimento.neg.toFixed(0)}%) — o eleitorado está a favor.`
+          : `Entre as ${c.totalHoje} mensagens de hoje, o negativo (${c.sentimento.neg.toFixed(0)}%) já passou o positivo (${c.sentimento.pos.toFixed(0)}%) — o clima virou. Hora de agir.`}
+      </SectionLeitura>
+    </div>
   );
 }
 
 /* ② DE ONDE VEM A VOZ — quebra por fonte (eleitor + redes) */
 function PorFonte({ voz }: { voz: VozSnapshot }) {
+  return <FlipCard front={<PorFonteFront voz={voz} />} back={<PorFonteBack voz={voz} />} />;
+}
+
+/* ── FRENTE ── */
+function PorFonteFront({ voz }: { voz: VozSnapshot }) {
   const porFonte = voz.contadores.porFonte;
   const linhas = FONTES.map((f) => ({ ...f, total: porFonte[f.id] ?? 0 }));
   const max = Math.max(1, ...linhas.map((l) => l.total));
@@ -121,6 +167,35 @@ function PorFonte({ voz }: { voz: VozSnapshot }) {
                 : `já foi ultrapassado pelas redes somadas (${totalRedes}) — a conversa migrou pro digital.`
             }`
           : "Sem fontes para ler agora."}
+      </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver onde a voz é mais forte</div>
+    </div>
+  );
+}
+
+/* ── VERSO — mensagens por fonte (onde a voz é mais forte) ── */
+function PorFonteBack({ voz }: { voz: VozSnapshot }) {
+  const porFonte = voz.contadores.porFonte;
+  const linhas = FONTES.map((f) => ({ ...f, total: porFonte[f.id] ?? 0 }));
+  const bars = groupedBarsOption({
+    labels: FONTES.map((f) => f.rotulo),
+    series: [{ nome: "mensagens", cor: "#16C784", data: linhas.map((l) => l.total) }],
+    horizontal: true,
+  });
+  const lider = [...linhas].sort((a, b) => b.total - a.total)[0];
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Onde a voz é mais forte</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={bars} height={180} />
+      </div>
+      <SectionLeitura>
+        {lider && lider.total > 0
+          ? `${lider.rotulo} concentra o maior volume de mensagens agora (${lider.total}) — é por aí que a conversa está passando.`
+          : "Sem volume suficiente para comparar as fontes agora."}
       </SectionLeitura>
     </div>
   );
