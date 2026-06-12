@@ -9,8 +9,8 @@ import { useMemo } from "react";
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { bulletBarsOption, funnelOption } from "@/components/mobile/m-chart-options";
+import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
-import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
@@ -27,7 +27,88 @@ import {
 } from "@/lib/mock/campaign-goal";
 import type { EquipeSnapshot } from "@/lib/live-schemas";
 
-/* ── FRENTE: o placar do cadastro de eleitores vs a meta ── */
+/* ── COMPACTO: número + mini-gráfico de projeção ao lado ── */
+function MetaCompact() {
+  const { data: equipe, lastAt } = useLiveChannel<EquipeSnapshot>("equipe");
+
+  const calc = useMemo(() => {
+    if (!equipe) return null;
+    const g = equipe.geral;
+    const agora = lastAt > 0 ? lastAt : ELEICAO_MS - 130 * 86_400_000;
+    const cadastrados = g.cadastrados;
+    const previsto = previstoPara(agora);
+    const dias = diasAteEleicao(agora);
+    const ritmoDia = Math.round(g.velocidadeMin * 60 * 14);
+    const diff = cadastrados - previsto;
+    const margem = META_ELEITORES * 0.03;
+    const status = diff >= margem ? "ADIANTADO" : diff <= -margem ? "ATRASADO" : "NO RITMO";
+    const cor = status === "ADIANTADO" ? "#16C784" : status === "ATRASADO" ? "#EA3943" : "#F5A623";
+    const selo = status === "ADIANTADO" ? "up" : status === "ATRASADO" ? "down" : "amarelo";
+    const pts = Array.from({ length: 9 }, (_, i) =>
+      Math.round(cadastrados + ritmoDia * dias * (i / 8)),
+    );
+    const option = {
+      backgroundColor: "transparent",
+      grid: { left: 2, right: 4, top: 4, bottom: 4, containLabel: false },
+      xAxis: { type: "category", show: false, data: pts.map(() => "") },
+      yAxis: { type: "value", show: false },
+      series: [
+        {
+          type: "line",
+          data: pts,
+          smooth: true,
+          symbol: "none",
+          lineStyle: { color: cor, width: 2 },
+          areaStyle: {
+            color: status === "ATRASADO" ? "rgba(234,57,67,0.12)" : "rgba(22,199,132,0.10)",
+          },
+        },
+      ],
+    };
+    return { cadastrados, status, selo, option };
+  }, [equipe, lastAt]);
+
+  return (
+    <FlashCard watch={calc?.cadastrados} className="m-card-compact">
+      <div className="m-card-head">
+        <span className="m-card-title">Cadastro de eleitores · meta 79.000</span>
+        <LiveBadge ch="equipe" cadenceMs={2000} />
+      </div>
+
+      {calc ? (
+        <>
+          <div className="m-compact-row">
+            <div className="m-compact-main">
+              <div className="m-headline-num">
+                <Odometer value={calc.cadastrados} />
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                <span className="m-muted-c" style={{ fontSize: 12 }}>
+                  / {META_ELEITORES.toLocaleString("pt-BR")}
+                </span>
+                <span className={`m-pill ${calc.selo}`} style={{ fontSize: 9 }}>
+                  {calc.status === "ADIANTADO"
+                    ? "ADIANTADO ✓"
+                    : calc.status === "ATRASADO"
+                      ? "ATRASADO ⚠"
+                      : "NO RITMO"}
+                </span>
+              </div>
+            </div>
+            <div className="m-compact-chart" data-no-swipe onClick={(e) => e.stopPropagation()}>
+              <EChart option={calc.option} height={64} />
+            </div>
+          </div>
+          <div className="m-flip-hint">toque para expandir</div>
+        </>
+      ) : (
+        <div className="m-ghost">sincronizando o placar…</div>
+      )}
+    </FlashCard>
+  );
+}
+
+/* ── FRENTE expandida: o placar do cadastro de eleitores vs a meta ── */
 function MetaFront() {
   const { data: equipe, lastAt } = useLiveChannel<EquipeSnapshot>("equipe");
 
@@ -255,8 +336,17 @@ function MetaBack() {
   );
 }
 
+function metaGlow(equipe: EquipeSnapshot, lastAt: number): "up" | "down" {
+  const agora = lastAt > 0 ? lastAt : ELEICAO_MS - 130 * 86_400_000;
+  const previsto = previstoPara(agora);
+  const diff = equipe.geral.cadastrados - previsto;
+  const margem = META_ELEITORES * 0.03;
+  if (diff <= -margem) return "down";
+  return "up";
+}
+
 export function MetaEleitoresCard() {
-  const equipe = useLiveChannel<EquipeSnapshot>("equipe").data;
+  const { data: equipe, lastAt } = useLiveChannel<EquipeSnapshot>("equipe");
   if (!equipe) {
     return (
       <FlashCard watch={undefined}>
@@ -268,7 +358,15 @@ export function MetaEleitoresCard() {
       </FlashCard>
     );
   }
-  return <FlipCard front={<MetaFront />} back={<MetaBack />} />;
+  return (
+    <ExpandFlipCard
+      glow={metaGlow(equipe, lastAt)}
+      compact={<MetaCompact />}
+      front={<MetaFront />}
+      back={<MetaBack />}
+      ariaLabel="Tocar para expandir o placar de eleitores"
+    />
+  );
 }
 
 function Stat({ label, valor, sub }: { label: string; valor: string; sub?: string }) {

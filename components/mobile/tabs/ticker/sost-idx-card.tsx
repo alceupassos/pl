@@ -12,8 +12,8 @@ import { useMemo } from "react";
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { candlestickOption } from "@/components/mobile/m-chart-options";
+import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
-import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { InfoTip } from "@/components/mobile/ui/info-tip";
@@ -141,7 +141,50 @@ function idxTemReal(idx: IdxSnapshot): boolean {
   return Object.values(idx.fontes).some((f) => f === "real");
 }
 
-/* ── FRENTE — o índice de hoje ── */
+/* ── COMPACTO — número + candlestick ao lado ── */
+function IdxCompact({
+  idx,
+  watchlist,
+}: {
+  idx: IdxSnapshot;
+  watchlist: Watchlist | null;
+}) {
+  const option = useMemo(
+    () => candlestickOption({ candles: [...idx.candles30d, idx.candleVivo], compact: true }),
+    [idx],
+  );
+  const positivo = idx.variacaoDia >= 0;
+
+  return (
+    <FlashCard watch={idx.valor} className="m-card-compact">
+      <div className="m-card-head">
+        <span className="m-card-title">
+          {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
+        </span>
+        <LiveBadge ch="idx.sost" cadenceMs={2000} />
+      </div>
+
+      <div className="m-compact-row">
+        <div className="m-compact-main">
+          <div className="m-headline-num">
+            <Odometer value={idx.valor} decimals={2} />
+          </div>
+          <div className={`m-headline-var ${positivo ? "m-up-c" : "m-down-c"}`} style={{ fontSize: 13 }}>
+            {positivo ? "▲" : "▼"}{" "}
+            <Odometer value={idx.variacaoDia} decimals={2} signed suffix="%" /> hoje
+          </div>
+        </div>
+        <div className="m-compact-chart" data-no-swipe onClick={(e) => e.stopPropagation()}>
+          <EChart option={option} height={64} />
+        </div>
+      </div>
+
+      <div className="m-flip-hint">toque para expandir</div>
+    </FlashCard>
+  );
+}
+
+/* ── FRENTE expandida — o índice de hoje ── */
 function IdxFront({
   idx,
   watchlist,
@@ -376,10 +419,15 @@ export function SostIdxCard() {
     );
   }
 
+  const glow = idx.variacaoDia >= 0 ? "up" : "down";
+
   return (
-    <FlipCard
+    <ExpandFlipCard
+      glow={glow}
+      compact={<IdxCompact idx={idx} watchlist={watchlist} />}
       front={<IdxFront idx={idx} watchlist={watchlist} equipe={equipe.data} agora={equipe.lastAt} />}
       back={<IdxBack equipe={equipe.data} agora={equipe.lastAt} />}
+      ariaLabel="Tocar para expandir o índice SOST"
     />
   );
 }

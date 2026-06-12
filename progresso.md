@@ -242,6 +242,8 @@ Arquivo: `app/api/stream/route.ts`
 | 2026-06-12 | LeituraIA | Bolinha roxa Brain em cada card do /m; modal com leitura + dica via `/api/oracle?mode=leitura` (sem expor modelo) |
 | 2026-06-12 | Fita de ações | Ranking de concorrentes restaurado acima do gráfico 30d no CompetitorTape |
 | 2026-06-12 | Fix flip verso | `pointer-events`/`z-index` no FlipCard — link `/m/indice` no verso do SOST-IDX navega |
+| 2026-06-12 | Fita candlestick | CompetitorTape: carrossel candlestick na frente, comparativo 30d no verso |
+| 2026-06-12 | Cards compactos ticker | SOST-IDX e Meta eleitores iniciam reduzidos (número + mini-gráfico); toque expande → toque vira verso; borda girando verde/vermelha (2.5px); ordem: IDX → Meta → Fita |
 
 ### Notas T2 (correção API)
 

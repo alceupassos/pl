@@ -18,8 +18,8 @@ export default function TickerTab() {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <TickerTape />
       <SostIdxCard />
-      <CompetitorTape />
       <MetaEleitoresCard />
+      <CompetitorTape />
       <SignalCards />
       <EquipeResumo />
       <NationalActors />
