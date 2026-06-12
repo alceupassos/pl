@@ -33,3 +33,8 @@ out/
 
 # cache de pesquisas reais (Wikipédia via sidecar) — runtime, persiste no servidor
 /data/pesquisas-cache.json
+
+# caches das fontes reais T1–T3 (composer.md) — runtime, persiste no servidor
+/data/plenario-cache.json
+/data/trends-cache.json
+/data/youtube-videos-cache.json

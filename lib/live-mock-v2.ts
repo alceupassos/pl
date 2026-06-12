@@ -12,6 +12,7 @@ import { ORCAMENTO_TOTAL, RUBRICAS } from "@/lib/mock/gastos-rubricas";
 import { MUNICAO } from "@/lib/mock/media";
 // Fonte REAL: cota parlamentar (Câmara) alimenta a aba gastos quando disponível.
 import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
+import { getVideosReal } from "@/lib/sources/youtube";
 import { META_ELEITORES, diasAteEleicao } from "@/lib/mock/campaign-goal";
 import {
   getActivityFeed,
@@ -185,7 +186,14 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
     }
   }
 
-  return { ...base, porRede, veiculos, heatmapPostagem };
+  const youtubeVideos = getVideosReal();
+  return {
+    ...base,
+    porRede,
+    veiculos,
+    heatmapPostagem,
+    ...(youtubeVideos ? { youtubeVideos } : {}),
+  };
 }
 
 function buildVeiculos(w: Watchlist, now: number) {

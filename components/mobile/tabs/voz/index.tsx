@@ -55,6 +55,7 @@ function HeroVozFront({ voz }: { voz: VozSnapshot }) {
     <FlashCard watch={c.totalHoje}>
       <div className="m-card-head">
         <span className="m-card-title">Voz do eleitorado · hoje</span>
+        <span className="m-signal-tag mock">modelado</span>
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>
       <div className="m-headline-num">

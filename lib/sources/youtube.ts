@@ -99,3 +99,73 @@ function persist(): void {
 function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
+
+/* ── vídeos recentes (aba Redes) ── */
+
+export type VideoReal = {
+  id: string;
+  titulo: string;
+  views: number;
+  comentarios: number;
+  likes: number;
+  data: string;
+  engajamento: number;
+};
+
+const VIDEOS_TTL_MS = 6 * 60 * 60 * 1000;
+const VIDEOS_CACHE_FILE = join(process.cwd(), "data", "youtube-videos-cache.json");
+
+let videosState: { at: number; videos: VideoReal[] } = { at: 0, videos: [] };
+let videosInFlight = false;
+
+(function loadVideosDisk() {
+  try {
+    const raw = JSON.parse(readFileSync(VIDEOS_CACHE_FILE, "utf8"));
+    if (raw && Array.isArray(raw.videos)) videosState = { at: 0, videos: raw.videos };
+  } catch {
+    /* primeira execução */
+  }
+})();
+
+/** Últimos vídeos reais do canal. null = sem dado → sintético. */
+export function getVideosReal(): VideoReal[] | null {
+  return videosState.videos.length ? videosState.videos : null;
+}
+
+/** Dispara refresh dos vídeos (yt-dlp --dump-json via sidecar). */
+export function ensureFreshYoutubeVideos(): void {
+  if (videosInFlight) return;
+  if (Date.now() - videosState.at < VIDEOS_TTL_MS && videosState.videos.length > 0) return;
+  videosInFlight = true;
+  void refreshVideos().finally(() => {
+    videosInFlight = false;
+  });
+}
+
+async function refreshVideos(): Promise<void> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45_000);
+    try {
+      const url = `${SIDECAR_BASE}/youtube/videos?channel=${encodeURIComponent(CANAL)}&n=10`;
+      const res = await fetch(url, { signal: ctrl.signal });
+      if (!res.ok) return;
+      const json = (await res.json()) as { videos?: VideoReal[] };
+      if (!Array.isArray(json.videos) || !json.videos.length) return;
+      videosState = { at: Date.now(), videos: json.videos };
+      persistVideos();
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    /* sidecar/rede indisponível */
+  }
+}
+
+function persistVideos(): void {
+  try {
+    writeFileSync(VIDEOS_CACHE_FILE, `${JSON.stringify({ videos: videosState.videos })}\n`);
+  } catch {
+    /* FS read-only */
+  }
+}

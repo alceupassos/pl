@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { getVotos2022Municipio } from "@/lib/data/votos-2022-sostenes";
 import type { RioPulsos } from "@/lib/live-schemas";
 
 type EInstance = {
@@ -59,8 +60,7 @@ function buildOption(camada: Camada, nomes: string[], pulsos: RioPulsos["pulsos"
   const pulsoPorNome = new Map(pulsos.map((p) => [norm(p.municipio), p.intensidade]));
   const data = nomes.map((nome) => {
     if (camada === "v2022") {
-      // votação 2022 mock: padrão estável por município (forte na Costa Verde/Baixada)
-      return { name: nome, value: 8 + (hashNome(norm(nome)) % 92) };
+      return { name: nome, value: getVotos2022Municipio(nome) };
     }
     const pulso = pulsoPorNome.get(norm(nome));
     return { name: nome, value: Math.round((pulso ?? 0.06 + (hashNome(nome) % 20) / 100) * 100) };
@@ -73,12 +73,12 @@ function buildOption(camada: Camada, nomes: string[], pulsos: RioPulsos["pulsos"
       textStyle: { color: "#e8ecf4", fontSize: 11 },
       confine: true,
       formatter: (p: { name?: string; value?: number }) =>
-        `${p.name}: ${typeof p.value === "number" && !Number.isNaN(p.value) ? p.value : "—"}${camada === "pulsos" ? " menções" : " (índice 2022)"}`,
+        `${p.name}: ${typeof p.value === "number" && !Number.isNaN(p.value) ? p.value.toLocaleString("pt-BR") : "—"}${camada === "pulsos" ? " menções" : " votos 2022"}`,
     },
     visualMap: {
       show: false,
       min: 0,
-      max: 100,
+      max: camada === "v2022" ? Math.max(...data.map((d) => d.value), 1) : 100,
       inRange: {
         color:
           camada === "pulsos"

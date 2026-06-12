@@ -94,6 +94,7 @@ function FeedsFront({ radar }: { radar: RadarState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Radar de imprensa</span>
+        <span className="m-signal-tag mock">modelado</span>
         <LiveBadge ch="radar" cadenceMs={10000} />
       </div>
 

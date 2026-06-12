@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Artefatos de páginas salvas (não são código do projeto).
     "sostenes/**",
+    "sidecar/sentiment/.venv/**",
   ]),
 ]);
 

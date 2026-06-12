@@ -4,3 +4,4 @@ pysentimiento
 yt-dlp
 lxml
 requests
+pytrends

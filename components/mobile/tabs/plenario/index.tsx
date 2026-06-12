@@ -319,6 +319,11 @@ export default function PlenarioTab() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <span className={`m-signal-tag ${plenario.fonte === "real" ? "real" : "mock"}`}>
+          {plenario.fonte === "real" ? "real · Câmara" : "modelado"}
+        </span>
+      </div>
       <PlacarVotacao plenario={plenario} />
       <FidelidadeBancada plenario={plenario} />
       <CaboDeGuerra plenario={plenario} />

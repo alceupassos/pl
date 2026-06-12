@@ -65,6 +65,7 @@ function PesquisaPropriaCard({ propria }: { propria: PesquisasSnapshot["propria"
     <FlashCard watch={live.respondidos}>
       <div className="m-card-head">
         <span className="m-card-title">PESQUISA PRÓPRIA · AO VIVO</span>
+        <span className="m-signal-tag mock">modelado</span>
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
       <p style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px" }}>{propria.pergunta}</p>

@@ -13,12 +13,20 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 import yt_dlp
-from pysentimiento import create_analyzer
 
 app = FastAPI(title="cockpit-sentiment")
 
-# Carrega o modelo uma vez no boot (BERTabaporu PT). ~1GB em RAM.
-analyzer = create_analyzer(task="sentiment", lang="pt")
+_analyzer = None
+
+
+def _get_analyzer():
+    """Carrega BERTabaporu PT sob demanda (~1GB RAM). YouTube/Trends não precisam."""
+    global _analyzer
+    if _analyzer is None:
+        from pysentimiento import create_analyzer
+
+        _analyzer = create_analyzer(task="sentiment", lang="pt")
+    return _analyzer
 
 
 class Req(BaseModel):
@@ -38,7 +46,7 @@ def sentiment(req: Req):
     if not textos:
         return {"pos": 0, "neg": 0, "neu": 0, "n": 0, "indice": None}
 
-    saidas = analyzer.predict(textos)
+    saidas = _get_analyzer().predict(textos)
     pos = sum(1 for o in saidas if o.output == "POS")
     neg = sum(1 for o in saidas if o.output == "NEG")
     neu = sum(1 for o in saidas if o.output == "NEU")
@@ -62,6 +70,72 @@ def youtube(channel: str):
         }
     except Exception:
         return {"subscribers": None, "videos": None, "nome": None}
+
+
+@app.get("/youtube/videos")
+def youtube_videos(channel: str, n: int = 10):
+    """Últimos vídeos do canal com views/likes/comentários (--dump-json)."""
+    lim = max(1, min(n, 20))
+    url = channel.rstrip("/")
+    if not url.endswith("/videos"):
+        url = f"{url}/videos"
+    opts = {
+        "quiet": True,
+        "skip_download": True,
+        "extract_flat": False,
+        "playlistend": lim,
+    }
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+        entries = info.get("entries") or []
+        out = []
+        for e in entries:
+            if not e:
+                continue
+            views = e.get("view_count") or 0
+            likes = e.get("like_count") or 0
+            comments = e.get("comment_count") or 0
+            eng = round(((likes + comments) / views) * 100, 2) if views > 0 else 0.0
+            out.append(
+                {
+                    "id": str(e.get("id") or ""),
+                    "titulo": str(e.get("title") or ""),
+                    "views": int(views),
+                    "comentarios": int(comments),
+                    "likes": int(likes),
+                    "data": str(e.get("upload_date") or ""),
+                    "engajamento": eng,
+                }
+            )
+            if len(out) >= lim:
+                break
+        return {"videos": out}
+    except Exception:
+        return {"videos": []}
+
+
+@app.get("/trends")
+def trends(termo: str = "Sóstenes Cavalcante"):
+    """Interesse de busca (Google Trends) normalizado ~100. Datacenter pode bloquear."""
+    try:
+        from pytrends.request import TrendReq
+
+        pt = TrendReq(hl="pt-BR", tz=180)
+        pt.build_payload([termo], timeframe="now 7-d", geo="BR")
+        df = pt.interest_over_time()
+        if df is None or df.empty or termo not in df.columns:
+            return {"indice": None, "serie": []}
+        serie = [int(v) for v in df[termo].tolist()]
+        if not serie or max(serie) == 0:
+            return {"indice": None, "serie": []}
+        atual = serie[-1]
+        # normaliza: média da série = 100
+        media = sum(serie) / len(serie)
+        indice = round((atual / media) * 100, 1) if media > 0 else None
+        return {"indice": indice, "serie": serie[-24:]}
+    except Exception:
+        return {"indice": None, "serie": []}
 
 
 # Pesquisas presidenciais 2026 REAIS — parseadas da Wikipédia (sem chave/credencial).

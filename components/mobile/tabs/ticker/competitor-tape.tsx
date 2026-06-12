@@ -101,7 +101,10 @@ function CompetitorFront() {
           </div>
           <SectionLeitura>
             Você está em <strong>{dados.posVoce}º de {dados.total}</strong> em força na disputa
-            (relevância: imprensa + redes + sentimento). As barras comparam todos no mesmo patamar.
+            (relevância: imprensa + redes + sentimento).{" "}
+            {watchlist?.principal.votos2022
+              ? `Base eleitoral 2022: ${watchlist.principal.votos2022.toLocaleString("pt-BR")} votos (TSE).`
+              : ""}
           </SectionLeitura>
         </>
       ) : (

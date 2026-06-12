@@ -37,7 +37,7 @@ const PARTES: {
     label: "menções",
     curto: "quanto falam dele nas redes",
     explica: (v, p) =>
-      `Volume de menções nas redes sociais (peso ${p}% do índice). Valor ${v}. Modelado — fonte social real (Bluesky/Google Trends) chega na próxima fatia.`,
+      `Buzz de busca (peso ${p}% do índice). Valor ${v}. Quando disponível, vem do Google Trends via sidecar; senão, série modelada.`,
   },
   {
     key: "sentimento",

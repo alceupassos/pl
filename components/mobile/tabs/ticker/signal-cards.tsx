@@ -27,40 +27,50 @@ type SinalDef = {
   frase: (v: number) => string;
 };
 
-const SINAIS: SinalDef[] = [
+const SINAIS_BASE: Omit<SinalDef, "fonte" | "real">[] = [
   {
     key: "imprensa",
     icon: "📰",
     label: "Imprensa",
-    fonte: "real · Google News",
-    real: true,
     frase: (v) => (v >= 115 ? "em alta no jornal" : v >= 90 ? "presença normal" : "pouca cobertura"),
   },
   {
     key: "sentimento",
     icon: "💬",
     label: "Sentimento",
-    fonte: "real · IA em PT",
-    real: true,
     frase: (v) => (v >= 106 ? "clima favorável" : v >= 95 ? "clima neutro" : "clima negativo"),
   },
   {
     key: "seguidores",
     icon: "👥",
     label: "Seguidores",
-    fonte: "real · YouTube",
-    real: true,
     frase: (v) => (v >= 103 ? "base crescendo" : v >= 98 ? "base estável" : "base caindo"),
   },
   {
     key: "mencoes",
     icon: "📢",
     label: "Menções",
-    fonte: "modelado",
-    real: false,
     frase: (v) => (v >= 115 ? "muito falado nas redes" : v >= 90 ? "falam dele" : "pouco citado"),
   },
 ];
+
+const FONTE_LABEL: Record<keyof IdxSnapshot["breakdown"], { real: string; modelado: string }> = {
+  imprensa: { real: "real · Google News", modelado: "modelado" },
+  sentimento: { real: "real · IA em PT", modelado: "modelado" },
+  seguidores: { real: "real · YouTube", modelado: "modelado" },
+  mencoes: { real: "real · Google Trends", modelado: "modelado" },
+};
+
+function sinaisFromIdx(idx: IdxSnapshot): SinalDef[] {
+  return SINAIS_BASE.map((s) => {
+    const isReal = idx.fontes?.[s.key] === "real";
+    return {
+      ...s,
+      real: isReal,
+      fonte: isReal ? FONTE_LABEL[s.key].real : FONTE_LABEL[s.key].modelado,
+    };
+  });
+}
 
 function seta(v: number): { txt: string; cls: string } {
   if (v >= 102) return { txt: "▲", cls: "m-up-c" };
@@ -104,7 +114,7 @@ function SignalsFront({ idx }: { idx: IdxSnapshot }) {
         <LiveBadge ch="idx.sost" cadenceMs={2000} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        {SINAIS.map((s) => (
+        {sinaisFromIdx(idx).map((s) => (
           <SignalCard key={s.key} sinal={s} valor={idx.breakdown[s.key]} />
         ))}
       </div>

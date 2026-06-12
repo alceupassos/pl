@@ -19,7 +19,9 @@ import { ensureFreshCamara } from "@/lib/sources/camara";
 import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
 import { ensureFreshPesquisas } from "@/lib/sources/pesquisas";
 import { ensureFreshSentimento } from "@/lib/sources/sentiment";
-import { ensureFreshYoutube } from "@/lib/sources/youtube";
+import { ensureFreshPlenario } from "@/lib/sources/plenario";
+import { ensureFreshTrends } from "@/lib/sources/trends";
+import { ensureFreshYoutube, ensureFreshYoutubeVideos } from "@/lib/sources/youtube";
 import { readWatchlist } from "@/lib/watchlist";
 
 export const runtime = "nodejs";
@@ -85,6 +87,9 @@ export async function GET(request: NextRequest) {
       // parlamentar (Câmara) que alimenta a aba gastos.
       ensureFreshNews(watchlist.termos);
       ensureFreshCamara();
+      ensureFreshYoutubeVideos();
+      ensureFreshPlenario();
+      ensureFreshTrends();
       const t0 = Date.now();
       for (const env of buildAllSnapshots(watchlist, t0, opts)) {
         send(env);
@@ -103,6 +108,9 @@ export async function GET(request: NextRequest) {
         ensureFreshCamara();
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
         ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)
+        ensureFreshYoutubeVideos(); // views/comentários por vídeo (aba redes)
+        ensureFreshPlenario(); // votações reais (Câmara Dados Abertos)
+        ensureFreshTrends(); // buzz de busca (Google Trends via sidecar)
         ensureFreshPesquisas(); // pesquisas presidenciais reais (Wikipédia via sidecar)
 
         for (const ch of DELTA_CHANNELS) {

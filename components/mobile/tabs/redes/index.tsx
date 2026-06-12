@@ -28,7 +28,7 @@ import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { StatPill } from "@/components/mobile/ui/stat-pill";
 import { getAvatar } from "@/lib/avatars";
-import type { RedeHist, RedeId, RedesV2Snapshot } from "@/lib/live-schemas";
+import type { RedeHist, RedeId, RedesV2Snapshot, YoutubeVideo } from "@/lib/live-schemas";
 
 const REDE_META: Record<RedeId, { nome: string; cor: string; sigla: string }> = {
   instagram: { nome: "Instagram", cor: "#E1306C", sigla: "IG" },
@@ -43,6 +43,38 @@ const HORAS = ["8h", "10h", "12h", "14h", "17h", "19h", "20h", "21h"];
 
 function fmtK(v: number): string {
   return v >= 1000 ? `${(v / 1000).toFixed(v >= 100_000 ? 0 : 1)}k` : String(Math.round(v));
+}
+
+function FonteTag({ real, label }: { real: boolean; label?: string }) {
+  return (
+    <span className={`m-signal-tag ${real ? "real" : "mock"}`}>
+      {label ?? (real ? "real" : "modelado")}
+    </span>
+  );
+}
+
+function YoutubeVideosReais({ videos }: { videos: YoutubeVideo[] }) {
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">YouTube · últimos vídeos</span>
+        <FonteTag real label="real · yt-dlp" />
+        <LiveBadge ch="redes" cadenceMs={3000} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {videos.slice(0, 6).map((v) => (
+          <div key={v.id} className="m-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 600 }}>{v.titulo}</span>
+            <span className="m-mono m-muted-c" style={{ fontSize: 10.5 }}>
+              {fmtK(v.views)} views · {v.comentarios} coment. · eng {v.engajamento.toFixed(1)}%
+              {v.data ? ` · ${v.data.slice(0, 4)}-${v.data.slice(4, 6)}-${v.data.slice(6, 8)}` : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+      <SectionLeitura>Dados reais do canal oficial via yt-dlp (views, likes e comentários por vídeo).</SectionLeitura>
+    </div>
+  );
 }
 
 /* ① HERO POR REDE — cada rede como um ativo, com 30 dias de filme */
@@ -174,6 +206,7 @@ function RedesHero({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Suas redes · filme de 30 dias</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div className="m-carousel" data-no-swipe>
@@ -240,6 +273,7 @@ function ArenaFront({
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Arena · você × concorrentes por rede</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
@@ -308,6 +342,7 @@ function ArenaBack({ redes, redeSel }: { redes: RedesV2Snapshot; redeSel: RedeId
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Mapa · tamanho × engajamento no {REDE_META[redeSel].nome}</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -374,6 +409,7 @@ function QuemCresce({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Quem cresce mais · 7 dias</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
@@ -403,6 +439,7 @@ function MelhorHorario({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Melhor horário para postar</span>
+        <FonteTag real={false} />
         <span className="m-pill">alcance por dia × hora</span>
       </div>
       <LazyChart option={option} height={180} />
@@ -439,6 +476,7 @@ function VeiculosFront({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Imprensa · quem fala de você</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <LazyChart option={option} height={170} />
@@ -499,6 +537,7 @@ function VeiculosBack({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Imprensa · share ao longo do tempo</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -561,6 +600,7 @@ function MonitorUltimoPost({ redes }: { redes: RedesV2Snapshot }) {
     <FlashCard watch={post.curtidas}>
       <div className="m-card-head">
         <span className="m-card-title">Monitor do último post</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>“{post.texto}”</p>
@@ -608,6 +648,7 @@ function RacingSemanal({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Engajamento total · semana</span>
+        <FonteTag real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div data-no-swipe>
@@ -632,6 +673,7 @@ function CriseDetector({ redes }: { redes: RedesV2Snapshot }) {
     >
       <div className="m-card-head">
         <span className="m-card-title">Detector de crise</span>
+        <FonteTag real={false} />
         <span className={`m-pill ${c.ativo ? "vermelho" : "up"}`}>{c.ativo ? "CRISE EM CURSO" : "normal"}</span>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
@@ -655,6 +697,7 @@ export default function RedesTab() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {redes.youtubeVideos?.length ? <YoutubeVideosReais videos={redes.youtubeVideos} /> : null}
       <RedesHero redes={redes} />
       <Arena redes={redes} />
       <QuemCresce redes={redes} />

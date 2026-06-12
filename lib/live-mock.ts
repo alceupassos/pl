@@ -16,7 +16,9 @@ import { calcularQuociente, projetarBancada } from "@/lib/quociente";
 // — todas com fallback para o sintético.
 import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/sources/gdelt";
 import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
+import { getPlenarioReal } from "@/lib/sources/plenario";
 import { getSentimentoReal } from "@/lib/sources/sentiment";
+import { getTrendsReal, hasTrendsReal } from "@/lib/sources/trends";
 import { getSeguidoresReal } from "@/lib/sources/youtube";
 import { getFontePesquisa, getPesquisas, getPresidencial, type CandKey } from "@/lib/sources/pesquisas";
 import type { Watchlist } from "@/lib/watchlist";
@@ -222,7 +224,7 @@ const IDX_PARTS: { key: "mencoes" | "sentimento" | "seguidores" | "imprensa"; p:
 type IdxComponents = { mencoes: number; sentimento: number; seguidores: number; imprensa: number };
 function idxComponents(t: number): IdxComponents {
   return {
-    mencoes: seriesValue("sost:mencoes", t, IDX_PARTS[0].p),
+    mencoes: getTrendsReal() ?? seriesValue("sost:mencoes", t, IDX_PARTS[0].p),
     // sentimento: sidecar pysentimiento (real) → GDELT tone → série sintética.
     sentimento:
       getSentimentoReal() ?? getSentimentoIndex() ?? seriesValue("sost:sentimento", t, IDX_PARTS[1].p),
@@ -230,6 +232,15 @@ function idxComponents(t: number): IdxComponents {
     seguidores: getSeguidoresReal() ?? seriesValue("sost:seguidores", t, IDX_PARTS[2].p),
     // imprensa: Google News (primária) → GDELT (fallback) → série sintética.
     imprensa: getNewsImprensa() ?? getGdeltImprensa() ?? seriesValue("sost:imprensa", t, IDX_PARTS[3].p),
+  };
+}
+
+function idxFontes(): NonNullable<IdxSnapshot["fontes"]> {
+  return {
+    mencoes: hasTrendsReal() ? "real" : "modelado",
+    sentimento: getSentimentoReal() !== null ? "real" : "modelado",
+    seguidores: getSeguidoresReal() !== null ? "real" : "modelado",
+    imprensa: getNewsImprensa() !== null ? "real" : "modelado",
   };
 }
 
@@ -280,9 +291,10 @@ export function snapshotIdx(w: Watchlist, now: number): IdxSnapshot {
         mencoes: round1(c.mencoes),
         sentimento: round1(c.sentimento),
         seguidores: round1(c.seguidores),
-        imprensa: round1(c.imprensa), // ← GDELT real quando disponível
+        imprensa: round1(c.imprensa),
       };
     })(),
+    fontes: idxFontes(),
   };
 }
 
@@ -293,6 +305,7 @@ export function deltaIdx(w: Watchlist, now: number): IdxDelta {
     variacaoDia: snap.variacaoDia,
     candleVivo: snap.candleVivo,
     breakdown: snap.breakdown,
+    fontes: snap.fontes,
   };
 }
 
@@ -558,6 +571,29 @@ function votacaoJanela(now: number, opts: MockOptions = {}) {
 }
 
 export function snapshotPlenario(now: number, opts: MockOptions = {}): PlenarioState {
+  const real = getPlenarioReal();
+  if (real?.votacao && !opts.demoVotacao) {
+    const traicoes = real.votacao.traicoes.length;
+    const fidelidadeBase = 88;
+    const com = fidelidadeBase - traicoes;
+    const share = 50 + 13 * noise("plenario:voz", now, 3);
+    return {
+      votacaoAtiva: real.votacao.emAndamento,
+      votacao: real.votacao,
+      fidelidade: { com, total: fidelidadeBase, pct: round1((com / fidelidadeBase) * 100) },
+      caboDeGuerra: {
+        temaOposicao: "Segurança pública e anistia",
+        temaGoverno: "Isenção do IR e salário mínimo",
+        shareOposicao: round1(Math.max(25, Math.min(75, share))),
+      },
+      vozes: VOZES_OPOSICAO.map((v, i) => ({
+        ...v,
+        mencoes: Math.round(seriesValue(`voz:${v.nome}`, now, { base: 320 - i * 38, vol: 0.2, spikeBoost: 0.8 })),
+      })).sort((a, b) => b.mencoes - a.mencoes),
+      fonte: "real",
+    };
+  }
+
   const j = votacaoJanela(now, opts);
   const fidelidadeBase = 88;
   let votacao: PlenarioState["votacao"] = null;
@@ -604,6 +640,7 @@ export function snapshotPlenario(now: number, opts: MockOptions = {}): PlenarioS
       ...v,
       mencoes: Math.round(seriesValue(`voz:${v.nome}`, now, { base: 320 - i * 38, vol: 0.2, spikeBoost: 0.8 })),
     })).sort((a, b) => b.mencoes - a.mencoes),
+    fonte: "modelado",
   };
 }
 

@@ -64,12 +64,23 @@ export const IdxBreakdownSchema = z.object({
   imprensa: z.number(),
 });
 
+const FonteDadoSchema = z.enum(["real", "modelado"]);
+
 export const IdxSnapshotSchema = z.object({
   valor: z.number(),
   variacaoDia: z.number(), // % vs fechamento de ontem
   candles30d: z.array(CandleSchema),
   candleVivo: CandleSchema,
   breakdown: IdxBreakdownSchema,
+  /** Origem de cada componente do índice (para tags na UI). */
+  fontes: z
+    .object({
+      mencoes: FonteDadoSchema,
+      sentimento: FonteDadoSchema,
+      seguidores: FonteDadoSchema,
+      imprensa: FonteDadoSchema,
+    })
+    .optional(),
 });
 export type IdxSnapshot = z.infer<typeof IdxSnapshotSchema>;
 
@@ -78,6 +89,7 @@ export const IdxDeltaSchema = z.object({
   variacaoDia: z.number(),
   candleVivo: CandleSchema,
   breakdown: IdxBreakdownSchema,
+  fontes: IdxSnapshotSchema.shape.fontes,
 });
 export type IdxDelta = z.infer<typeof IdxDeltaSchema>;
 
@@ -255,6 +267,7 @@ export const PlenarioStateSchema = z.object({
   }),
   /** Quem está falando pela oposição (últimas 6h). */
   vozes: z.array(z.object({ nome: z.string(), partido: z.string(), mencoes: z.number() })),
+  fonte: FonteDadoSchema.optional(),
 });
 export type PlenarioState = z.infer<typeof PlenarioStateSchema>;
 
@@ -421,11 +434,24 @@ export const VeiculoSovSchema = z.object({
 });
 export type VeiculoSov = z.infer<typeof VeiculoSovSchema>;
 
+export const YoutubeVideoSchema = z.object({
+  id: z.string(),
+  titulo: z.string(),
+  views: z.number(),
+  comentarios: z.number(),
+  likes: z.number(),
+  data: z.string(),
+  engajamento: z.number(),
+});
+export type YoutubeVideo = z.infer<typeof YoutubeVideoSchema>;
+
 export const RedesV2SnapshotSchema = RedesStateSchema.extend({
   porRede: z.array(RedeHistSchema),
   veiculos: z.array(VeiculoSovSchema),
   /** [diaIdx, horaIdx, valor 0..100] — melhor horário de postagem. */
   heatmapPostagem: z.array(z.tuple([z.number(), z.number(), z.number()])),
+  /** Vídeos reais do YouTube (yt-dlp). Ausente = modelado. */
+  youtubeVideos: z.array(YoutubeVideoSchema).optional(),
 });
 export type RedesV2Snapshot = z.infer<typeof RedesV2SnapshotSchema>;
 
