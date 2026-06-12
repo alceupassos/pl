@@ -32,7 +32,7 @@ const PARTES: {
     key: "sentimento",
     label: "sentimento",
     explica: (v, p) =>
-      `Tom das notícias e posts sobre o candidato — positivo vs negativo (peso ${p}%). Valor ${v}; acima de 100 = clima mais favorável. Modelado até o analisador PT (pysentimiento).`,
+      `Tom das manchetes reais sobre o candidato, classificado por IA em português (pysentimiento), positivo vs negativo (peso ${p}%). Valor ${v}; acima de 100 = clima mais favorável.`,
   },
   {
     key: "seguidores",

@@ -16,6 +16,7 @@ import { calcularQuociente, projetarBancada } from "@/lib/quociente";
 // — todas com fallback para o sintético.
 import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/sources/gdelt";
 import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
+import { getSentimentoReal } from "@/lib/sources/sentiment";
 import type { Watchlist } from "@/lib/watchlist";
 import type {
   Alert,
@@ -220,7 +221,9 @@ type IdxComponents = { mencoes: number; sentimento: number; seguidores: number; 
 function idxComponents(t: number): IdxComponents {
   return {
     mencoes: seriesValue("sost:mencoes", t, IDX_PARTS[0].p),
-    sentimento: getSentimentoIndex() ?? seriesValue("sost:sentimento", t, IDX_PARTS[1].p),
+    // sentimento: sidecar pysentimiento (real) → GDELT tone → série sintética.
+    sentimento:
+      getSentimentoReal() ?? getSentimentoIndex() ?? seriesValue("sost:sentimento", t, IDX_PARTS[1].p),
     seguidores: seriesValue("sost:seguidores", t, IDX_PARTS[2].p),
     // imprensa: Google News (primária) → GDELT (fallback) → série sintética.
     imprensa: getNewsImprensa() ?? getGdeltImprensa() ?? seriesValue("sost:imprensa", t, IDX_PARTS[3].p),

@@ -66,6 +66,11 @@ export function newsAlertasRecentes(max = 20): Alert[] {
   return alertas.slice(0, max);
 }
 
+/** Textos das manchetes recentes — insumo para o sidecar de sentimento. */
+export function getManchetesTexto(max = 30): string[] {
+  return alertas.slice(0, max).map((a) => a.titulo);
+}
+
 /** Dispara um refresh se o cache venceu e não há busca em voo. NÃO bloqueia. */
 export function ensureFreshNews(termos: string[]): void {
   if (inFlight) return;

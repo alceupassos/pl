@@ -17,6 +17,7 @@ import type { Channel, Envelope } from "@/lib/live-schemas";
 import { sendPushToAll } from "@/lib/push";
 import { ensureFreshCamara } from "@/lib/sources/camara";
 import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
+import { ensureFreshSentimento } from "@/lib/sources/sentiment";
 import { readWatchlist } from "@/lib/watchlist";
 
 export const runtime = "nodejs";
@@ -98,6 +99,7 @@ export async function GET(request: NextRequest) {
         // Mantém os feeds reais frescos (cada um só refaz no seu TTL).
         ensureFreshNews(watchlist.termos);
         ensureFreshCamara();
+        ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
 
         for (const ch of DELTA_CHANNELS) {
           // plenário acelera para 1s com votação em andamento
