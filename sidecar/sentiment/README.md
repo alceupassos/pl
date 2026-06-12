@@ -55,3 +55,13 @@ Endpoints novos:
 - `GET /x/profiles?handles=a,b,c`
 
 Sem essas variáveis os endpoints retornam `null` e o app mantém o fallback modelado.
+
+## TikTok e YouTube (yt-dlp — sem credencial)
+
+- `GET /youtube?channel=...`
+- `GET /youtube/videos?channel=...&n=10`
+- `GET /tiktok?handle=username`
+- `GET /tiktok/profiles?handles=a,b,c`
+- `GET /tiktok/videos?handle=username&n=10`
+
+TikTok pode bloquear IP de datacenter; nesse caso o app mantém o fallback modelado.

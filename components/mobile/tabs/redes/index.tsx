@@ -82,9 +82,10 @@ function YoutubeVideosReais({ videos }: { videos: YoutubeVideo[] }) {
 // FRENTE: número-destaque + spark de seguidores. VERSO (toque): filme dos 30
 // dias com seguidores E engajamento empilhados (areaStack), com um boneco para
 // dar rosto ao público da rede.
-// Tooltip do badge DADOS REAIS por rede (hoje só o YouTube tem fonte aberta).
+// Tooltip do badge DADOS REAIS por rede (YouTube e TikTok via yt-dlp sem chave).
 const FONTE_COMO_REDE: Partial<Record<RedeId, string>> = {
   youtube: `${FONTE_COMO.seguidores} Engajamento: média dos últimos vídeos reais (${FONTE_COMO.youtubeVideos}). Série 30d ancorada no nº real de hoje.`,
+  tiktok: `${FONTE_COMO.tiktok} Engajamento: média dos últimos vídeos reais (${FONTE_COMO.tiktokVideos}). Série 30d ancorada no nº real de hoje.`,
 };
 
 function RedeHeroFront({ rede }: { rede: RedeHist }) {
@@ -226,7 +227,7 @@ function RedesHero({ redes }: { redes: RedesV2Snapshot }) {
         />
         <FonteBadge
           real={redes.porRede.some((r) => r.fonte === "real")}
-          como="YouTube com números reais (yt-dlp, fonte aberta); IG/X/TikTok/FB modelados — APIs fechadas exigem credencial. Veja o badge em cada rede."
+          como="YouTube e TikTok com números reais (yt-dlp, fonte aberta); IG/X/FB modelados sem credencial META/X. Veja o badge em cada rede."
         />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>

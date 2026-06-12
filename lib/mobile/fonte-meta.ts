@@ -11,6 +11,8 @@ export const FONTE_COMO = {
   seguidores: "Sidecar yt-dlp — inscritos do canal oficial do YouTube, sem API key.",
   mencoes: "Sidecar pytrends — interesse de busca no Google Trends (Brasil, 7 dias), normalizado ~100.",
   youtubeVideos: "Sidecar yt-dlp — views, likes e comentários dos últimos vídeos do canal oficial.",
+  tiktok: "Sidecar yt-dlp — seguidores do perfil @handle no TikTok, sem API key.",
+  tiktokVideos: "Sidecar yt-dlp — views, likes e comentários dos últimos vídeos do perfil principal.",
   plenario: "API Câmara Dados Abertos — votações do Plenário (órgão 180); placar na descrição.",
   gastosCamara:
     "API Câmara Dados Abertos — despesas CEAP do deputado 178947 (cota parlamentar), agregadas por categoria e mês.",

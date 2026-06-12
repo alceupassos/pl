@@ -23,7 +23,13 @@ import { ensureFreshPlenario } from "@/lib/sources/plenario";
 import { ensureFreshTrends } from "@/lib/sources/trends";
 import { ensureFreshFacebook } from "@/lib/sources/facebook";
 import { ensureFreshInstagram } from "@/lib/sources/instagram";
-import { instagramHandlesFromWatchlist, xHandlesFromWatchlist } from "@/lib/sources/social-handles";
+import {
+  instagramHandlesFromWatchlist,
+  principalTiktokHandle,
+  tiktokHandlesFromWatchlist,
+  xHandlesFromWatchlist,
+} from "@/lib/sources/social-handles";
+import { ensureFreshTiktok } from "@/lib/sources/tiktok";
 import { ensureFreshX } from "@/lib/sources/x";
 import { ensureFreshYoutube, ensureFreshYoutubeVideos } from "@/lib/sources/youtube";
 import { readWatchlist } from "@/lib/watchlist";
@@ -95,6 +101,10 @@ export async function GET(request: NextRequest) {
       ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist));
       ensureFreshFacebook();
       ensureFreshX(xHandlesFromWatchlist(watchlist));
+      ensureFreshTiktok(
+        tiktokHandlesFromWatchlist(watchlist),
+        principalTiktokHandle(watchlist),
+      );
       ensureFreshPlenario();
       ensureFreshTrends();
       const t0 = Date.now();
@@ -119,6 +129,10 @@ export async function GET(request: NextRequest) {
         ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist)); // IG Graph API
         ensureFreshFacebook(); // página FB do candidato
         ensureFreshX(xHandlesFromWatchlist(watchlist)); // X via twifork + cookies
+        ensureFreshTiktok(
+          tiktokHandlesFromWatchlist(watchlist),
+          principalTiktokHandle(watchlist),
+        ); // TikTok via yt-dlp (sem chave)
         ensureFreshPlenario(); // votações reais (Câmara Dados Abertos)
         ensureFreshTrends(); // buzz de busca (Google Trends via sidecar)
         ensureFreshPesquisas(); // pesquisas presidenciais reais (Wikipédia via sidecar)

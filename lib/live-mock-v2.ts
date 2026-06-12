@@ -15,6 +15,7 @@ import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
 import { getFacebookFollowers } from "@/lib/sources/facebook";
 import { getInstagramFollowers } from "@/lib/sources/instagram";
 import { getXFollowers } from "@/lib/sources/x";
+import { getTiktokFollowers, getTiktokVideos } from "@/lib/sources/tiktok";
 import { getSeguidoresCount, getVideosReal } from "@/lib/sources/youtube";
 import { META_ELEITORES, diasAteEleicao } from "@/lib/mock/campaign-goal";
 import {
@@ -131,7 +132,7 @@ function handleDaRede(w: Watchlist, simbolo: string, rede: RedeId): string | und
     simbolo === w.principal.simbolo
       ? w.principal.handles
       : w.concorrentes_rj.find((c) => c.simbolo === simbolo)?.handles;
-  if (!handles || rede === "youtube" || rede === "tiktok") return undefined;
+  if (!handles || rede === "youtube") return undefined;
   return handles[rede];
 }
 
@@ -139,6 +140,7 @@ function seguidoresReaisRede(w: Watchlist, simbolo: string, rede: RedeId): numbe
   const handle = handleDaRede(w, simbolo, rede);
   if (rede === "instagram") return getInstagramFollowers(handle);
   if (rede === "x") return getXFollowers(handle);
+  if (rede === "tiktok") return getTiktokFollowers(handle);
   if (rede === "facebook" && simbolo === w.principal.simbolo) return getFacebookFollowers();
   return null;
 }
@@ -199,7 +201,11 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
     });
     const vivo = redeVivo(rede, now, w);
     if (
-      (rede === "youtube" || rede === "instagram" || rede === "facebook" || rede === "x") &&
+      (rede === "youtube" ||
+        rede === "instagram" ||
+        rede === "facebook" ||
+        rede === "x" ||
+        rede === "tiktok") &&
       vivo.fonte === "real"
     ) {
       // Ancora a série sintética no número real de hoje (mesma forma, nível real).
@@ -316,6 +322,18 @@ function redeVivo(
     const real = getXFollowers(w.principal.handles?.x);
     if (real !== null) {
       seguidoresAgora = real;
+      fonte = "real";
+    }
+  }
+  if (w && rede === "tiktok") {
+    const real = getTiktokFollowers(w.principal.handles?.tiktok);
+    if (real !== null) {
+      seguidoresAgora = real;
+      fonte = "real";
+    }
+    const videos = getTiktokVideos();
+    if (videos?.length) {
+      engajamentoAgora = round1(videos.reduce((s, v) => s + v.engajamento, 0) / videos.length);
       fonte = "real";
     }
   }

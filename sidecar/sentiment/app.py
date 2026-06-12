@@ -300,6 +300,91 @@ def x_profiles(handles: str):
     return {"profiles": out}
 
 
+def _tiktok_url(handle: str) -> str:
+    return f"https://www.tiktok.com/@{_norm_handle(handle)}"
+
+
+def _tiktok_profile(handle: str) -> dict:
+    h = _norm_handle(handle)
+    if not h:
+        return {"followers": None, "videos": None, "nome": None, "username": h}
+    opts = {"quiet": True, "skip_download": True, "extract_flat": True}
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(_tiktok_url(h), download=False)
+        followers = info.get("channel_follower_count") or info.get("uploader_follower_count")
+        videos = info.get("playlist_count") or info.get("video_count")
+        nome = info.get("channel") or info.get("uploader") or info.get("title")
+        return {
+            "followers": followers,
+            "videos": videos,
+            "nome": nome,
+            "username": h,
+        }
+    except Exception:
+        return {"followers": None, "videos": None, "nome": None, "username": h}
+
+
+@app.get("/tiktok")
+def tiktok(handle: str):
+    """Seguidores de um perfil TikTok via yt-dlp (sem chave)."""
+    return _tiktok_profile(handle)
+
+
+@app.get("/tiktok/profiles")
+def tiktok_profiles(handles: str):
+    """Vários perfis TikTok — handles separados por vírgula."""
+    out: dict[str, dict] = {}
+    for raw in (handles or "").split(","):
+        h = _norm_handle(raw)
+        if h:
+            out[h] = _tiktok_profile(h)
+    return {"profiles": out}
+
+
+@app.get("/tiktok/videos")
+def tiktok_videos(handle: str, n: int = 10):
+    """Últimos vídeos TikTok com views/likes/comentários."""
+    h = _norm_handle(handle)
+    if not h:
+        return {"videos": []}
+    lim = max(1, min(n, 20))
+    opts = {
+        "quiet": True,
+        "skip_download": True,
+        "extract_flat": False,
+        "playlistend": lim,
+    }
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(_tiktok_url(h), download=False)
+        entries = info.get("entries") or []
+        out = []
+        for e in entries:
+            if not e:
+                continue
+            views = e.get("view_count") or 0
+            likes = e.get("like_count") or 0
+            comments = e.get("comment_count") or 0
+            eng = round(((likes + comments) / views) * 100, 2) if views > 0 else 0.0
+            out.append(
+                {
+                    "id": str(e.get("id") or ""),
+                    "titulo": str(e.get("title") or e.get("description") or "")[:120],
+                    "views": int(views),
+                    "comentarios": int(comments),
+                    "likes": int(likes),
+                    "data": str(e.get("upload_date") or ""),
+                    "engajamento": eng,
+                }
+            )
+            if len(out) >= lim:
+                break
+        return {"videos": out}
+    except Exception:
+        return {"videos": []}
+
+
 @app.get("/pesquisas")
 def pesquisas():
     """Últimas pesquisas presidenciais 2026 (intenção de voto), da Wikipédia."""
