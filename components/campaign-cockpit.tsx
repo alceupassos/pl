@@ -44,6 +44,9 @@ import { MidiaSection } from "@/components/sections/midia-section";
 import { PostsSection } from "@/components/sections/posts-section";
 import { RegionFilter } from "@/components/sections/region-filter";
 import { TopTicker } from "@/components/top-ticker";
+import { WebCommandHeader } from "@/components/sections/web-command-header";
+import { WebCommandOverview } from "@/components/sections/web-command-overview";
+import { WebSectionFrame } from "@/components/sections/web-section-frame";
 import { ConfigPanel } from "@/components/sections/config-panel";
 import { LoginScreen } from "@/components/login-screen";
 import { calcularQuociente, projetarBancada } from "@/lib/quociente";
@@ -80,6 +83,12 @@ declare global {
 
 type SectionId = keyof typeof pageTitles;
 type CandidateKey = keyof typeof candidateDetails;
+
+const SKIP_SECTION_FRAME = new Set<SectionId>([
+  "dashboard",
+  "candidato-detalhe",
+  "downloads",
+]);
 
 const DEFAULT_SECTION: SectionId = "dashboard";
 const DEFAULT_CANDIDATE: CandidateKey = "renato_araujo";
@@ -517,6 +526,17 @@ export function CampaignCockpit() {
 
         <div id="main">
           <TopTicker region={activeRegion} />
+          <WebCommandHeader />
+          {activeSection === "dashboard" ? (
+            <WebCommandOverview
+              region={activeRegion}
+              onNavigate={(section) => {
+                setActiveSection(section as SectionId);
+                setSidebarOpen(false);
+                setRefreshTick((value) => value + 1);
+              }}
+            />
+          ) : null}
           <ConfigPanel open={showConfig} onClose={() => setShowConfig(false)} />
           <div id="topbar">
             <div className="topbar-left">
@@ -578,63 +598,74 @@ export function CampaignCockpit() {
             </div>
           </div>
 
-          <div id="content" ref={sectionHostRef}>
-            {activeSection === "candidato-detalhe" ? (
-              <CandidateDetail candidateKey={selectedCandidateKey} />
-            ) : activeSection === "downloads" ? (
-              <CampaignDownloads />
-            ) : activeSection === "comunicacao" ? (
-              <ComunicacaoSection />
-            ) : activeSection === "crm" ? (
-              <CrmSection />
-            ) : activeSection === "eventos" ? (
-              <AgendaSection />
-            ) : activeSection === "diario" ? (
-              <DiarioSection />
-            ) : activeSection === "noc" ? (
-              <NocSection
-                region={activeRegion}
-                onRegionChange={setActiveRegion}
-              />
-            ) : activeSection === "plenario" ? (
-              <PlenarioSection />
-            ) : activeSection === "raiox" ? (
-              <RaioxSection region={activeRegion} />
-            ) : activeSection === "meta" ? (
-              <MetaSection region={activeRegion} />
-            ) : activeSection === "pesquisas" ? (
-              <PesquisasSection region={activeRegion} />
-            ) : activeSection === "organizadores" ? (
-              <OrganizadoresSection
-                region={activeRegion}
-                onRegionChange={setActiveRegion}
-              />
-            ) : activeSection === "social" ? (
-              <SocialSection />
-            ) : activeSection === "territorios" ? (
-              <TerritoriosSection
-                region={activeRegion}
-                onRegionChange={setActiveRegion}
-              />
-            ) : activeSection === "dashboard" ? (
-              <DashboardSection
-                region={activeRegion}
-                onRegionChange={setActiveRegion}
-              />
-            ) : activeSection === "influenciadores" ? (
-              <InfluenciadoresSection />
-            ) : activeSection === "candidatos" ? (
-              <CandidatosSection />
-            ) : activeSection === "midia" ? (
-              <MidiaSection />
-            ) : activeSection === "posts" ? (
-              <PostsSection />
-            ) : (
-              <div
-                dangerouslySetInnerHTML={{ __html: activeMarkup ?? "" }}
-                suppressHydrationWarning
-              />
-            )}
+          <div id="content" ref={sectionHostRef} className="section-workbench">
+            {(() => {
+              const sectionBody =
+                activeSection === "candidato-detalhe" ? (
+                  <CandidateDetail candidateKey={selectedCandidateKey} />
+                ) : activeSection === "downloads" ? (
+                  <CampaignDownloads />
+                ) : activeSection === "comunicacao" ? (
+                  <ComunicacaoSection />
+                ) : activeSection === "crm" ? (
+                  <CrmSection />
+                ) : activeSection === "eventos" ? (
+                  <AgendaSection />
+                ) : activeSection === "diario" ? (
+                  <DiarioSection />
+                ) : activeSection === "noc" ? (
+                  <NocSection
+                    region={activeRegion}
+                    onRegionChange={setActiveRegion}
+                  />
+                ) : activeSection === "plenario" ? (
+                  <PlenarioSection />
+                ) : activeSection === "raiox" ? (
+                  <RaioxSection region={activeRegion} />
+                ) : activeSection === "meta" ? (
+                  <MetaSection region={activeRegion} />
+                ) : activeSection === "pesquisas" ? (
+                  <PesquisasSection region={activeRegion} />
+                ) : activeSection === "organizadores" ? (
+                  <OrganizadoresSection
+                    region={activeRegion}
+                    onRegionChange={setActiveRegion}
+                  />
+                ) : activeSection === "social" ? (
+                  <SocialSection />
+                ) : activeSection === "territorios" ? (
+                  <TerritoriosSection
+                    region={activeRegion}
+                    onRegionChange={setActiveRegion}
+                  />
+                ) : activeSection === "dashboard" ? (
+                  <DashboardSection
+                    region={activeRegion}
+                    onRegionChange={setActiveRegion}
+                  />
+                ) : activeSection === "influenciadores" ? (
+                  <InfluenciadoresSection />
+                ) : activeSection === "candidatos" ? (
+                  <CandidatosSection />
+                ) : activeSection === "midia" ? (
+                  <MidiaSection />
+                ) : activeSection === "posts" ? (
+                  <PostsSection />
+                ) : (
+                  <div
+                    dangerouslySetInnerHTML={{ __html: activeMarkup ?? "" }}
+                    suppressHydrationWarning
+                  />
+                );
+
+              if (SKIP_SECTION_FRAME.has(activeSection)) return sectionBody;
+
+              return (
+                <WebSectionFrame title={titlePair[0]} subtitle={titlePair[1]}>
+                  {sectionBody}
+                </WebSectionFrame>
+              );
+            })()}
             <div
               className="mockup-warning"
               style={{ display: "flex", flexDirection: "column", gap: "8px" }}

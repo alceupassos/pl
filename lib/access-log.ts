@@ -2,6 +2,9 @@ import { mkdir, readFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 
 import { getClientIp } from "@/lib/auth";
+import { notifyAccess } from "@/lib/whatsapp-push";
+
+export const ACCESS_ONLINE_MS = 5 * 60 * 1000;
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const ACCESS_LOG_FILE = path.join(DATA_DIR, "access-log.jsonl");
@@ -17,14 +20,24 @@ export type AccessLogEntry = {
   path: string;
   userAgent: string;
   referrer: string;
+  latitude?: number;
+  longitude?: number;
   metadata?: Record<string, unknown>;
 };
 
-type IpLocation = {
+export type IpLocation = {
   city: string;
   region: string;
   country: string;
+  latitude?: number;
+  longitude?: number;
 };
+
+export function isAccessOnline(lastAccess: string, now = Date.now()): boolean {
+  const ts = new Date(lastAccess).getTime();
+  if (Number.isNaN(ts)) return false;
+  return now - ts < ACCESS_ONLINE_MS;
+}
 
 function isPrivateIp(ip: string) {
   return (
@@ -63,10 +76,21 @@ export async function lookupIpLocation(ip: string): Promise<IpLocation> {
     if (!response.ok) throw new Error("ip_lookup_failed");
     const body = await response.json();
 
+    const latitude =
+      typeof body?.latitude === "number" && Number.isFinite(body.latitude)
+        ? body.latitude
+        : undefined;
+    const longitude =
+      typeof body?.longitude === "number" && Number.isFinite(body.longitude)
+        ? body.longitude
+        : undefined;
+
     return {
       city: typeof body?.city === "string" && body.city ? body.city : "Desconhecida",
       region: typeof body?.region === "string" && body.region ? body.region : "Desconhecida",
       country: typeof body?.country_name === "string" && body.country_name ? body.country_name : "Desconhecido",
+      latitude,
+      longitude,
     };
   } catch {
     return {
@@ -98,10 +122,13 @@ export async function appendAccessLog(
     path: input.path,
     userAgent: headers.get("user-agent") || "unknown",
     referrer: headers.get("referer") || "",
+    latitude: location.latitude,
+    longitude: location.longitude,
     metadata: input.metadata,
   };
 
   await appendFile(ACCESS_LOG_FILE, `${JSON.stringify(entry)}\n`, "utf8");
+  void notifyAccess(entry).catch(() => undefined);
   return entry;
 }
 
@@ -154,6 +181,8 @@ export async function summarizeAccessLogs() {
       current.city = log.city;
       current.region = log.region;
       current.country = log.country;
+      if (typeof log.latitude === "number") current.latitude = log.latitude;
+      if (typeof log.longitude === "number") current.longitude = log.longitude;
     }
   }
 

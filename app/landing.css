@@ -1254,12 +1254,61 @@ body:has(.mapa-page) {
     0 0 28px rgba(71, 255, 132, 0.8),
     0 0 56px rgba(71, 255, 132, 0.6);
 }
+.mapa-marker--online {
+  background: rgba(71, 255, 132, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(124, 255, 173, 0.35),
+    0 0 18px rgba(71, 255, 132, 0.55),
+    0 0 36px rgba(71, 255, 132, 0.4);
+}
+.mapa-marker--stale {
+  background: rgba(255, 71, 87, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(255, 124, 138, 0.35),
+    0 0 18px rgba(255, 71, 87, 0.45),
+    0 0 36px rgba(255, 71, 87, 0.28);
+  animation: none;
+}
+.mapa-marker--stale .mapa-marker-core {
+  background: #ffb4bc;
+  box-shadow: 0 0 16px rgba(255, 120, 130, 0.85);
+}
 .mapa-marker-core {
   width: 44%;
   height: 44%;
   border-radius: 999px;
   background: #a6ffd0;
   box-shadow: 0 0 16px rgba(166, 255, 208, 0.9);
+}
+.mapa-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.mapa-filter-btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 255, 176, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8d4e8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mapa-filter-btn.active {
+  border-color: rgba(125, 255, 176, 0.55);
+  background: rgba(71, 255, 132, 0.12);
+  color: #d8ffea;
+}
+.mapa-side-item--online {
+  border-color: rgba(71, 255, 132, 0.28);
+}
+.mapa-side-item--stale {
+  border-color: rgba(255, 71, 87, 0.22);
+}
+.mapa-side-item--stale .mapa-side-top span {
+  color: #ff9aa3;
 }
 @keyframes mapaPulse {
   0%, 100% { transform: translate(-50%, -50%) scale(1); }

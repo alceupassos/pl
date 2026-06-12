@@ -1,7 +1,11 @@
 import { headers } from "next/headers";
 
 import { AccessMap } from "@/components/access-map";
-import { appendAccessLog, summarizeAccessLogs } from "@/lib/access-log";
+import {
+  appendAccessLog,
+  isAccessOnline,
+  summarizeAccessLogs,
+} from "@/lib/access-log";
 
 type CityPosition = {
   lat: number;
@@ -256,13 +260,22 @@ export default async function MapaPage() {
         typeof sourceLog?.metadata?.estado === "string" && sourceLog.metadata.estado
           ? String(sourceLog.metadata.estado)
           : entry.region;
-      const position = resolveMapPosition({
+      const hasGeo =
+        typeof entry.latitude === "number" && typeof entry.longitude === "number";
+      const cityPosition = resolveMapPosition({
         city: plottedCity,
         region: entry.region,
         state,
       });
+      const position = hasGeo
+        ? { lat: entry.latitude!, lon: entry.longitude! }
+        : cityPosition;
       const projectedPosition = position ? projectBrazilPoint(position) : null;
       const finalPosition = projectedPosition ?? fallbackPositionForIp(entry.ip);
+
+      const userAgent = entry.userAgent || "unknown";
+      const userAgentShort =
+        userAgent.length > 72 ? `${userAgent.slice(0, 72)}…` : userAgent;
 
       return {
         accessCount: entry.accessCount,
@@ -271,20 +284,27 @@ export default async function MapaPage() {
         country: entry.country,
         ip: entry.ip,
         lastAccess: entry.lastAccess,
+        lastEvent: entry.event,
+        lastPath: entry.path,
         localCitado,
         localPorIp: `${entry.city}${entry.region ? ` - ${entry.region}` : ""}`,
-        mapped: Boolean(projectedPosition),
+        mapped: hasGeo || Boolean(cityPosition),
+        online: isAccessOnline(entry.lastAccess),
         region: entry.region,
+        userAgentShort,
         x: finalPosition.x,
         y: finalPosition.y,
       };
     });
+
+  const onlineCount = entries.filter((entry) => entry.online).length;
 
   return (
     <AccessMap
       entries={entries}
       totalAccesses={summary.totalAccesses}
       uniqueIps={summary.uniqueIps}
+      onlineCount={onlineCount}
     />
   );
 }

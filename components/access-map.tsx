@@ -10,10 +10,14 @@ type MapPoint = {
   country: string;
   ip: string;
   lastAccess: string;
+  lastEvent: string;
+  lastPath: string;
   localCitado: string;
   localPorIp: string;
   mapped: boolean;
+  online: boolean;
   region: string;
+  userAgentShort: string;
   x?: number;
   y?: number;
 };
@@ -22,7 +26,19 @@ type AccessMapProps = {
   entries: MapPoint[];
   totalAccesses: number;
   uniqueIps: number;
+  onlineCount: number;
 };
+
+type FilterId = "all" | "online" | "stale" | "login" | "leads" | "cockpit";
+
+const FILTERS: { id: FilterId; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "online", label: "Online" },
+  { id: "stale", label: "Antigos" },
+  { id: "login", label: "Login" },
+  { id: "leads", label: "Leads" },
+  { id: "cockpit", label: "Cockpit" },
+];
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -37,11 +53,46 @@ function markerSize(accessCount: number, maxAccessCount: number) {
   return 14 + ratio * 26;
 }
 
-export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps) {
+function matchesFilter(point: MapPoint, filter: FilterId): boolean {
+  if (filter === "all") return true;
+  if (filter === "online") return point.online;
+  if (filter === "stale") return !point.online;
+  if (filter === "login") return point.lastEvent.startsWith("login");
+  if (filter === "leads") {
+    return (
+      point.lastEvent.includes("lead") || point.lastEvent.includes("transparency")
+    );
+  }
+  if (filter === "cockpit") {
+    return (
+      point.lastEvent.includes("cockpit") ||
+      point.lastEvent.includes("section") ||
+      point.lastPath === "/"
+    );
+  }
+  return true;
+}
+
+export function AccessMap({
+  entries,
+  totalAccesses,
+  uniqueIps,
+  onlineCount,
+}: AccessMapProps) {
   const [hoveredPointKey, setHoveredPointKey] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterId>("all");
+
+  const filteredEntries = useMemo(
+    () => entries.filter((entry) => matchesFilter(entry, filter)),
+    [entries, filter],
+  );
+
   const points = useMemo(
-    () => entries.filter((entry) => typeof entry.x === "number" && typeof entry.y === "number"),
-    [entries],
+    () =>
+      filteredEntries.filter(
+        (entry) => typeof entry.x === "number" && typeof entry.y === "number",
+      ),
+    [filteredEntries],
   );
 
   const maxAccessCount = useMemo(
@@ -49,8 +100,9 @@ export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps)
     [points],
   );
 
-  const hoveredPoint = points.find((point) => `${point.city}-${point.ip}` === hoveredPointKey) || null;
-  const listedPoints = entries
+  const hoveredPoint =
+    points.find((point) => `${point.city}-${point.ip}` === hoveredPointKey) || null;
+  const listedPoints = filteredEntries
     .slice()
     .sort((a, b) => b.accessCount - a.accessCount || b.lastAccess.localeCompare(a.lastAccess));
 
@@ -59,10 +111,10 @@ export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps)
       <section className="mapa-hero">
         <div>
           <p className="mapa-kicker">Monitor de acesso em tempo real</p>
-          <h1>Mapa escuro do Brasil com acessos brilhando em verde</h1>
+          <h1>Mapa do Brasil — verde online, vermelho antigo</h1>
           <p>
-            Passando o mouse sobre cada ponto, vemos a cidade, o IP, quem esta acessando e quantas vezes esse IP ja
-            apareceu no sistema.
+            Verde: último acesso nos últimos 5 minutos. Vermelho: acesso antigo. Passe o mouse para
+            ver IP, data/hora, evento, path e agente.
           </p>
         </div>
         <div className="mapa-stat-grid">
@@ -75,14 +127,26 @@ export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps)
             <strong>{uniqueIps}</strong>
           </div>
           <div className="mapa-stat-card">
-            <span>Cidades mapeadas</span>
-            <strong>{points.length}</strong>
+            <span>Online agora</span>
+            <strong>{onlineCount}</strong>
           </div>
         </div>
       </section>
 
       <section className="mapa-layout">
         <div className="mapa-canvas-card">
+          <div className="mapa-filter-bar">
+            {FILTERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`mapa-filter-btn ${filter === item.id ? "active" : ""}`}
+                onClick={() => setFilter(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <div className="mapa-canvas">
             <div className="mapa-map-stage">
               <Image
@@ -101,7 +165,7 @@ export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps)
                 return (
                   <button
                     key={key}
-                    className={`mapa-marker ${hoveredPointKey === key ? "active" : ""}`}
+                    className={`mapa-marker ${point.online ? "mapa-marker--online" : "mapa-marker--stale"} ${hoveredPointKey === key ? "active" : ""}`}
                     type="button"
                     style={{
                       left: `${point.x}%`,
@@ -113,7 +177,7 @@ export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps)
                     onMouseLeave={() => setHoveredPointKey(null)}
                     onFocus={() => setHoveredPointKey(key)}
                     onBlur={() => setHoveredPointKey(null)}
-                    aria-label={`${point.city}, ${point.actor}, ${point.accessCount} acessos`}
+                    aria-label={`${point.city}, ${point.actor}, ${point.online ? "online" : "antigo"}`}
                   >
                     <span className="mapa-marker-core" />
                   </button>
@@ -129,31 +193,41 @@ export function AccessMap({ entries, totalAccesses, uniqueIps }: AccessMapProps)
                   top: `calc(${hoveredPoint.y}% - 12px)`,
                 }}
               >
-                <strong>{hoveredPoint.city}</strong>
-                <span>Quem: {hoveredPoint.actor}</span>
+                <strong>
+                  {hoveredPoint.city} · {hoveredPoint.online ? "ONLINE" : "ANTIGO"}
+                </strong>
                 <span>IP: {hoveredPoint.ip}</span>
+                <span>Data: {formatDate(hoveredPoint.lastAccess)}</span>
+                <span>Evento: {hoveredPoint.lastEvent}</span>
+                <span>Path: {hoveredPoint.lastPath}</span>
+                <span>Ator: {hoveredPoint.actor}</span>
+                <span>
+                  Local: {hoveredPoint.localPorIp} · {hoveredPoint.country}
+                </span>
+                <span>UA: {hoveredPoint.userAgentShort}</span>
                 <span>Acessos: {hoveredPoint.accessCount}</span>
-                <span>LOCALPORIP=&quot;{hoveredPoint.localPorIp}&quot;</span>
-                <span>LOCALCITADO=&quot;{hoveredPoint.localCitado}&quot;</span>
               </div>
             ) : null}
           </div>
         </div>
 
         <div className="mapa-side-card">
-          <h2>Leitura de todos os IPs unicos</h2>
+          <h2>Todos os IPs ({listedPoints.length})</h2>
           <div className="mapa-side-list">
             {listedPoints.map((point) => (
-              <article className="mapa-side-item" key={`${point.city}-${point.ip}`}>
+              <article
+                className={`mapa-side-item ${point.online ? "mapa-side-item--online" : "mapa-side-item--stale"}`}
+                key={`${point.city}-${point.ip}`}
+              >
                 <div className="mapa-side-top">
                   <strong>{point.city}</strong>
-                  <span>{point.accessCount} acessos</span>
+                  <span>{point.online ? "ONLINE" : "ANTIGO"}</span>
                 </div>
-                <p>Quem: {point.actor}</p>
                 <p>IP: {point.ip}</p>
-                <p>Status no mapa: {point.mapped ? "marcado no Brasil" : "sem localizacao precisa"}</p>
-                <p>LOCALPORIP=&quot;{point.localPorIp}&quot;</p>
-                <p>LOCALCITADO=&quot;{point.localCitado}&quot;</p>
+                <p>Ator: {point.actor}</p>
+                <p>Evento: {point.lastEvent}</p>
+                <p>Path: {point.lastPath}</p>
+                <p>Acessos: {point.accessCount}</p>
                 <p>Ultimo acesso: {formatDate(point.lastAccess)}</p>
               </article>
             ))}
