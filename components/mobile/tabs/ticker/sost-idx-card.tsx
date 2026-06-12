@@ -6,6 +6,7 @@
 // faltam, dentro/fora da meta) e a projeção realista de cadastro até a eleição
 // de outubro/2026. Índice e meta no mesmo card.
 
+import Link from "next/link";
 import { useMemo } from "react";
 
 import { EChart } from "@/components/echart";
@@ -20,12 +21,81 @@ import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { EquipeSnapshot, IdxSnapshot } from "@/lib/live-schemas";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
-import { META_ELEITORES } from "@/lib/mock/campaign-goal";
+import { META_ELEITORES, previstoPara } from "@/lib/mock/campaign-goal";
 import type { Watchlist } from "@/lib/watchlist";
 
 // 1º turno das eleições 2026 (referência fixa para a projeção de cadastro).
 const ELEICAO_MS = new Date("2026-10-04T00:00:00-03:00").getTime();
 const DIA_MS = 24 * 60 * 60 * 1000;
+
+function fmtCompact(n: number): string {
+  if (n >= 1000) {
+    const k = n / 1000;
+    return `${k >= 10 ? Math.round(k) : k.toFixed(1).replace(".", ",")}k`;
+  }
+  return n.toLocaleString("pt-BR");
+}
+
+/* ── mini-gráfico de meta: anel de progresso no canto superior direito ── */
+function MetaRing({
+  alcancado,
+  meta,
+  noRitmo,
+}: {
+  alcancado: number;
+  meta: number;
+  noRitmo: boolean;
+}) {
+  const pct = Math.min(100, (alcancado / Math.max(1, meta)) * 100);
+  const r = 16;
+  const circ = 2 * Math.PI * r;
+  const cor = noRitmo ? "#16C784" : "#F5A623";
+  return (
+    <span
+      style={{
+        marginLeft: "auto",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 1,
+      }}
+    >
+      <svg
+        width={42}
+        height={42}
+        viewBox="0 0 42 42"
+        role="img"
+        aria-label={`Meta de eleitores: ${pct.toFixed(0)}% alcançada`}
+      >
+        <circle cx={21} cy={21} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={4} />
+        <circle
+          cx={21}
+          cy={21}
+          r={r}
+          fill="none"
+          stroke={cor}
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeDasharray={`${(pct / 100) * circ} ${circ}`}
+          transform="rotate(-90 21 21)"
+        />
+        <text
+          x={21}
+          y={25}
+          textAnchor="middle"
+          fontSize={10.5}
+          fontWeight={800}
+          fill={cor}
+        >
+          {pct.toFixed(0)}%
+        </text>
+      </svg>
+      <span className="m-mono" style={{ fontSize: 7.5, color: "var(--m-muted)", whiteSpace: "nowrap" }}>
+        {fmtCompact(alcancado)} / meta {fmtCompact(meta)}
+      </span>
+    </span>
+  );
+}
 
 // Cada componente do índice + a explicação do que move aquele número, a fonte e
 // se é dado real ou modelado. `curto` é a mini-legenda do verso.
@@ -75,10 +145,12 @@ function IdxFront({
   idx,
   watchlist,
   equipe,
+  agora,
 }: {
   idx: IdxSnapshot;
   watchlist: Watchlist | null;
   equipe: EquipeSnapshot | null;
+  agora: number;
 }) {
   const option = useMemo(
     () => candlestickOption({ candles: [...idx.candles30d, idx.candleVivo] }),
@@ -86,7 +158,8 @@ function IdxFront({
   );
   const positivo = idx.variacaoDia >= 0;
   const cadastrados = equipe?.geral.cadastrados ?? 0;
-  const dentroMeta = cadastrados >= META_ELEITORES;
+  // "no ritmo" = cadastros de hoje >= onde a curva linear até out/2026 manda estar.
+  const noRitmo = cadastrados >= previstoPara(agora > 0 ? agora : ELEICAO_MS - 120 * DIA_MS);
   return (
     <FlashCard watch={idx.valor}>
       <div className="m-card-head">
@@ -95,22 +168,7 @@ function IdxFront({
         </span>
         <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
         <LiveBadge ch="idx.sost" cadenceMs={2000} />
-        <span
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 3,
-          }}
-        >
-          <span className="m-pill amarelo" style={{ fontSize: 9 }}>
-            meta {META_ELEITORES.toLocaleString("pt-BR")}
-          </span>
-          <span className={`m-pill ${dentroMeta ? "up" : "amarelo"}`} style={{ fontSize: 9 }}>
-            alcançado {cadastrados.toLocaleString("pt-BR")}
-          </span>
-        </span>
+        <MetaRing alcancado={cadastrados} meta={META_ELEITORES} noRitmo={noRitmo} />
       </div>
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
@@ -275,6 +333,26 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
       ) : (
         <div className="m-ghost">sincronizando placar da equipe…</div>
       )}
+
+      <Link
+        href="/m/indice"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          display: "block",
+          marginTop: 10,
+          padding: "9px 12px",
+          borderRadius: 10,
+          border: "1px solid rgba(22,199,132,0.35)",
+          background: "rgba(22,199,132,0.08)",
+          color: "#16C784",
+          fontSize: 12,
+          fontWeight: 700,
+          textAlign: "center",
+          textDecoration: "none",
+        }}
+      >
+        Entenda o índice em profundidade →
+      </Link>
     </div>
   );
 }
@@ -294,7 +372,7 @@ export function SostIdxCard() {
 
   return (
     <FlipCard
-      front={<IdxFront idx={idx} watchlist={watchlist} equipe={equipe.data} />}
+      front={<IdxFront idx={idx} watchlist={watchlist} equipe={equipe.data} agora={equipe.lastAt} />}
       back={<IdxBack equipe={equipe.data} agora={equipe.lastAt} />}
     />
   );

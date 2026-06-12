@@ -12,7 +12,7 @@ import { ORCAMENTO_TOTAL, RUBRICAS } from "@/lib/mock/gastos-rubricas";
 import { MUNICAO } from "@/lib/mock/media";
 // Fonte REAL: cota parlamentar (Câmara) alimenta a aba gastos quando disponível.
 import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
-import { getVideosReal } from "@/lib/sources/youtube";
+import { getSeguidoresCount, getVideosReal } from "@/lib/sources/youtube";
 import { META_ELEITORES, diasAteEleicao } from "@/lib/mock/campaign-goal";
 import {
   getActivityFeed,
@@ -150,7 +150,7 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
 
   const porRede = REDE_IDS.map((rede) => {
     const p = segParams(rede);
-    const seguidores30d = Array.from({ length: 30 }, (_, i) => {
+    let seguidores30d = Array.from({ length: 30 }, (_, i) => {
       const t = (today - 29 + i) * DAY + 12 * 3_600_000;
       return { t, v: Math.round(seriesValue(`segs:${rede}`, t, p)) };
     });
@@ -158,17 +158,25 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
       const t = (today - 29 + i) * DAY + 12 * 3_600_000;
       return { t, v: round1(seriesValue(`engh:${rede}`, t, { base: REDE_BASE[rede].eng, vol: 0.16, spikeBoost: 0.6 })) };
     });
+    const vivo = redeVivo(rede, now);
+    if (rede === "youtube" && vivo.fonte === "real") {
+      // Ancora a série sintética no número real de hoje (mesma forma, nível real).
+      const sinteticoHoje = seguidores30d[seguidores30d.length - 1]?.v ?? 0;
+      const fator = sinteticoHoje > 0 ? vivo.seguidoresAgora / sinteticoHoje : 1;
+      seguidores30d = seguidores30d.map((pt) => ({ t: pt.t, v: Math.round(pt.v * fator) }));
+    }
     const h = hash(`melhor:${rede}`);
     return {
       rede,
       seguidores30d,
       engajamento30d,
-      seguidoresAgora: Math.round(seriesValue(`segs:${rede}`, now, p)),
-      engajamentoAgora: round1(seriesValue(`engh:${rede}`, now, { base: REDE_BASE[rede].eng, vol: 0.16, spikeBoost: 0.6 })),
+      seguidoresAgora: vivo.seguidoresAgora,
+      engajamentoAgora: vivo.engajamentoAgora,
       concorrentes: concorrentesDaRede(w, rede, now),
       // >>> (sem sinal) garante índice não-negativo — senão hora vinha undefined
       // e o snapshot inteiro era descartado pela validação (aba Redes não carregava).
       melhorHorario: { dia: DIAS[(h >>> 0) % DIAS.length], hora: HORAS_POST[(h >>> 3) % HORAS_POST.length] },
+      fonte: vivo.fonte,
     };
   });
 
@@ -221,16 +229,48 @@ function buildVeiculos(w: Watchlist, now: number) {
     .sort((a, b) => b.share - a.share);
 }
 
+/**
+ * Valores "agora" de uma rede. YouTube usa dado REAL quando disponível:
+ * inscritos via yt-dlp e engajamento médio dos últimos vídeos reais.
+ * Compartilhado por snapshot e delta para os números não saltarem entre os dois.
+ */
+function redeVivo(
+  rede: (typeof REDE_IDS)[number],
+  now: number,
+): { seguidoresAgora: number; engajamentoAgora: number; fonte: "real" | "modelado" } {
+  let seguidoresAgora = Math.round(seriesValue(`segs:${rede}`, now, segParams(rede)));
+  let engajamentoAgora = round1(
+    seriesValue(`engh:${rede}`, now, { base: REDE_BASE[rede].eng, vol: 0.16, spikeBoost: 0.6 }),
+  );
+  let fonte: "real" | "modelado" = "modelado";
+  if (rede === "youtube") {
+    const subs = getSeguidoresCount();
+    if (subs !== null) {
+      seguidoresAgora = subs;
+      fonte = "real";
+    }
+    const videos = getVideosReal();
+    if (videos?.length) {
+      engajamentoAgora = round1(videos.reduce((s, v) => s + v.engajamento, 0) / videos.length);
+      fonte = "real";
+    }
+  }
+  return { seguidoresAgora, engajamentoAgora, fonte };
+}
+
 export function deltaRedesV2(w: Watchlist, now: number): RedesV2Delta {
   const base = snapshotRedes(w, now);
   return {
     ...base,
-    porRedeVivo: REDE_IDS.map((rede) => ({
-      rede,
-      seguidoresAgora: Math.round(seriesValue(`segs:${rede}`, now, segParams(rede))),
-      engajamentoAgora: round1(seriesValue(`engh:${rede}`, now, { base: REDE_BASE[rede].eng, vol: 0.16, spikeBoost: 0.6 })),
-      concorrentes: concorrentesDaRede(w, rede, now),
-    })),
+    porRedeVivo: REDE_IDS.map((rede) => {
+      const vivo = redeVivo(rede, now);
+      return {
+        rede,
+        seguidoresAgora: vivo.seguidoresAgora,
+        engajamentoAgora: vivo.engajamentoAgora,
+        concorrentes: concorrentesDaRede(w, rede, now),
+      };
+    }),
     veiculos: buildVeiculos(w, now),
   };
 }

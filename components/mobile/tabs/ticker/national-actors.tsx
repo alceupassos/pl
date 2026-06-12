@@ -16,8 +16,6 @@ import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
-
-const AUTO_FLIP_MS = 10_000;
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -203,5 +201,5 @@ export function NationalActors() {
     );
   }
 
-  return <FlipCard autoFlipMs={AUTO_FLIP_MS} front={<NationalFront />} back={<NationalBack />} />;
+  return <FlipCard front={<NationalFront />} back={<NationalBack />} />;
 }

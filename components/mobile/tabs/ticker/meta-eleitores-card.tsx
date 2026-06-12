@@ -189,8 +189,39 @@ function MetaBack() {
       <div className="m-card-head">
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <MAvatar src={getAvatar("eleitor")} nome="Eleitores" cor="#16C784" size={26} />
-          <span className="m-card-title">De onde vêm os cadastros</span>
+          <span className="m-card-title">Como funciona este card</span>
         </span>
+      </div>
+
+      {/* como funciona: previsto, ritmo e projeção */}
+      <div
+        style={{
+          padding: "8px 10px",
+          borderRadius: 10,
+          background: "var(--m-card-2)",
+          border: "1px solid var(--m-border)",
+          marginBottom: 8,
+        }}
+      >
+        <p style={{ fontSize: 11, lineHeight: 1.55, margin: "0 0 5px", color: "#cfd6e4" }}>
+          <strong>Previsto para hoje</strong> — a meta de {META_ELEITORES.toLocaleString("pt-BR")}{" "}
+          eleitores é dividida numa linha reta do início da campanha até a eleição (out/2026); o
+          marcador ▏na barra mostra onde o cadastro deveria estar hoje nesse plano.
+        </p>
+        <p style={{ fontSize: 11, lineHeight: 1.55, margin: "0 0 5px", color: "#cfd6e4" }}>
+          <strong>Ritmo atual × necessário</strong> — o ritmo atual vem da velocidade de cadastro
+          medida agora (cadastros/min × 14h de operação/dia); o necessário é o que falta dividido
+          pelos dias até a eleição.
+        </p>
+        <p style={{ fontSize: 11, lineHeight: 1.55, margin: 0, color: "#cfd6e4" }}>
+          <strong>Projeção</strong> — a curva do card estende o ritmo atual até outubro: se cruza a
+          linha da meta antes da eleição, o selo fica <span style={{ color: "#16C784" }}>ADIANTADO</span>;
+          se não cruza, <span style={{ color: "#EA3943" }}>ATRASADO</span>.
+        </p>
+      </div>
+
+      <div className="m-card-head" style={{ borderTop: "1px solid var(--m-border)", paddingTop: 8 }}>
+        <span className="m-card-title">De onde vêm os cadastros</span>
       </div>
 
       {/* cadastrados vs meta por região */}

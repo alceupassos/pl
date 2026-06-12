@@ -76,6 +76,11 @@ function YoutubeVideosReais({ videos }: { videos: YoutubeVideo[] }) {
 // FRENTE: número-destaque + spark de seguidores. VERSO (toque): filme dos 30
 // dias com seguidores E engajamento empilhados (areaStack), com um boneco para
 // dar rosto ao público da rede.
+// Tooltip do badge DADOS REAIS por rede (hoje só o YouTube tem fonte aberta).
+const FONTE_COMO_REDE: Partial<Record<RedeId, string>> = {
+  youtube: `${FONTE_COMO.seguidores} Engajamento: média dos últimos vídeos reais (${FONTE_COMO.youtubeVideos}). Série 30d ancorada no nº real de hoje.`,
+};
+
 function RedeHeroFront({ rede }: { rede: RedeHist }) {
   const meta = REDE_META[rede.rede];
   const ganho30d = rede.seguidoresAgora - (rede.seguidores30d[0]?.v ?? rede.seguidoresAgora);
@@ -102,10 +107,11 @@ function RedeHeroFront({ rede }: { rede: RedeHist }) {
       className="m-quote-card"
       style={{ width: "100%", minHeight: 250, borderTop: `2px solid ${meta.cor}` }}
     >
-      <div className="m-quote-head">
+      <div className="m-quote-head" style={{ flexWrap: "wrap", gap: 5 }}>
         <span className="m-quote-sym" style={{ color: meta.cor }}>
           {meta.sigla} · {meta.nome}
         </span>
+        <FonteBadge real={rede.fonte === "real"} como={FONTE_COMO_REDE[rede.rede]} />
         <span className={`m-pill ${ganho30d >= 0 ? "up" : "down"}`}>
           {ganho30d >= 0 ? "▲" : "▼"} {pct30d}% / 30d
         </span>
@@ -160,11 +166,12 @@ function RedeHeroBack({ rede }: { rede: RedeHist }) {
       className="m-quote-card"
       style={{ width: "100%", height: "100%", overflowY: "auto", borderTop: `2px solid ${meta.cor}` }}
     >
-      <div className="m-quote-head" style={{ alignItems: "center", gap: 6 }}>
+      <div className="m-quote-head" style={{ alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         <MAvatar src={getAvatar("eleitor")} nome="Rede" cor="#16C784" size={24} />
         <span className="m-quote-sym" style={{ color: meta.cor }}>
           {meta.sigla} · 30 dias
         </span>
+        <FonteBadge real={rede.fonte === "real"} como={FONTE_COMO_REDE[rede.rede]} />
         <span className={`m-pill ${ganhoEng >= 0 ? "up" : "down"}`}>
           eng {ganhoEng >= 0 ? "▲" : "▼"} {Math.abs(ganhoEng).toFixed(1)}pp
         </span>
@@ -201,7 +208,10 @@ function RedesHero({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Suas redes · filme de 30 dias</span>
-        <FonteBadge real={false} />
+        <FonteBadge
+          real={redes.porRede.some((r) => r.fonte === "real")}
+          como="YouTube com números reais (yt-dlp, fonte aberta); IG/X/TikTok/FB modelados — APIs fechadas exigem credencial. Veja o badge em cada rede."
+        />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
       <div className="m-carousel" data-no-swipe>

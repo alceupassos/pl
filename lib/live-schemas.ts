@@ -422,6 +422,8 @@ export const RedeHistSchema = z.object({
   engajamentoAgora: z.number(),
   concorrentes: z.array(ConcorrenteRedeSchema),
   melhorHorario: z.object({ dia: z.string(), hora: z.number() }),
+  /** Origem dos números desta rede ("real" = fonte aberta, ex.: YouTube via yt-dlp). */
+  fonte: FonteDadoSchema.optional(),
 });
 export type RedeHist = z.infer<typeof RedeHistSchema>;
 

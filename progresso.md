@@ -234,6 +234,11 @@ Arquivo: `app/api/stream/route.ts`
 | 2026-06-12 | Ticker rotação 10s | RotatingSlot SOST-IDX↔Meta; auto-flip vertical nos demais cards + countdown |
 | 2026-06-12 | FonteBadge global | DADO SIMULADO (amarelo) / DADOS REAIS (verde + tooltip) em todo `/m` |
 | 2026-06-12 | idx-history | Cache diário real para velas candlestick do SOST-IDX |
+| 2026-06-12 | Ticker sem auto-flip | Flip só por toque; removidos RotatingSlot/CountdownBar/pause-context e CSS órfão |
+| 2026-06-12 | Nova ordem do ticker | SOST-IDX → CompetitorTape (frente = gráfico 30d, verso = rastreabilidade) → Meta (verso "como funciona") |
+| 2026-06-12 | MetaRing | Anel SVG de progresso meta/alcançado no canto sup. direito do SOST-IDX |
+| 2026-06-12 | Página `/m/indice` | Cálculo vivo (pesos + candlestick), 4 componentes com badge, correlação Brandwatch, limitações |
+| 2026-06-12 | Redes: YouTube real | `porRede.fonte`; inscritos reais (yt-dlp) + eng. médio dos vídeos; badge real/simulado por rede |
 
 ### Notas T2 (correção API)
 

@@ -13,8 +13,6 @@ import { avatarRacingOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
-
-const AUTO_FLIP_MS = 10_000;
 import { avatarForChart } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -130,11 +128,7 @@ export function EquipeResumo() {
     );
   }
   return (
-    <FlipCard
-      autoFlipMs={AUTO_FLIP_MS}
-      front={<ResumoFront equipe={equipe} />}
-      back={<ResumoBack equipe={equipe} />}
-    />
+    <FlipCard front={<ResumoFront equipe={equipe} />} back={<ResumoBack equipe={equipe} />} />
   );
 }
 

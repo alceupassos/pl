@@ -17,8 +17,6 @@ import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 
-const AUTO_FLIP_MS = 10_000;
-
 const FONTE_COMO_SINAL: Record<keyof IdxSnapshot["breakdown"], string> = {
   imprensa: FONTE_COMO.imprensa,
   sentimento: FONTE_COMO.sentimento,
@@ -216,10 +214,6 @@ export function SignalCards() {
   }
 
   return (
-    <FlipCard
-      autoFlipMs={AUTO_FLIP_MS}
-      front={<SignalsFront idx={idx} />}
-      back={<SignalsBack idx={idx} />}
-    />
+    <FlipCard front={<SignalsFront idx={idx} />} back={<SignalsBack idx={idx} />} />
   );
 }

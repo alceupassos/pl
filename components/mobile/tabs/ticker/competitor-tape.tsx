@@ -1,10 +1,9 @@
 "use client";
 
-// Você vs concorrentes do RJ — ranking claro (substitui a "fita de ações").
-// FRENTE: ordena candidato + 5 concorrentes por força na disputa (relevância) e
-// mostra barras com você destacado e a sua posição. Sem candlestick nem jargão.
-// VERSO (toque): traz de volta a comparação estilo bolsa — evolução em 30 dias
-// (você × concorrentes) em linhas normalizadas. Toque no nome liga/desliga série.
+// Você vs concorrentes do RJ — comparação estilo bolsa.
+// FRENTE: evolução em 30 dias (você × concorrentes) em linhas normalizadas,
+// como um gráfico de cotações. VERSO (toque): rastreabilidade dos dados —
+// de onde vem cada série, componente a componente, com badge real/simulado.
 
 import { useMemo } from "react";
 
@@ -14,117 +13,15 @@ import { compareLinesOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
-import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
-
-const AUTO_FLIP_MS = 10_000;
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { getAvatar } from "@/lib/avatars";
 import type { IdxSnapshot, QuotesRjSnapshot } from "@/lib/live-schemas";
+import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 import type { Watchlist } from "@/lib/watchlist";
 
-type Linha = {
-  nome: string;
-  partido: string;
-  cor: string;
-  valor: number;
-  variacao: number;
-  voce: boolean;
-};
-
-/* ── FRENTE: ranking de força na disputa (mantido 100% intacto) ── */
+/* ── FRENTE: gráfico estilo bolsa — evolução de 30 dias (você × concorrentes) ── */
 function CompetitorFront() {
-  const watchlist = useLiveChannel<Watchlist>("watchlist").data;
-  const quotes = useLiveChannel<QuotesRjSnapshot>("quotes.rj").data;
-  const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
-
-  const dados = useMemo(() => {
-    if (!watchlist || !quotes || !idx) return null;
-    const bySimbolo = new Map(quotes.quotes.map((q) => [q.simbolo, q]));
-    const linhas: Linha[] = [
-      {
-        nome: watchlist.principal.nome,
-        partido: watchlist.principal.partido,
-        cor: watchlist.principal.cor,
-        valor: idx.valor,
-        variacao: idx.variacaoDia,
-        voce: true,
-      },
-      ...watchlist.concorrentes_rj
-        .map((c) => {
-          const q = bySimbolo.get(c.simbolo);
-          return q
-            ? { nome: c.nome, partido: c.partido, cor: c.cor, valor: q.valor, variacao: q.variacao24h, voce: false }
-            : null;
-        })
-        .filter((x): x is Linha => Boolean(x)),
-    ].sort((a, b) => b.valor - a.valor);
-    const max = Math.max(...linhas.map((l) => l.valor), 1);
-    const posVoce = linhas.findIndex((l) => l.voce) + 1;
-    return { linhas, max, posVoce, total: linhas.length };
-  }, [watchlist, quotes, idx]);
-
-  return (
-    <div className="m-card">
-      <div className="m-card-head">
-        <span className="m-card-title">Você vs concorrentes · RJ</span>
-        <FonteBadge
-          real={!!idx?.fontes && Object.values(idx.fontes).some((f) => f === "real")}
-          como={`${FONTE_COMO.idxComposto} Base 2022: ${FONTE_COMO.votos2022}`}
-        />
-        <LiveBadge ch="quotes.rj" cadenceMs={5000} />
-      </div>
-      {dados ? (
-        <>
-          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {dados.linhas.map((l, i) => {
-              const sobe = l.variacao >= 0;
-              return (
-                <div
-                  key={l.nome}
-                  style={{
-                    padding: l.voce ? "5px 7px" : "0 7px",
-                    borderRadius: 8,
-                    background: l.voce ? "rgba(22,199,132,0.10)" : "transparent",
-                    border: l.voce ? "1px solid rgba(22,199,132,0.35)" : "1px solid transparent",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 2 }}>
-                    <span>
-                      <span className="m-mono m-muted-c" style={{ fontSize: 10 }}>{i + 1}º</span>{" "}
-                      <span style={{ color: l.cor, fontWeight: 700 }}>{l.nome}</span>
-                      {l.voce ? " (você)" : ""}{" "}
-                      <span className="m-muted-c" style={{ fontSize: 9.5 }}>{l.partido}</span>
-                    </span>
-                    <span className={`m-mono ${sobe ? "m-up-c" : "m-down-c"}`} style={{ fontSize: 10.5 }}>
-                      {sobe ? "▲" : "▼"} {Math.abs(l.variacao).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="m-bar">
-                    <span style={{ width: `${(l.valor / dados.max) * 100}%`, background: l.cor }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <SectionLeitura>
-            Você está em <strong>{dados.posVoce}º de {dados.total}</strong> em força na disputa
-            (relevância: imprensa + redes + sentimento).{" "}
-            {watchlist?.principal.votos2022
-              ? `Base eleitoral 2022: ${watchlist.principal.votos2022.toLocaleString("pt-BR")} votos (TSE).`
-              : ""}
-          </SectionLeitura>
-        </>
-      ) : (
-        <div className="m-ghost">sincronizando…</div>
-      )}
-      <div className="m-flip-hint">↻ toque para ver a evolução em 30 dias</div>
-    </div>
-  );
-}
-
-/* ── VERSO: comparação estilo bolsa — evolução de 30 dias (você × concorrentes) ── */
-function CompetitorBack() {
   const watchlist = useLiveChannel<Watchlist>("watchlist").data;
   const quotes = useLiveChannel<QuotesRjSnapshot>("quotes.rj").data;
   const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
@@ -158,7 +55,6 @@ function CompetitorBack() {
     const fim = candles[candles.length - 1].c;
     const delta = ini !== 0 ? ((fim - ini) / ini) * 100 : 0;
     const subindo = delta >= 0;
-    // concorrente mais próximo pelo valor atual de cada cotação.
     const bySimbolo = new Map((quotes?.quotes ?? []).map((q) => [q.simbolo, q]));
     const proximo = watchlist.concorrentes_rj
       .map((c) => {
@@ -171,7 +67,7 @@ function CompetitorBack() {
   }, [watchlist, quotes, idx]);
 
   return (
-    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+    <div className="m-card">
       <div className="m-card-head">
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {watchlist ? (
@@ -179,12 +75,16 @@ function CompetitorBack() {
           ) : null}
           <span className="m-card-title">Você × concorrentes · 30 dias</span>
         </span>
+        <FonteBadge
+          real={!!idx?.fontes && Object.values(idx.fontes).some((f) => f === "real")}
+          como={`${FONTE_COMO.idxComposto} Base 2022: ${FONTE_COMO.votos2022}`}
+        />
         <LiveBadge ch="quotes.rj" cadenceMs={5000} />
       </div>
       {opt ? (
         <>
           <div data-no-swipe onClick={(e) => e.stopPropagation()}>
-            <EChart option={opt} height={220} />
+            <EChart option={opt} height={210} />
           </div>
           <SectionLeitura>
             {leitura ? (
@@ -201,6 +101,98 @@ function CompetitorBack() {
       ) : (
         <div className="m-ghost">sincronizando…</div>
       )}
+      <div className="m-flip-hint">↻ toque para ver a rastreabilidade dos dados</div>
+    </div>
+  );
+}
+
+/* ── VERSO: rastreabilidade — de onde vem cada série do gráfico ── */
+
+function LinhaFonte({
+  titulo,
+  real,
+  como,
+  children,
+}: {
+  titulo: string;
+  real: boolean;
+  como?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        padding: "7px 10px",
+        borderRadius: 10,
+        background: "var(--m-card-2)",
+        border: "1px solid var(--m-border)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+        <strong style={{ fontSize: 11.5 }}>{titulo}</strong>
+        <FonteBadge real={real} como={como} />
+      </div>
+      <div style={{ fontSize: 10.5, lineHeight: 1.5, color: "var(--m-muted)" }}>{children}</div>
+    </div>
+  );
+}
+
+const COMPONENTES_IDX: { key: keyof NonNullable<IdxSnapshot["fontes"]>; nome: string; como: string }[] = [
+  { key: "imprensa", nome: "imprensa", como: FONTE_COMO.imprensa },
+  { key: "sentimento", nome: "sentimento", como: FONTE_COMO.sentimento },
+  { key: "seguidores", nome: "seguidores", como: FONTE_COMO.seguidores },
+  { key: "mencoes", nome: "menções", como: FONTE_COMO.mencoes },
+];
+
+function CompetitorBack() {
+  const watchlist = useLiveChannel<Watchlist>("watchlist").data;
+  const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
+
+  const nomePrincipal = watchlist?.principal.nome ?? "o candidato";
+  const votos = watchlist?.principal.votos2022;
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">De onde vêm os dados do gráfico</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        <LinhaFonte
+          titulo={`Sua série (${watchlist?.principal.simbolo ?? "SOST"}-IDX)`}
+          real={!!idx?.fontes && Object.values(idx.fontes).some((f) => f === "real")}
+          como={FONTE_COMO.idxComposto}
+        >
+          Índice composto de {nomePrincipal}: média ponderada de 4 componentes. Estado de cada um
+          agora:
+          <span style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 5 }}>
+            {COMPONENTES_IDX.map((c) => (
+              <span key={c.key} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                <span style={{ fontSize: 10, color: "#cfd6e4" }}>{c.nome}</span>
+                <FonteBadge real={idx?.fontes?.[c.key] === "real"} como={c.como} />
+              </span>
+            ))}
+          </span>
+        </LinhaFonte>
+
+        <LinhaFonte titulo="Séries dos concorrentes" real={false}>
+          Curvas modeladas (sem fonte gratuita de imagem diária dos adversários), mas{" "}
+          <strong style={{ color: "#cfd6e4" }}>calibradas pela base real do TSE 2022</strong>: o
+          patamar de cada concorrente parte dos votos oficiais de deputado federal RJ.{" "}
+          {FONTE_COMO.votos2022}
+        </LinhaFonte>
+
+        <LinhaFonte titulo="Histórico de 30 dias" real={false}>
+          Fechamentos do seu índice são gravados diariamente em cache local (idx-history) — os dias
+          coletados são reais; dias anteriores à ativação da coleta são modelados.
+        </LinhaFonte>
+
+        {votos ? (
+          <SectionLeitura>
+            Base eleitoral 2022 de {nomePrincipal}: <strong>{votos.toLocaleString("pt-BR")} votos</strong>{" "}
+            (TSE, resultado oficial) — é a âncora real da comparação com os concorrentes.
+          </SectionLeitura>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -214,7 +206,7 @@ export function CompetitorTape() {
     return (
       <div className="m-card">
         <div className="m-card-head">
-          <span className="m-card-title">Você vs concorrentes · RJ</span>
+          <span className="m-card-title">Você × concorrentes · 30 dias</span>
           <LiveBadge ch="quotes.rj" cadenceMs={5000} />
         </div>
         <div className="m-ghost">sincronizando…</div>
@@ -222,7 +214,5 @@ export function CompetitorTape() {
     );
   }
 
-  return (
-    <FlipCard autoFlipMs={AUTO_FLIP_MS} front={<CompetitorFront />} back={<CompetitorBack />} />
-  );
+  return <FlipCard front={<CompetitorFront />} back={<CompetitorBack />} />;
 }

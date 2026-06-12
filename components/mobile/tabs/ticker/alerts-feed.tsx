@@ -13,8 +13,6 @@ import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
-
-const AUTO_FLIP_MS = 10_000;
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { AlertsSnapshot } from "@/lib/live-schemas";
 
@@ -130,5 +128,5 @@ export function AlertsFeed() {
       </div>
     );
   }
-  return <FlipCard autoFlipMs={AUTO_FLIP_MS} front={<AlertsFront />} back={<AlertsBack />} />;
+  return <FlipCard front={<AlertsFront />} back={<AlertsBack />} />;
 }
