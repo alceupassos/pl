@@ -18,6 +18,7 @@ import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/
 import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
 import { getSentimentoReal } from "@/lib/sources/sentiment";
 import { getSeguidoresReal } from "@/lib/sources/youtube";
+import { getFontePesquisa, getPresidencial, type CandKey } from "@/lib/sources/pesquisas";
 import type { Watchlist } from "@/lib/watchlist";
 import type {
   Alert,
@@ -424,8 +425,25 @@ function nacQuote(id: string, now: number): QuoteNac {
   };
 }
 
+// Mapeia o id do ator nacional → candidato da pesquisa presidencial real.
+const ATOR_PARA_CAND: Record<string, CandKey> = {
+  lula: "lula",
+  "flavio-bolsonaro": "flavio",
+  "renan-santos": "renan",
+  "ronaldo-caiado": "caiado",
+  zema: "zema",
+};
+
 export function snapshotQuotesNac(w: Watchlist, now: number): QuotesNacSnapshot {
-  return { atores: w.atores_nacionais.map((a) => nacQuote(a.id, now)) };
+  const pres = getPresidencial();
+  const atores = w.atores_nacionais.map((a) => {
+    const q = nacQuote(a.id, now);
+    const cand = ATOR_PARA_CAND[a.id];
+    const real = cand && pres ? pres[cand] : undefined;
+    // intenção de voto REAL (Wikipédia) quando disponível; score acompanha.
+    return real ? { ...q, pct: real.pct, dir: real.dir, score: Math.round((real.pct - 25) * 2) } : q;
+  });
+  return { atores, fonte: getFontePesquisa() ?? undefined };
 }
 
 export function deltaQuotesNac(w: Watchlist, now: number): QuotesNacDelta {

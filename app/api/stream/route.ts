@@ -17,6 +17,7 @@ import type { Channel, Envelope } from "@/lib/live-schemas";
 import { sendPushToAll } from "@/lib/push";
 import { ensureFreshCamara } from "@/lib/sources/camara";
 import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
+import { ensureFreshPesquisas } from "@/lib/sources/pesquisas";
 import { ensureFreshSentimento } from "@/lib/sources/sentiment";
 import { ensureFreshYoutube } from "@/lib/sources/youtube";
 import { readWatchlist } from "@/lib/watchlist";
@@ -102,6 +103,7 @@ export async function GET(request: NextRequest) {
         ensureFreshCamara();
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
         ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)
+        ensureFreshPesquisas(); // pesquisas presidenciais reais (Wikipédia via sidecar)
 
         for (const ch of DELTA_CHANNELS) {
           // plenário acelera para 1s com votação em andamento

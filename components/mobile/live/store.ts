@@ -178,11 +178,12 @@ function reduceDelta(ch: Channel, prev: unknown, delta: unknown): unknown {
       if (!p) return undefined;
       const byId = new Map(d.atores.map((a) => [a.id, a]));
       return {
+        ...p, // preserva `fonte` (pesquisa real) e demais campos do snapshot
         atores: p.atores.map((a) => {
           const upd = byId.get(a.id);
           if (!upd) return a;
           return {
-            ...a,
+            ...a, // preserva `pct` (intenção real) entre deltas
             score: upd.score,
             dir: upd.dir,
             spark: [...a.spark.slice(-SPARK_NAC_CAP + 1), upd.sparkLast],

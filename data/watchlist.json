@@ -99,20 +99,14 @@
       "foto": "/ai/fig-renan-santos.png"
     },
     {
-      "id": "tarcisio",
-      "nome": "Tarcísio de Freitas",
-      "partido": "Republicanos"
+      "id": "ronaldo-caiado",
+      "nome": "Ronaldo Caiado",
+      "partido": "União"
     },
     {
-      "id": "hugo-motta",
-      "nome": "Hugo Motta",
-      "partido": "Republicanos"
-    },
-    {
-      "id": "lindbergh",
-      "nome": "Lindbergh Farias",
-      "partido": "PT",
-      "foto": "/ai/fig-lindbergh-farias.png"
+      "id": "zema",
+      "nome": "Romeu Zema",
+      "partido": "Novo"
     }
   ],
   "ecossistema_evangelico": [

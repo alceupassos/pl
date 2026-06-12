@@ -160,10 +160,16 @@ export const QuoteNacSchema = z.object({
   score: z.number(), // -100..+100
   dir: z.enum(["up", "down", "flat"]),
   spark: z.array(z.number()),
+  /** Intenção de voto REAL (%) da pesquisa mais recente, quando disponível. */
+  pct: z.number().optional(),
 });
 export type QuoteNac = z.infer<typeof QuoteNacSchema>;
 
-export const QuotesNacSnapshotSchema = z.object({ atores: z.array(QuoteNacSchema) });
+export const QuotesNacSnapshotSchema = z.object({
+  atores: z.array(QuoteNacSchema),
+  /** Fonte da pesquisa presidencial real (instituto + data). */
+  fonte: z.object({ instituto: z.string(), data: z.string() }).optional(),
+});
 export type QuotesNacSnapshot = z.infer<typeof QuotesNacSnapshotSchema>;
 
 export const QuotesNacDeltaSchema = z.object({

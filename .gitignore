@@ -30,3 +30,6 @@ out/
 
 # cache de inscritos do YouTube (yt-dlp) — runtime, persiste no servidor
 /data/youtube-cache.json
+
+# cache de pesquisas reais (Wikipédia via sidecar) — runtime, persiste no servidor
+/data/pesquisas-cache.json

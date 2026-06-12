@@ -2,3 +2,5 @@ fastapi
 uvicorn[standard]
 pysentimiento
 yt-dlp
+lxml
+requests
