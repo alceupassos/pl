@@ -299,16 +299,16 @@ export function snapshotEquipe(now: number): EquipeSnapshot {
     },
   ];
 
-  const ranking = getOrganizers("all")
-    .map((o) => ({
-      nome: o.nome,
-      nivel: o.nivel,
-      regiao: o.regiao,
-      atingimentoPct: round1((o.atual.cadastro / Math.max(1, o.meta.cadastro)) * 100),
-      cadastrados: sc(o.atual.cadastro),
-    }))
-    .sort((a, b) => b.atingimentoPct - a.atingimentoPct)
-    .slice(0, 10);
+  const todosLideres = getOrganizers("all").map((o) => ({
+    nome: o.nome,
+    nivel: o.nivel,
+    regiao: o.regiao,
+    atingimentoPct: round1((o.atual.cadastro / Math.max(1, o.meta.cadastro)) * 100),
+    cadastrados: sc(o.atual.cadastro),
+  }));
+  const ranking = [...todosLideres].sort((a, b) => b.atingimentoPct - a.atingimentoPct).slice(0, 10);
+  // lanternas: piores atingimentos — onde o candidato precisa cobrar/ajudar.
+  const lanternas = [...todosLideres].sort((a, b) => a.atingimentoPct - b.atingimentoPct).slice(0, 6);
 
   return {
     geral: {
@@ -326,6 +326,7 @@ export function snapshotEquipe(now: number): EquipeSnapshot {
       engajado: sc(agg.metas.atual.engajado + Math.floor(cadHoje * 0.45)),
     },
     ranking,
+    lanternas,
     feed: feedBase(now),
   };
 }

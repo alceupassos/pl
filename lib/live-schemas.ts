@@ -479,6 +479,18 @@ export const EquipeSnapshotSchema = z.object({
       cadastrados: z.number(),
     }),
   ),
+  // Piores líderes/cabos (menor atingimento) — para o candidato cobrar/ajudar.
+  lanternas: z
+    .array(
+      z.object({
+        nome: z.string(),
+        nivel: z.string(),
+        regiao: z.string(),
+        atingimentoPct: z.number(),
+        cadastrados: z.number(),
+      }),
+    )
+    .optional(),
   feed: z.array(EquipeFeedItemSchema),
 });
 export type EquipeSnapshot = z.infer<typeof EquipeSnapshotSchema>;
