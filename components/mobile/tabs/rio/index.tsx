@@ -7,14 +7,24 @@ import { useMemo } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import { racingBarOption, sparklineOption } from "@/components/mobile/m-chart-options";
+import {
+  areaStackOption,
+  groupedBarsOption,
+  racingBarOption,
+  sparklineOption,
+} from "@/components/mobile/m-chart-options";
 import { MapaRj } from "@/components/mobile/tabs/rio/mapa-rj";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
+import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { RioPulsos } from "@/lib/live-schemas";
 import type { Watchlist } from "@/lib/watchlist";
 
-function RegionCards({ rio }: { rio: RioPulsos }) {
+// Paleta de séries para o momentum por região (verso do card de Regiões).
+const SERIE_CORES = ["#16C784", "#3b82f6", "#f0c030", "#8b5cf6", "#EA3943", "#06b6d4", "#f97316", "#ec4899"];
+
+function RegionCardsFront({ rio }: { rio: RioPulsos }) {
   return (
     <div className="m-card">
       <div className="m-card-head">
@@ -46,11 +56,53 @@ function RegionCards({ rio }: { rio: RioPulsos }) {
           </div>
         ))}
       </div>
+      <div className="m-flip-hint">↻ toque para ver o momentum de menções por região</div>
     </div>
   );
 }
 
-function RacingRj({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
+function RegionCardsBack({ rio }: { rio: RioPulsos }) {
+  const option = useMemo(() => {
+    const top = [...rio.regioes].sort((a, b) => b.mencoes - a.mencoes).slice(0, 5);
+    const len = Math.max(0, ...top.map((r) => r.spark.length));
+    const labels = Array.from({ length: len }, (_, i) => `${i + 1}`);
+    return areaStackOption({
+      labels,
+      series: top.map((r, i) => ({
+        nome: r.nome,
+        cor: SERIE_CORES[i % SERIE_CORES.length],
+        data: r.spark,
+        area: true,
+      })),
+    });
+  }, [rio.regioes]);
+
+  const ord = useMemo(() => [...rio.regioes].sort((a, b) => b.mencoes - a.mencoes), [rio.regioes]);
+  const lider = ord[0];
+  const lanterna = ord[ord.length - 1];
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Momentum de menções · por região</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={190} />
+      </div>
+      <SectionLeitura>
+        {lider && lanterna && lider !== lanterna
+          ? `${lider.nome} puxa o volume (${lider.mencoes} menções) e ${lanterna.nome} é o piso (${lanterna.mencoes}) — equilibre a presença onde está fraca.`
+          : "Acompanhe a curva para ver onde o ritmo de menções está acelerando."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function RegionCards({ rio }: { rio: RioPulsos }) {
+  return <FlipCard front={<RegionCardsFront rio={rio} />} back={<RegionCardsBack rio={rio} />} />;
+}
+
+function RacingRjFront({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
   const option = useMemo(() => {
     const meta = new Map((watchlist?.concorrentes_rj ?? []).map((c) => [c.simbolo, c]));
     return racingBarOption({
@@ -71,19 +123,70 @@ function RacingRj({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | n
         <span className="m-card-title">Racing · concorrentes no RJ (menções)</span>
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
-      <div data-no-swipe>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={150} />
       </div>
+      <div className="m-flip-hint">↻ toque para ver quem cresce mais</div>
     </div>
   );
 }
 
-function EqualizadorEvangelico({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
+function nomeConcorrente(simbolo: string, watchlist: Watchlist | null) {
+  const m = (watchlist?.concorrentes_rj ?? []).find((c) => c.simbolo === simbolo);
+  return m ? m.nome : simbolo;
+}
+
+function RacingRjBack({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
+  const option = useMemo(() => {
+    const ord = [...rio.racing].sort((a, b) => b.crescimento - a.crescimento);
+    const labels = ord.map((r) => nomeConcorrente(r.simbolo, watchlist));
+    return groupedBarsOption({
+      labels,
+      series: [
+        { nome: "menções", cor: "#3b82f6", data: ord.map((r) => r.mencoes) },
+        { nome: "crescimento", cor: "#16C784", data: ord.map((r) => r.crescimento) },
+      ],
+      horizontal: true,
+      suffix: "",
+    });
+  }, [rio.racing, watchlist]);
+
+  const top = useMemo(
+    () => [...rio.racing].sort((a, b) => b.crescimento - a.crescimento)[0],
+    [rio.racing],
+  );
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Quem cresce mais · RJ</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={190} />
+      </div>
+      <SectionLeitura>
+        {top
+          ? `${nomeConcorrente(top.simbolo, watchlist)} é quem mais acelera (${top.crescimento > 0 ? "+" : ""}${top.crescimento}) — vigie o avanço dele no estado.`
+          : "Acompanhe o crescimento para antecipar quem está subindo no RJ."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function RacingRj({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
+  return (
+    <FlipCard
+      front={<RacingRjFront rio={rio} watchlist={watchlist} />}
+      back={<RacingRjBack rio={rio} watchlist={watchlist} />}
+    />
+  );
+}
+
+function EqualizadorEvangelicoFront({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
   const nomes = useMemo(
     () => new Map((watchlist?.ecossistema_evangelico ?? []).map((e) => [e.id, e])),
     [watchlist],
   );
-  if (!rio.evangelico.length) return null;
 
   return (
     <div className="m-card">
@@ -126,7 +229,58 @@ function EqualizadorEvangelico({ rio, watchlist }: { rio: RioPulsos; watchlist: 
       <div className="m-feed-meta">
         <span>atividade 0–100 por igreja/canal/rádio · barra alta = mobilizado agora</span>
       </div>
+      <div className="m-flip-hint">↻ toque para ver as entidades mais ativas</div>
     </div>
+  );
+}
+
+function nomeEvangelico(id: string, watchlist: Watchlist | null) {
+  const m = (watchlist?.ecossistema_evangelico ?? []).find((e) => e.id === id);
+  return m ? m.nome : id;
+}
+
+function EqualizadorEvangelicoBack({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
+  const option = useMemo(() => {
+    const ord = [...rio.evangelico].sort((a, b) => b.atividade - a.atividade);
+    return racingBarOption({
+      max: 100,
+      items: ord.map((e) => ({
+        nome: nomeEvangelico(e.id, watchlist),
+        valor: e.atividade,
+        cor: e.atividade > 75 ? "#16C784" : e.atividade > 40 ? "#f0c030" : "#6b7280",
+      })),
+    });
+  }, [rio.evangelico, watchlist]);
+
+  const top = useMemo(
+    () => [...rio.evangelico].sort((a, b) => b.atividade - a.atividade)[0],
+    [rio.evangelico],
+  );
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Entidades mais ativas · evangélico RJ</span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={190} />
+      </div>
+      <SectionLeitura>
+        {top
+          ? `${nomeEvangelico(top.id, watchlist)} está no pico de mobilização (${top.atividade}/100) — priorize presença onde a base já está aquecida.`
+          : "Acompanhe a atividade para saber quais canais estão mobilizados agora."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function EqualizadorEvangelico({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlist | null }) {
+  if (!rio.evangelico.length) return null;
+  return (
+    <FlipCard
+      front={<EqualizadorEvangelicoFront rio={rio} watchlist={watchlist} />}
+      back={<EqualizadorEvangelicoBack rio={rio} watchlist={watchlist} />}
+    />
   );
 }
 

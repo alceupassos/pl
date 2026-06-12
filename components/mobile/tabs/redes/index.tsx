@@ -12,11 +12,14 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import {
   areaStackOption,
   avatarRacingOption,
+  compareLinesOption,
   donutOption,
   groupedBarsOption,
   heatmapHorasOption,
+  scatterAvatarOption,
 } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
+import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -24,6 +27,7 @@ import { MOraculo } from "@/components/mobile/ui/m-oraculo";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { StatPill } from "@/components/mobile/ui/stat-pill";
+import { getAvatar } from "@/lib/avatars";
 import type { RedeHist, RedeId, RedesV2Snapshot } from "@/lib/live-schemas";
 
 const REDE_META: Record<RedeId, { nome: string; cor: string; sigla: string }> = {
@@ -42,7 +46,10 @@ function fmtK(v: number): string {
 }
 
 /* ① HERO POR REDE — cada rede como um ativo, com 30 dias de filme */
-function RedeHeroCard({ rede }: { rede: RedeHist }) {
+// FRENTE: número-destaque + spark de seguidores. VERSO (toque): filme dos 30
+// dias com seguidores E engajamento empilhados (areaStack), com um boneco para
+// dar rosto ao público da rede.
+function RedeHeroFront({ rede }: { rede: RedeHist }) {
   const meta = REDE_META[rede.rede];
   const ganho30d = rede.seguidoresAgora - (rede.seguidores30d[0]?.v ?? rede.seguidoresAgora);
   const pct30d = ((ganho30d / Math.max(1, rede.seguidores30d[0]?.v ?? 1)) * 100).toFixed(1);
@@ -59,17 +66,15 @@ function RedeHeroCard({ rede }: { rede: RedeHist }) {
         series: [
           { nome: "Seguidores", cor: meta.cor, data: rede.seguidores30d.map((p) => p.v), area: true },
         ],
-        series2: {
-          nome: "Engajamento %",
-          cor: "#F5A623",
-          data: rede.engajamento30d.map((p) => p.v),
-        },
       }),
     [rede, meta.cor],
   );
 
   return (
-    <article className="m-quote-card" style={{ flexBasis: 300, borderTop: `2px solid ${meta.cor}` }}>
+    <article
+      className="m-quote-card"
+      style={{ width: "100%", minHeight: 250, borderTop: `2px solid ${meta.cor}` }}
+    >
       <div className="m-quote-head">
         <span className="m-quote-sym" style={{ color: meta.cor }}>
           {meta.sigla} · {meta.nome}
@@ -92,9 +97,70 @@ function RedeHeroCard({ rede }: { rede: RedeHist }) {
       <LazyChart option={option} height={120} />
       <SectionLeitura>
         {meta.nome} {ganho30d >= 0 ? "ganhou" : "perdeu"} {fmtK(Math.abs(ganho30d))} seguidores
-        em 30 dias; engajamento {engDir} (linha amarela).
+        em 30 dias; engajamento {engDir}.
+      </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver os 30 dias (seguidores + engajamento)</div>
+    </article>
+  );
+}
+
+function RedeHeroBack({ rede }: { rede: RedeHist }) {
+  const meta = REDE_META[rede.rede];
+  const ganhoEng = rede.engajamentoAgora - (rede.engajamento30d[0]?.v ?? rede.engajamentoAgora);
+
+  // Filme dos 30 dias: seguidores (área da cor da rede) + engajamento % (eixo direito amarelo).
+  const option = useMemo(
+    () =>
+      areaStackOption({
+        labels: rede.seguidores30d.map((p) => {
+          const d = new Date(p.t);
+          return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+        }),
+        series: [
+          { nome: "Seguidores", cor: meta.cor, data: rede.seguidores30d.map((p) => p.v), area: true },
+        ],
+        series2: {
+          nome: "Engajamento %",
+          cor: "#F5A623",
+          data: rede.engajamento30d.map((p) => p.v),
+        },
+      }),
+    [rede, meta.cor],
+  );
+
+  return (
+    <article
+      className="m-quote-card"
+      style={{ width: "100%", height: "100%", overflowY: "auto", borderTop: `2px solid ${meta.cor}` }}
+    >
+      <div className="m-quote-head" style={{ alignItems: "center", gap: 6 }}>
+        <MAvatar src={getAvatar("eleitor")} nome="Rede" cor="#16C784" size={24} />
+        <span className="m-quote-sym" style={{ color: meta.cor }}>
+          {meta.sigla} · 30 dias
+        </span>
+        <span className={`m-pill ${ganhoEng >= 0 ? "up" : "down"}`}>
+          eng {ganhoEng >= 0 ? "▲" : "▼"} {Math.abs(ganhoEng).toFixed(1)}pp
+        </span>
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={150} />
+      </div>
+      <SectionLeitura>
+        {ganhoEng >= 0
+          ? `Engajamento e base sobem juntos no ${meta.nome} — mantenha o formato que está funcionando.`
+          : `Base cresce mas engajamento cai no ${meta.nome} — reveja o conteúdo, não só a frequência.`}
       </SectionLeitura>
     </article>
+  );
+}
+
+function RedeHeroCard({ rede }: { rede: RedeHist }) {
+  // O FlipCard precisa de uma caixa com largura fixa e scroll-snap dentro do
+  // carrossel (o verso é position:absolute e herda a altura do front).
+  return (
+    <div style={{ flex: "0 0 300px", scrollSnapAlign: "start", minHeight: 250 }}>
+      <FlipCard front={<RedeHeroFront rede={rede} />} back={<RedeHeroBack rede={rede} />} />
+    </div>
   );
 }
 
@@ -130,10 +196,22 @@ const METRICAS = [
   { id: "crescimento7d", label: "Crescimento 7d", suffix: "%" },
 ] as const;
 
-function Arena({ redes }: { redes: RedesV2Snapshot }) {
-  const [redeSel, setRedeSel] = useState<RedeId>("instagram");
-  const [metrica, setMetrica] = useState<(typeof METRICAS)[number]["id"]>("seguidores");
-
+// FRENTE: racing dos concorrentes na rede e métrica escolhidas. VERSO (toque):
+// mapa de posicionamento (scatter) com as CABEÇAS — x = seguidores, y =
+// engajamento — para enxergar quem é grande mas pouco engajado e vice-versa.
+function ArenaFront({
+  redes,
+  redeSel,
+  setRedeSel,
+  metrica,
+  setMetrica,
+}: {
+  redes: RedesV2Snapshot;
+  redeSel: RedeId;
+  setRedeSel: (r: RedeId) => void;
+  metrica: (typeof METRICAS)[number]["id"];
+  setMetrica: (m: (typeof METRICAS)[number]["id"]) => void;
+}) {
   const dados = redes.porRede.find((r) => r.rede === redeSel);
   const option = useMemo(() => {
     if (!dados) return null;
@@ -197,7 +275,70 @@ function Arena({ redes }: { redes: RedesV2Snapshot }) {
         No {REDE_META[redeSel].nome}, você é o {posSost}º em{" "}
         {METRICAS.find((x) => x.id === metrica)!.label.toLowerCase()} — {gap}.
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver o mapa tamanho × engajamento</div>
     </div>
+  );
+}
+
+function ArenaBack({ redes, redeSel }: { redes: RedesV2Snapshot; redeSel: RedeId }) {
+  const dados = redes.porRede.find((r) => r.rede === redeSel);
+
+  // Posiciona cada concorrente pela cabeça: x = seguidores, y = engajamento %.
+  const option = useMemo(() => {
+    if (!dados) return null;
+    return scatterAvatarOption({
+      pontos: dados.concorrentes.map((c) => ({
+        x: c.seguidores,
+        y: c.engajamento,
+        nome: c.nome.split(" ").slice(0, 2).join(" "),
+        cor: c.cor,
+        img: avatarForChart(c.foto, c.nome, c.cor),
+        destaque: c.simbolo === "SOST",
+      })),
+      xLabel: "seguidores",
+      yLabel: "engajamento %",
+    });
+  }, [dados]);
+
+  if (!dados || !option) return null;
+  const sost = dados.concorrentes.find((c) => c.simbolo === "SOST");
+  const maisEngajado = [...dados.concorrentes].sort((a, b) => b.engajamento - a.engajamento)[0];
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Mapa · tamanho × engajamento no {REDE_META[redeSel].nome}</span>
+        <LiveBadge ch="redes" cadenceMs={3000} />
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={200} />
+      </div>
+      <SectionLeitura>
+        {maisEngajado?.simbolo === "SOST"
+          ? "Você lidera em engajamento — base menor pode render mais por seguidor; aposte em conteúdo, não só em volume."
+          : `${maisEngajado?.nome.split(" ")[0]} engaja mais por seguidor (${maisEngajado?.engajamento.toFixed(1)}%) — copie o formato dele; você está em ${sost?.engajamento.toFixed(1)}%.`}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function Arena({ redes }: { redes: RedesV2Snapshot }) {
+  const [redeSel, setRedeSel] = useState<RedeId>("instagram");
+  const [metrica, setMetrica] = useState<(typeof METRICAS)[number]["id"]>("seguidores");
+
+  return (
+    <FlipCard
+      front={
+        <ArenaFront
+          redes={redes}
+          redeSel={redeSel}
+          setRedeSel={setRedeSel}
+          metrica={metrica}
+          setMetrica={setMetrica}
+        />
+      }
+      back={<ArenaBack redes={redes} redeSel={redeSel} />}
+    />
   );
 }
 
@@ -274,7 +415,12 @@ function MelhorHorario({ redes }: { redes: RedesV2Snapshot }) {
 }
 
 /* ⑥ VEÍCULOS — share of voice da imprensa */
-function Veiculos({ redes }: { redes: RedesV2Snapshot }) {
+// FRENTE: donut do share atual + lista com tom. VERSO (toque): filme do share
+// ao longo do tempo (compareLinesOption do spark de cada veículo) — para ver
+// quem está ganhando ou perdendo espaço na cobertura.
+const VEICULO_CORES = ["#16C784", "#F5A623", "#E1306C", "#1877F2", "#69C9D0", "#d6dbe2"];
+
+function VeiculosFront({ redes }: { redes: RedesV2Snapshot }) {
   const top6 = redes.veiculos.slice(0, 6);
   const option = useMemo(
     () =>
@@ -315,8 +461,60 @@ function Veiculos({ redes }: { redes: RedesV2Snapshot }) {
         Fatia = quanto cada veículo fala de você; cor = tom. {lider?.veiculo} concentra a
         cobertura{lider && lider.tom < -0.15 ? " com tom crítico — prioridade de assessoria." : "."}
       </SectionLeitura>
+      <div className="m-flip-hint">↻ toque para ver quem ganha ou perde espaço</div>
     </div>
   );
+}
+
+function VeiculosBack({ redes }: { redes: RedesV2Snapshot }) {
+  const top6 = redes.veiculos.slice(0, 6);
+  const maxLen = top6.reduce((m, v) => Math.max(m, v.spark.length), 0);
+
+  // Share de cada veículo ao longo do tempo (normalizado: 100 = ponto inicial).
+  const option = useMemo(
+    () =>
+      compareLinesOption({
+        labels: Array.from({ length: maxLen }, (_, i) => `${i + 1}`),
+        series: top6.map((v, i) => ({
+          nome: v.veiculo,
+          cor: VEICULO_CORES[i % VEICULO_CORES.length],
+          data: v.spark,
+        })),
+      }),
+    [top6, maxLen],
+  );
+
+  // Quem mais ganhou/perdeu share entre o início e o fim do spark.
+  const variacao = top6
+    .map((v) => {
+      const ini = v.spark.find((x) => x !== 0) ?? v.spark[0] ?? 1;
+      const fim = v.spark[v.spark.length - 1] ?? ini;
+      return { veiculo: v.veiculo, delta: ((fim - ini) / Math.max(1, ini)) * 100 };
+    })
+    .sort((a, b) => b.delta - a.delta);
+  const sobe = variacao[0];
+  const cai = variacao[variacao.length - 1];
+
+  return (
+    <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
+      <div className="m-card-head">
+        <span className="m-card-title">Imprensa · share ao longo do tempo</span>
+        <LiveBadge ch="redes" cadenceMs={3000} />
+      </div>
+      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <EChart option={option} height={190} />
+      </div>
+      <SectionLeitura>
+        {sobe && cai && sobe.veiculo !== cai.veiculo
+          ? `${sobe.veiculo} ganha espaço (${sobe.delta >= 0 ? "+" : ""}${sobe.delta.toFixed(0)}%) e ${cai.veiculo} recua (${cai.delta.toFixed(0)}%) — recalibre o relacionamento de assessoria.`
+          : "Linhas normalizadas (100 = início): o que sobe está aumentando a cobertura sobre você."}
+      </SectionLeitura>
+    </div>
+  );
+}
+
+function Veiculos({ redes }: { redes: RedesV2Snapshot }) {
+  return <FlipCard front={<VeiculosFront redes={redes} />} back={<VeiculosBack redes={redes} />} />;
 }
 
 /* ④ monitor do último post (v1, com leitura) */
