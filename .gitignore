@@ -40,3 +40,6 @@ out/
 /data/trends-cache.json
 /data/youtube-videos-cache.json
 /data/idx-history-cache.json
+/data/instagram-cache.json
+/data/facebook-cache.json
+/data/x-cache.json

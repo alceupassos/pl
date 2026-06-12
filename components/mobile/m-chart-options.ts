@@ -118,6 +118,95 @@ export function candlestickOption(opts: {
   };
 }
 
+/** Linha de fechamentos (mesmos candles do candlestick) — alternativa ao gráfico de velas. */
+export function closeLineOption(opts: {
+  candles: Candle[];
+  compact?: boolean;
+  cor?: string;
+  refLine?: { value: number; label: string } | null;
+}): Record<string, unknown> {
+  const { candles, compact = false, cor = UP, refLine = null } = opts;
+  return {
+    backgroundColor: "transparent",
+    animation: !compact,
+    animationDurationUpdate: 280,
+    tooltip: compact
+      ? undefined
+      : {
+          ...tooltip,
+          trigger: "axis",
+          axisPointer: { type: "line", label: { backgroundColor: "#1e2638", fontSize: 9 } },
+          formatter: (params: { data: number; axisValue: string }[]) => {
+            const p = Array.isArray(params) ? params[0] : params;
+            if (!p) return "";
+            return `${p.axisValue}<br/>Fech. ${p.data}`;
+          },
+        },
+    grid: {
+      left: compact ? 2 : 6,
+      right: compact ? 2 : 38,
+      top: compact ? 4 : 8,
+      bottom: compact ? 2 : 18,
+      containLabel: !compact,
+    },
+    xAxis: {
+      type: "category",
+      data: candles.map((c) => fmtDia(c.t)),
+      ...axis,
+      axisLabel: { ...axis.axisLabel, show: !compact, interval: 6 },
+      splitLine: { show: false },
+      boundaryGap: false,
+    },
+    yAxis: {
+      type: "value",
+      scale: true,
+      position: "right",
+      ...axis,
+      axisLabel: { ...axis.axisLabel, show: !compact, fontFamily: MONO },
+      splitLine: { show: !compact, lineStyle: { color: GRID } },
+    },
+    series: [
+      {
+        type: "line",
+        data: candles.map((c) => c.c),
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: compact ? 1.5 : 2, color: cor },
+        areaStyle: compact
+          ? undefined
+          : {
+              color: {
+                type: "linear",
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: `${cor}33` },
+                  { offset: 1, color: `${cor}05` },
+                ],
+              },
+            },
+        markLine: refLine
+          ? {
+              silent: true,
+              symbol: "none",
+              lineStyle: { color: "#f5a623", type: "dashed", width: 1 },
+              label: {
+                show: !compact,
+                color: "#f5a623",
+                fontSize: 8.5,
+                formatter: refLine.label,
+                position: "insideEndTop",
+              },
+              data: [{ yAxis: refLine.value }],
+            }
+          : undefined,
+      },
+    ],
+  };
+}
+
 /** Comparação multi-série (fechamentos, normalizados em 100) — legenda interativa + pinça. */
 export function compareLinesOption(opts: {
   labels: string[];

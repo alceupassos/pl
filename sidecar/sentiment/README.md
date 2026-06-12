@@ -30,3 +30,28 @@ curl -s -X POST 127.0.0.1:8088/sentiment -H 'content-type: application/json' \
 ```
 
 `.venv/` e o cache do modelo NÃO vão para o git (ver `.gitignore`).
+
+## Redes sociais (IG / FB / X) — variáveis de ambiente
+
+Configure no PM2 do processo `sentiment` (nunca commitar tokens):
+
+```bash
+# Instagram + Facebook (Graph API — gratuito)
+META_ACCESS_TOKEN=...          # token de longa duração (60 dias)
+META_IG_USER_ID=...            # ID numérico da conta IG Business vinculada à página
+META_IG_USERNAME=sostenescavalcante
+META_FB_PAGE_ID=...          # ID numérico da página Facebook do candidato
+
+# X (twifork + cookies de conta operacional dedicada)
+X_COOKIES='{"auth_token":"...","ct0":"..."}'
+```
+
+Endpoints novos:
+
+- `GET /instagram?handle=username`
+- `GET /instagram/profiles?handles=a,b,c`
+- `GET /facebook`
+- `GET /x?handle=username`
+- `GET /x/profiles?handles=a,b,c`
+
+Sem essas variáveis os endpoints retornam `null` e o app mantém o fallback modelado.

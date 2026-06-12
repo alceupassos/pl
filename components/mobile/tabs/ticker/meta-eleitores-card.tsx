@@ -27,7 +27,21 @@ import {
 } from "@/lib/mock/campaign-goal";
 import type { EquipeSnapshot } from "@/lib/live-schemas";
 
-/* ── COMPACTO: número + mini-gráfico de projeção ao lado ── */
+function Stat({ label, valor, sub }: { label: string; valor: string; sub?: string }) {
+  return (
+    <div>
+      <div className="m-muted-c" style={{ fontSize: 9.5, letterSpacing: "0.04em" }}>
+        {label.toUpperCase()}
+      </div>
+      <div className="m-mono" style={{ fontSize: 15, fontWeight: 800 }}>
+        {valor}
+      </div>
+      {sub ? <div className="m-muted-c" style={{ fontSize: 9 }}>{sub}</div> : null}
+    </div>
+  );
+}
+
+/* ── COMPACTO: layout main.jpeg — placar + barra + grid de stats ── */
 function MetaCompact() {
   const { data: equipe, lastAt } = useLiveChannel<EquipeSnapshot>("equipe");
 
@@ -37,69 +51,72 @@ function MetaCompact() {
     const agora = lastAt > 0 ? lastAt : ELEICAO_MS - 130 * 86_400_000;
     const cadastrados = g.cadastrados;
     const previsto = previstoPara(agora);
+    const faltam = Math.max(0, META_ELEITORES - cadastrados);
+    const pct = Math.min(100, (cadastrados / META_ELEITORES) * 100);
+    const pctPrevisto = Math.min(100, (previsto / META_ELEITORES) * 100);
     const dias = diasAteEleicao(agora);
     const ritmoDia = Math.round(g.velocidadeMin * 60 * 14);
+    const ritmoNec = Math.ceil(faltam / dias);
     const diff = cadastrados - previsto;
     const margem = META_ELEITORES * 0.03;
     const status = diff >= margem ? "ADIANTADO" : diff <= -margem ? "ATRASADO" : "NO RITMO";
     const cor = status === "ADIANTADO" ? "#16C784" : status === "ATRASADO" ? "#EA3943" : "#F5A623";
     const selo = status === "ADIANTADO" ? "up" : status === "ATRASADO" ? "down" : "amarelo";
-    const pts = Array.from({ length: 9 }, (_, i) =>
-      Math.round(cadastrados + ritmoDia * dias * (i / 8)),
-    );
-    const option = {
-      backgroundColor: "transparent",
-      grid: { left: 2, right: 4, top: 4, bottom: 4, containLabel: false },
-      xAxis: { type: "category", show: false, data: pts.map(() => "") },
-      yAxis: { type: "value", show: false },
-      series: [
-        {
-          type: "line",
-          data: pts,
-          smooth: true,
-          symbol: "none",
-          lineStyle: { color: cor, width: 2 },
-          areaStyle: {
-            color: status === "ATRASADO" ? "rgba(234,57,67,0.12)" : "rgba(22,199,132,0.10)",
-          },
-        },
-      ],
-    };
-    return { cadastrados, status, selo, option };
+    return { cadastrados, previsto, faltam, pct, pctPrevisto, dias, ritmoDia, ritmoNec, status, cor, selo };
   }, [equipe, lastAt]);
 
   return (
     <FlashCard watch={calc?.cadastrados} className="m-card-compact">
-      <div className="m-card-head">
+      <div className="m-card-head m-card-head-ticker">
         <span className="m-card-title">Cadastro de eleitores · meta 79.000</span>
-        <LiveBadge ch="equipe" cadenceMs={2000} />
+        {calc ? (
+          <div className="m-card-head-badges" style={{ width: "100%" }}>
+            <LeituraIA
+              card="ticker-meta"
+              contexto={`cad ${calc.cadastrados}/${META_ELEITORES}; ${calc.status}; ritmo ${calc.ritmoDia}/dia; nec ${calc.ritmoNec}/dia; faltam ${calc.faltam}`}
+              titulo="Meta eleitores"
+            />
+            <FonteBadge real={false} />
+            <LiveBadge ch="equipe" cadenceMs={2000} />
+          </div>
+        ) : (
+          <LiveBadge ch="equipe" cadenceMs={2000} />
+        )}
       </div>
 
       {calc ? (
         <>
-          <div className="m-compact-row">
-            <div className="m-compact-main">
-              <div className="m-headline-num">
-                <Odometer value={calc.cadastrados} />
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                <span className="m-muted-c" style={{ fontSize: 12 }}>
-                  / {META_ELEITORES.toLocaleString("pt-BR")}
-                </span>
-                <span className={`m-pill ${calc.selo}`} style={{ fontSize: 9 }}>
-                  {calc.status === "ADIANTADO"
-                    ? "ADIANTADO ✓"
-                    : calc.status === "ATRASADO"
-                      ? "ATRASADO ⚠"
-                      : "NO RITMO"}
-                </span>
-              </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <div className="m-headline-num" style={{ fontSize: "clamp(36px, 13vw, 48px)" }}>
+              <Odometer value={calc.cadastrados} />
             </div>
-            <div className="m-compact-chart" data-no-swipe onClick={(e) => e.stopPropagation()}>
-              <EChart option={calc.option} height={64} />
-            </div>
+            <span className="m-muted-c" style={{ fontSize: 14 }}>
+              / {META_ELEITORES.toLocaleString("pt-BR")}
+            </span>
+            <span className={`m-pill ${calc.selo}`} style={{ marginLeft: "auto" }}>
+              {calc.status === "ADIANTADO"
+                ? "ADIANTADO ✓"
+                : calc.status === "ATRASADO"
+                  ? "ATRASADO ⚠"
+                  : "NO RITMO"}
+            </span>
           </div>
-          <div className="m-flip-hint">toque para expandir</div>
+
+          <div className="m-meta-bar">
+            <span className="m-meta-fill" style={{ width: `${calc.pct}%`, background: calc.cor }} />
+            <span className="m-meta-tick" style={{ left: `${calc.pctPrevisto}%` }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, marginTop: 3 }}>
+            <span className="m-mono">{calc.pct.toFixed(0)}% da meta</span>
+            <span className="m-muted-c">▏previsto p/ hoje: {calc.previsto.toLocaleString("pt-BR")}</span>
+          </div>
+
+          <div className="m-stats-grid">
+            <Stat label="faltam" valor={calc.faltam.toLocaleString("pt-BR")} />
+            <Stat label="dias p/ eleição" valor={`${calc.dias}`} sub="~4 meses" />
+            <Stat label="ritmo atual" valor={`${calc.ritmoDia}/dia`} />
+            <Stat label="ritmo necessário" valor={`${calc.ritmoNec}/dia`} />
+          </div>
         </>
       ) : (
         <div className="m-ghost">sincronizando o placar…</div>
@@ -208,8 +225,8 @@ function MetaFront() {
             <span className="m-muted-c">▏previsto p/ hoje: {calc.previsto.toLocaleString("pt-BR")}</span>
           </div>
 
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "8px 0 2px" }}>
-            <Stat label="faltam" valor={`${calc.faltam.toLocaleString("pt-BR")}`} />
+          <div className="m-stats-grid">
+            <Stat label="faltam" valor={calc.faltam.toLocaleString("pt-BR")} />
             <Stat label="dias p/ eleição" valor={`${calc.dias}`} sub="~4 meses" />
             <Stat label="ritmo atual" valor={`${calc.ritmoDia}/dia`} />
             <Stat label="ritmo necessário" valor={`${calc.ritmoNec}/dia`} />
@@ -366,17 +383,5 @@ export function MetaEleitoresCard() {
       back={<MetaBack />}
       ariaLabel="Tocar para expandir o placar de eleitores"
     />
-  );
-}
-
-function Stat({ label, valor, sub }: { label: string; valor: string; sub?: string }) {
-  return (
-    <div>
-      <div className="m-muted-c" style={{ fontSize: 9.5, letterSpacing: "0.04em" }}>
-        {label.toUpperCase()}
-      </div>
-      <div className="m-mono" style={{ fontSize: 15, fontWeight: 800 }}>{valor}</div>
-      {sub ? <div className="m-muted-c" style={{ fontSize: 9 }}>{sub}</div> : null}
-    </div>
   );
 }

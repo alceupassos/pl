@@ -9,7 +9,8 @@
     "cor": "#16C784",
     "handles": {
       "x": "sostenes",
-      "instagram": "sostenescavalcante"
+      "instagram": "sostenescavalcante",
+      "facebook": "sostenescavalcante"
     },
     "foto": "/sostenes1.png"
   },
@@ -29,7 +30,8 @@
       "cor": "#3B82F6",
       "handles": {
         "x": "carlosjordy",
-        "instagram": "carlosjordy"
+        "instagram": "carlosjordy",
+        "facebook": "carlosjordy"
       },
       "foto": "/candidatos/carlos_jordy_PL.png"
     },
@@ -41,7 +43,9 @@
       "votos2022": 213706,
       "cor": "#A855F7",
       "handles": {
-        "instagram": "danieladowaguinho"
+        "instagram": "danieladowaguinho",
+        "x": "danieladowaguinho",
+        "facebook": "danieladowaguinho"
       }
     },
     {
@@ -52,7 +56,9 @@
       "votos2022": 205324,
       "cor": "#22D3EE",
       "handles": {
-        "instagram": "gen.pazuello"
+        "instagram": "gen.pazuello",
+        "x": "genpazuello",
+        "facebook": "genpazuello"
       }
     },
     {
@@ -64,7 +70,8 @@
       "cor": "#FB923C",
       "handles": {
         "x": "taliriapetrone",
-        "instagram": "taliriapetrone"
+        "instagram": "taliriapetrone",
+        "facebook": "taliriapetrone"
       }
     },
     {
@@ -75,7 +82,9 @@
       "votos2022": 190071,
       "cor": "#FACC15",
       "handles": {
-        "instagram": "doutorluizinho"
+        "instagram": "doutorluizinho",
+        "x": "doutorluizinho",
+        "facebook": "doutorluizinho"
       },
       "foto": "/candidatos/dr_luizinho_psb.png"
     }

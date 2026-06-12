@@ -7,11 +7,12 @@
 // de outubro/2026. Índice e meta no mesmo card.
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import { candlestickOption } from "@/components/mobile/m-chart-options";
+import { candlestickOption, closeLineOption } from "@/components/mobile/m-chart-options";
+import { ChartModeToggle, type ChartMode } from "@/components/mobile/ui/chart-mode-toggle";
 import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
@@ -141,27 +142,57 @@ function idxTemReal(idx: IdxSnapshot): boolean {
   return Object.values(idx.fontes).some((f) => f === "real");
 }
 
-/* ── COMPACTO — número + candlestick ao lado ── */
+function MetaPills({ alcancado }: { alcancado: number }) {
+  return (
+    <div className="m-meta-pills">
+      <span className="m-pill meta-goal">meta {fmtCompact(META_ELEITORES)}</span>
+      <span className="m-pill meta-goal">alcançado {fmtCompact(alcancado)}</span>
+    </div>
+  );
+}
+
+/* ── COMPACTO — layout main.jpeg: header + número + candlestick ao lado ── */
+function idxChartOption(idx: IdxSnapshot, mode: ChartMode, compact: boolean) {
+  const candles = [...idx.candles30d, idx.candleVivo];
+  const cor = "#16C784";
+  return mode === "candle"
+    ? candlestickOption({ candles, compact })
+    : closeLineOption({ candles, compact, cor });
+}
+
 function IdxCompact({
   idx,
   watchlist,
+  equipe,
+  chartMode,
+  onChartMode,
 }: {
   idx: IdxSnapshot;
   watchlist: Watchlist | null;
+  equipe: EquipeSnapshot | null;
+  chartMode: ChartMode;
+  onChartMode: (mode: ChartMode) => void;
 }) {
-  const option = useMemo(
-    () => candlestickOption({ candles: [...idx.candles30d, idx.candleVivo], compact: true }),
-    [idx],
-  );
+  const option = useMemo(() => idxChartOption(idx, chartMode, true), [idx, chartMode]);
   const positivo = idx.variacaoDia >= 0;
+  const cadastrados = equipe?.geral.cadastrados ?? 0;
 
   return (
     <FlashCard watch={idx.valor} className="m-card-compact">
-      <div className="m-card-head">
+      <div className="m-card-head m-card-head-ticker">
         <span className="m-card-title">
           {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
         </span>
-        <LiveBadge ch="idx.sost" cadenceMs={2000} />
+        <MetaPills alcancado={cadastrados} />
+        <div className="m-card-head-badges" style={{ width: "100%" }}>
+          <LeituraIA
+            card="ticker-sost-idx"
+            contexto={`valor ${idx.valor.toFixed(2)}; var dia ${idx.variacaoDia.toFixed(1)}%; cad ${cadastrados}/${META_ELEITORES}`}
+            titulo="SOST-IDX"
+          />
+          <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
+          <LiveBadge ch="idx.sost" cadenceMs={2000} />
+        </div>
       </div>
 
       <div className="m-compact-row">
@@ -175,11 +206,12 @@ function IdxCompact({
           </div>
         </div>
         <div className="m-compact-chart" data-no-swipe onClick={(e) => e.stopPropagation()}>
-          <EChart option={option} height={64} />
+          <div className="m-chart-toolbar">
+            <ChartModeToggle mode={chartMode} onChange={onChartMode} />
+          </div>
+          <EChart option={option} height={72} />
         </div>
       </div>
-
-      <div className="m-flip-hint">toque para expandir</div>
     </FlashCard>
   );
 }
@@ -190,16 +222,17 @@ function IdxFront({
   watchlist,
   equipe,
   agora,
+  chartMode,
+  onChartMode,
 }: {
   idx: IdxSnapshot;
   watchlist: Watchlist | null;
   equipe: EquipeSnapshot | null;
   agora: number;
+  chartMode: ChartMode;
+  onChartMode: (mode: ChartMode) => void;
 }) {
-  const option = useMemo(
-    () => candlestickOption({ candles: [...idx.candles30d, idx.candleVivo] }),
-    [idx],
-  );
+  const option = useMemo(() => idxChartOption(idx, chartMode, false), [idx, chartMode]);
   const positivo = idx.variacaoDia >= 0;
   const cadastrados = equipe?.geral.cadastrados ?? 0;
   // "no ritmo" = cadastros de hoje >= onde a curva linear até out/2026 manda estar.
@@ -244,6 +277,9 @@ function IdxFront({
       </div>
 
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <div className="m-chart-toolbar">
+          <ChartModeToggle mode={chartMode} onChange={onChartMode} />
+        </div>
         <EChart option={option} height={172} />
       </div>
       <div className="m-flip-hint">↻ toque para entender o índice e a meta</div>
@@ -410,6 +446,7 @@ export function SostIdxCard() {
   const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
   const watchlist = useLiveChannel<Watchlist>("watchlist").data;
   const equipe = useLiveChannel<EquipeSnapshot>("equipe");
+  const [chartMode, setChartMode] = useState<ChartMode>("candle");
 
   if (!idx) {
     return (
@@ -424,8 +461,25 @@ export function SostIdxCard() {
   return (
     <ExpandFlipCard
       glow={glow}
-      compact={<IdxCompact idx={idx} watchlist={watchlist} />}
-      front={<IdxFront idx={idx} watchlist={watchlist} equipe={equipe.data} agora={equipe.lastAt} />}
+      compact={
+        <IdxCompact
+          idx={idx}
+          watchlist={watchlist}
+          equipe={equipe.data}
+          chartMode={chartMode}
+          onChartMode={setChartMode}
+        />
+      }
+      front={
+        <IdxFront
+          idx={idx}
+          watchlist={watchlist}
+          equipe={equipe.data}
+          agora={equipe.lastAt}
+          chartMode={chartMode}
+          onChartMode={setChartMode}
+        />
+      }
       back={<IdxBack equipe={equipe.data} agora={equipe.lastAt} />}
       ariaLabel="Tocar para expandir o índice SOST"
     />

@@ -4,15 +4,17 @@
 // por ativo. FRENTE: fita (você + concorrentes RJ). VERSO (toque): comparativo
 // de todos em 30 dias (linhas normalizadas).
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import {
   candlestickOption,
+  closeLineOption,
   compareLinesOption,
   sparklineOption,
 } from "@/components/mobile/m-chart-options";
+import { ChartModeToggle, type ChartMode } from "@/components/mobile/ui/chart-mode-toggle";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { useFlash } from "@/components/mobile/ui/flash-card";
@@ -39,23 +41,26 @@ type CardAtivo = {
   voce: boolean;
 };
 
-function CompetitorCard({ item }: { item: CardAtivo }) {
+function quoteChartOption(meta: MetaAtivo, quote: QuoteRj, mode: ChartMode) {
+  const candles = [...quote.candles30d, quote.candleVivo];
+  const refLine =
+    meta.votos2022 && meta.votos2022 > 0
+      ? { value: meta.votos2022 / 2000, label: "2022" }
+      : null;
+  return mode === "candle"
+    ? candlestickOption({ candles, compact: true, refLine })
+    : closeLineOption({ candles, compact: true, cor: meta.cor, refLine });
+}
+
+function CompetitorCard({ item, chartMode }: { item: CardAtivo; chartMode: ChartMode }) {
   const { meta, quote, voce } = item;
   const flash = useFlash(quote.valor);
   const positivo = quote.variacao24h >= 0;
   const interno = meta.interno ?? false;
 
-  const candleOpt = useMemo(
-    () =>
-      candlestickOption({
-        candles: [...quote.candles30d, quote.candleVivo],
-        compact: true,
-        refLine:
-          meta.votos2022 && meta.votos2022 > 0
-            ? { value: meta.votos2022 / 2000, label: "2022" }
-            : null,
-      }),
-    [quote.candles30d, quote.candleVivo, meta.votos2022],
+  const chartOpt = useMemo(
+    () => quoteChartOption(meta, quote, chartMode),
+    [meta, quote, chartMode],
   );
 
   const sparkOpt = useMemo(
@@ -94,7 +99,7 @@ function CompetitorCard({ item }: { item: CardAtivo }) {
       </div>
 
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
-        <EChart option={candleOpt} height={88} />
+        <EChart option={chartOpt} height={88} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
@@ -123,6 +128,7 @@ function CompetitorFront() {
   const watchlist = useLiveChannel<Watchlist>("watchlist").data;
   const quotes = useLiveChannel<QuotesRjSnapshot>("quotes.rj").data;
   const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
+  const [chartMode, setChartMode] = useState<ChartMode>("candle");
 
   const cards = useMemo((): CardAtivo[] => {
     if (!watchlist || !quotes || !idx) return [];
@@ -166,13 +172,14 @@ function CompetitorFront() {
           real={!!idx?.fontes && Object.values(idx.fontes).some((f) => f === "real")}
           como={`${FONTE_COMO.idxComposto} Base 2022: ${FONTE_COMO.votos2022}`}
         />
+        <ChartModeToggle mode={chartMode} onChange={setChartMode} />
         <LiveBadge ch="quotes.rj" cadenceMs={5000} />
       </div>
 
       {cards.length ? (
         <div className="m-carousel" data-no-swipe>
           {cards.map((item) => (
-            <CompetitorCard key={item.meta.simbolo} item={item} />
+            <CompetitorCard key={item.meta.simbolo} item={item} chartMode={chartMode} />
           ))}
         </div>
       ) : (
@@ -180,8 +187,8 @@ function CompetitorFront() {
       )}
 
       <SectionLeitura>
-        Arraste para o lado: cada card é um concorrente com candlestick de 30 dias,
-        como uma ação na bolsa.
+        Arraste para o lado: cada card é um concorrente com gráfico de 30 dias
+        (candlestick ou linha — use ▮▮ / 〰 no topo).
       </SectionLeitura>
       <div className="m-flip-hint">↻ toque para ver o comparativo de todos · 30 dias</div>
     </div>

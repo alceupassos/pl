@@ -5,3 +5,5 @@ yt-dlp
 lxml
 requests
 pytrends
+twifork
+curl_cffi

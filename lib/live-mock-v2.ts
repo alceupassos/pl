@@ -12,6 +12,9 @@ import { ORCAMENTO_TOTAL, RUBRICAS } from "@/lib/mock/gastos-rubricas";
 import { MUNICAO } from "@/lib/mock/media";
 // Fonte REAL: cota parlamentar (Câmara) alimenta a aba gastos quando disponível.
 import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
+import { getFacebookFollowers } from "@/lib/sources/facebook";
+import { getInstagramFollowers } from "@/lib/sources/instagram";
+import { getXFollowers } from "@/lib/sources/x";
 import { getSeguidoresCount, getVideosReal } from "@/lib/sources/youtube";
 import { META_ELEITORES, diasAteEleicao } from "@/lib/mock/campaign-goal";
 import {
@@ -123,20 +126,56 @@ function segParams(rede: RedeId) {
   return { base: REDE_BASE[rede].seg, vol: 0.004, trend: 0.0019, seasonalWeight: 0.01 };
 }
 
+function handleDaRede(w: Watchlist, simbolo: string, rede: RedeId): string | undefined {
+  const handles =
+    simbolo === w.principal.simbolo
+      ? w.principal.handles
+      : w.concorrentes_rj.find((c) => c.simbolo === simbolo)?.handles;
+  if (!handles || rede === "youtube" || rede === "tiktok") return undefined;
+  return handles[rede];
+}
+
+function seguidoresReaisRede(w: Watchlist, simbolo: string, rede: RedeId): number | null {
+  const handle = handleDaRede(w, simbolo, rede);
+  if (rede === "instagram") return getInstagramFollowers(handle);
+  if (rede === "x") return getXFollowers(handle);
+  if (rede === "facebook" && simbolo === w.principal.simbolo) return getFacebookFollowers();
+  return null;
+}
+
 function concorrentesDaRede(w: Watchlist, rede: RedeId, now: number): ConcorrenteRede[] {
   const todos = [
-    { simbolo: w.principal.simbolo, nome: w.principal.nome, cor: w.principal.cor, foto: w.principal.foto ?? null },
-    ...w.concorrentes_rj.map((c) => ({ simbolo: c.simbolo, nome: c.nome, cor: c.cor, foto: c.foto ?? null })),
+    {
+      simbolo: w.principal.simbolo,
+      nome: w.principal.nome,
+      cor: w.principal.cor,
+      foto: w.principal.foto ?? null,
+    },
+    ...w.concorrentes_rj.map((c) => ({
+      simbolo: c.simbolo,
+      nome: c.nome,
+      cor: c.cor,
+      foto: c.foto ?? null,
+    })),
   ];
   return todos
     .map((c) => {
       const h = hash(`${c.simbolo}:${rede}`);
-      const base = c.simbolo === w.principal.simbolo
-        ? REDE_BASE[rede].seg
-        : 40_000 + (h % 320_000);
+      const base =
+        c.simbolo === w.principal.simbolo ? REDE_BASE[rede].seg : 40_000 + (h % 320_000);
+      const real = seguidoresReaisRede(w, c.simbolo, rede);
       return {
         ...c,
-        seguidores: Math.round(seriesValue(`cseg:${c.simbolo}:${rede}`, now, { base, vol: 0.006, trend: ((h % 9) - 3) / 2200, seasonalWeight: 0.01 })),
+        seguidores:
+          real ??
+          Math.round(
+            seriesValue(`cseg:${c.simbolo}:${rede}`, now, {
+              base,
+              vol: 0.006,
+              trend: ((h % 9) - 3) / 2200,
+              seasonalWeight: 0.01,
+            }),
+          ),
         engajamento: round1(2 + ((h >> 4) % 45) / 10 + noise(`ceng:${c.simbolo}:${rede}`, now, 2) * 0.8),
         crescimento7d: round1(noise(`ccr:${c.simbolo}:${rede}`, now, 2) * 6 + ((h % 7) - 2)),
       };
@@ -158,8 +197,11 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
       const t = (today - 29 + i) * DAY + 12 * 3_600_000;
       return { t, v: round1(seriesValue(`engh:${rede}`, t, { base: REDE_BASE[rede].eng, vol: 0.16, spikeBoost: 0.6 })) };
     });
-    const vivo = redeVivo(rede, now);
-    if (rede === "youtube" && vivo.fonte === "real") {
+    const vivo = redeVivo(rede, now, w);
+    if (
+      (rede === "youtube" || rede === "instagram" || rede === "facebook" || rede === "x") &&
+      vivo.fonte === "real"
+    ) {
       // Ancora a série sintética no número real de hoje (mesma forma, nível real).
       const sinteticoHoje = seguidores30d[seguidores30d.length - 1]?.v ?? 0;
       const fator = sinteticoHoje > 0 ? vivo.seguidoresAgora / sinteticoHoje : 1;
@@ -237,6 +279,7 @@ function buildVeiculos(w: Watchlist, now: number) {
 function redeVivo(
   rede: (typeof REDE_IDS)[number],
   now: number,
+  w?: Watchlist,
 ): { seguidoresAgora: number; engajamentoAgora: number; fonte: "real" | "modelado" } {
   let seguidoresAgora = Math.round(seriesValue(`segs:${rede}`, now, segParams(rede)));
   let engajamentoAgora = round1(
@@ -255,6 +298,27 @@ function redeVivo(
       fonte = "real";
     }
   }
+  if (w && rede === "instagram") {
+    const real = getInstagramFollowers(w.principal.handles?.instagram);
+    if (real !== null) {
+      seguidoresAgora = real;
+      fonte = "real";
+    }
+  }
+  if (w && rede === "facebook") {
+    const real = getFacebookFollowers();
+    if (real !== null) {
+      seguidoresAgora = real;
+      fonte = "real";
+    }
+  }
+  if (w && rede === "x") {
+    const real = getXFollowers(w.principal.handles?.x);
+    if (real !== null) {
+      seguidoresAgora = real;
+      fonte = "real";
+    }
+  }
   return { seguidoresAgora, engajamentoAgora, fonte };
 }
 
@@ -263,7 +327,7 @@ export function deltaRedesV2(w: Watchlist, now: number): RedesV2Delta {
   return {
     ...base,
     porRedeVivo: REDE_IDS.map((rede) => {
-      const vivo = redeVivo(rede, now);
+      const vivo = redeVivo(rede, now, w);
       return {
         rede,
         seguidoresAgora: vivo.seguidoresAgora,

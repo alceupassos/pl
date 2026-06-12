@@ -1,9 +1,9 @@
 "use client";
 
-// Bolinha roxa com ícone Brain — abre bottom sheet com leitura do gráfico
-// e dica de ação geradas por IA. Nunca expõe o provedor/modelo.
+// Bolinha roxa com ícone Sparkles (estrelinhas IA) — abre bottom sheet com leitura
+// do gráfico e dica de ação. Nunca expõe o provedor/modelo.
 
-import { Brain } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { BottomSheet } from "@/components/mobile/ui/bottom-sheet";
@@ -91,7 +91,7 @@ export function LeituraIA({
         aria-label={`Leitura inteligente: ${titulo}`}
         data-no-swipe
       >
-        <Brain size={12} strokeWidth={2.4} aria-hidden />
+        <Sparkles size={14} strokeWidth={2.2} aria-hidden />
       </button>
       <BottomSheet open={open} onClose={() => setOpen(false)} title={`${titulo} · IA`}>
         {loading ? (

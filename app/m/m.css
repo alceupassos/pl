@@ -364,11 +364,13 @@ body:has(.m-app:not(.m-embed)) {
   font-size: clamp(36px, 13vw, 48px);
 }
 .m-compact-chart {
+  position: relative;
   flex: 1;
   min-width: 0;
   align-self: stretch;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* ── borda animada girando (verde/vermelha) ── */
@@ -424,24 +426,104 @@ body:has(.m-app:not(.m-embed)) {
   }
 }
 
-/* ── bolinha roxa · leitura IA por card ── */
+/* ── botão IA (estrelinhas / sparkles) ── */
 .m-ia-dot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
-  border-radius: 50%;
-  border: none;
-  background: #a855f7;
-  color: #fff;
+  border-radius: 8px;
+  border: 1px solid rgba(196, 181, 253, 0.45);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.12));
+  color: #e9d5ff;
   cursor: pointer;
   padding: 0;
-  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.35);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
 }
 .m-ia-dot:active {
   transform: scale(0.94);
+}
+
+/* ── pills de meta no header do SOST-IDX (mock main.jpeg) ── */
+.m-card-head-ticker {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 8px;
+}
+.m-card-head-ticker .m-card-title {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+.m-card-head-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.m-meta-pills {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  margin-left: auto;
+}
+.m-pill.meta-goal {
+  color: var(--m-warn);
+  border-color: rgba(245, 166, 35, 0.55);
+  background: rgba(245, 166, 35, 0.06);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+}
+.m-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 6px;
+  margin-top: 8px;
+}
+
+/* ── toggle candlestick / linha ── */
+.m-chart-toggle {
+  display: inline-flex;
+  border: 1px solid var(--m-border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.m-chart-toggle button {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: var(--m-muted);
+  cursor: pointer;
+}
+.m-chart-toggle button.on {
+  background: rgba(22, 199, 132, 0.14);
+  color: #16c784;
+}
+.m-chart-toggle button:active {
+  transform: scale(0.96);
+}
+.m-chart-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2px;
+}
+.m-compact-chart .m-chart-toolbar {
+  margin-bottom: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+@media (max-width: 360px) {
+  .m-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── badge DADO SIMULADO / DADOS REAIS ── */

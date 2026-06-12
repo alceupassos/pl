@@ -244,6 +244,7 @@ Arquivo: `app/api/stream/route.ts`
 | 2026-06-12 | Fix flip verso | `pointer-events`/`z-index` no FlipCard — link `/m/indice` no verso do SOST-IDX navega |
 | 2026-06-12 | Fita candlestick | CompetitorTape: carrossel candlestick na frente, comparativo 30d no verso |
 | 2026-06-12 | Cards compactos ticker | SOST-IDX e Meta eleitores iniciam reduzidos (número + mini-gráfico); toque expande → toque vira verso; borda girando verde/vermelha (2.5px); ordem: IDX → Meta → Fita |
+| 2026-06-12 | Redes IG/FB/X reais | Sidecar `/instagram`, `/facebook`, `/x` + providers Node; injeção na aba Redes; env META_* e X_COOKIES documentados |
 
 ### Notas T2 (correção API)
 
