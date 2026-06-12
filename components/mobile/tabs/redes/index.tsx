@@ -26,6 +26,7 @@ import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 import { StatPill } from "@/components/mobile/ui/stat-pill";
@@ -49,10 +50,15 @@ function fmtK(v: number): string {
 
 
 function YoutubeVideosReais({ videos }: { videos: YoutubeVideo[] }) {
+  const top = videos[0];
+  const ctx = top
+    ? `${videos.length} vídeos; top ${fmtK(top.views)} views eng ${top.engajamento.toFixed(1)}%`
+    : `${videos.length} vídeos`;
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">YouTube · últimos vídeos</span>
+        <LeituraIA card="redes-youtube-videos" contexto={ctx} titulo="YouTube · últimos vídeos" />
         <FonteBadge real={true} como={FONTE_COMO.youtubeVideos} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
@@ -111,6 +117,11 @@ function RedeHeroFront({ rede }: { rede: RedeHist }) {
         <span className="m-quote-sym" style={{ color: meta.cor }}>
           {meta.sigla} · {meta.nome}
         </span>
+        <LeituraIA
+          card={`redes-${rede.rede}`}
+          contexto={`${meta.sigla} ${fmtK(rede.seguidoresAgora)} seg; eng ${rede.engajamentoAgora.toFixed(1)}%; 30d ${pct30d}%`}
+          titulo={`${meta.nome} · 30 dias`}
+        />
         <FonteBadge real={rede.fonte === "real"} como={FONTE_COMO_REDE[rede.rede]} />
         <span className={`m-pill ${ganho30d >= 0 ? "up" : "down"}`}>
           {ganho30d >= 0 ? "▲" : "▼"} {pct30d}% / 30d
@@ -208,6 +219,11 @@ function RedesHero({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Suas redes · filme de 30 dias</span>
+        <LeituraIA
+          card="redes-hero"
+          contexto={`${redes.porRede.length} redes; líder ${REDE_META[lider.rede].sigla} ${fmtK(lider.seguidoresAgora)} seg`}
+          titulo="Suas redes · filme de 30 dias"
+        />
         <FonteBadge
           real={redes.porRede.some((r) => r.fonte === "real")}
           como="YouTube com números reais (yt-dlp, fonte aberta); IG/X/TikTok/FB modelados — APIs fechadas exigem credencial. Veja o badge em cada rede."
@@ -278,6 +294,11 @@ function ArenaFront({
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Arena · você × concorrentes por rede</span>
+        <LeituraIA
+          card="redes-arena"
+          contexto={`${REDE_META[redeSel].sigla} ${metrica}; pos SOST ${posSost}º; ${gap}`}
+          titulo="Arena · concorrentes por rede"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
@@ -414,6 +435,11 @@ function QuemCresce({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Quem cresce mais · 7 dias</span>
+        <LeituraIA
+          card="redes-quem-cresce"
+          contexto={`${candidatos.length} candidatos; top ${melhor.nome.split(" ")[0]} +${melhor.valor.toFixed(1)}% ${melhor.rede}`}
+          titulo="Quem cresce mais · 7 dias"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
@@ -444,6 +470,11 @@ function MelhorHorario({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Melhor horário para postar</span>
+        <LeituraIA
+          card="redes-melhor-horario"
+          contexto={`pico ${DIAS[top?.[0] ?? 0]} ${HORAS[top?.[1] ?? 0]} alcance ${top?.[2]?.toFixed(0) ?? "?"}`}
+          titulo="Melhor horário para postar"
+        />
         <FonteBadge real={false} />
         <span className="m-pill">alcance por dia × hora</span>
       </div>
@@ -481,6 +512,11 @@ function VeiculosFront({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Imprensa · quem fala de você</span>
+        <LeituraIA
+          card="redes-veiculos"
+          contexto={`${top6.length} veículos; líder ${lider?.veiculo ?? "?"} ${lider?.share.toFixed(1) ?? "?"}% tom ${lider?.tom.toFixed(2) ?? "?"}`}
+          titulo="Imprensa · quem fala de você"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
@@ -605,6 +641,11 @@ function MonitorUltimoPost({ redes }: { redes: RedesV2Snapshot }) {
     <FlashCard watch={post.curtidas}>
       <div className="m-card-head">
         <span className="m-card-title">Monitor do último post</span>
+        <LeituraIA
+          card="redes-monitor-post"
+          contexto={`${post.curtidas} curt; ${post.comentarios} com; ${post.views} views; selo ${post.selo}`}
+          titulo="Monitor do último post"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
@@ -653,6 +694,11 @@ function RacingSemanal({ redes }: { redes: RedesV2Snapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Engajamento total · semana</span>
+        <LeituraIA
+          card="redes-racing-semanal"
+          contexto={`${redes.racingSemanal.length} candidatos; líder ${lider?.nome.split(" ")[0] ?? "?"} ${lider?.engajamento7d ?? "?"}k eng`}
+          titulo="Engajamento total · semana"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>
@@ -678,6 +724,11 @@ function CriseDetector({ redes }: { redes: RedesV2Snapshot }) {
     >
       <div className="m-card-head">
         <span className="m-card-title">Detector de crise</span>
+        <LeituraIA
+          card="redes-crise"
+          contexto={`z=${c.zscore.toFixed(2)}; ${c.ativo ? "CRISE" : "normal"}`}
+          titulo="Detector de crise"
+        />
         <FonteBadge real={false} />
         <span className={`m-pill ${c.ativo ? "vermelho" : "up"}`}>{c.ativo ? "CRISE EM CURSO" : "normal"}</span>
       </div>

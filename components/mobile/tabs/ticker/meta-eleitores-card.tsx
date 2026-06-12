@@ -12,6 +12,7 @@ import { bulletBarsOption, funnelOption } from "@/components/mobile/m-chart-opti
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
@@ -91,6 +92,13 @@ function MetaFront() {
     <FlashCard watch={calc?.cadastrados}>
       <div className="m-card-head">
         <span className="m-card-title">Cadastro de eleitores · meta 79.000</span>
+        {calc ? (
+          <LeituraIA
+            card="ticker-meta"
+            contexto={`cad ${calc.cadastrados}/${META_ELEITORES}; ${calc.status}; ritmo ${calc.ritmoDia}/dia; nec ${calc.ritmoNec}/dia; faltam ${calc.faltam}`}
+            titulo="Meta eleitores"
+          />
+        ) : null}
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>

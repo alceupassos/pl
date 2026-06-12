@@ -18,6 +18,7 @@ import { donutOption, mGaugeOption, racingBarOption } from "@/components/mobile/
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -40,6 +41,11 @@ function PlacarFront({ plenario }: { plenario: PlenarioState }) {
             EM VOTAÇÃO
           </span>
         </span>
+        <LeituraIA
+          card="plenario-placar"
+          contexto={`SIM ${v.sim} NÃO ${v.nao}; ${pctSim.toFixed(0)}% sim; orient PL ${v.orientacaoPL}`}
+          titulo="Placar de votação"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={1000} />
       </div>
@@ -112,6 +118,7 @@ export function PlacarVotacao({ plenario }: { plenario: PlenarioState }) {
       <div className="m-card">
         <div className="m-card-head">
           <span className="m-card-title">Votação nominal</span>
+          <LeituraIA card="plenario-placar-idle" contexto="sem votação nominal em andamento" titulo="Votação nominal" />
           <FonteBadge real={false} />
           <LiveBadge ch="plenario" cadenceMs={10000} />
         </div>
@@ -138,6 +145,11 @@ function FidelidadeFront({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Fidelidade da bancada PL</span>
+        <LeituraIA
+          card="plenario-fidelidade"
+          contexto={`${f.pct.toFixed(1)}% fidelidade; ${f.com}/${f.total}; ${traicoes.length} traições`}
+          titulo="Fidelidade da bancada PL"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
@@ -232,6 +244,11 @@ export function CaboDeGuerra({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Cabo de guerra narrativo · hoje</span>
+        <LeituraIA
+          card="plenario-cabo-guerra"
+          contexto={`oposição ${c.shareOposicao.toFixed(1)}% ${c.temaOposicao}; governo ${(100 - c.shareOposicao).toFixed(1)}% ${c.temaGoverno}`}
+          titulo="Cabo de guerra narrativo"
+        />
         <FonteBadge real={false} />
         <span className="m-mono m-muted-c" style={{ fontSize: 10 }}>
           share of voice
@@ -274,10 +291,16 @@ function VozFront({ plenario }: { plenario: PlenarioState }) {
       }),
     [plenario.vozes],
   );
+  const top = plenario.vozes[0];
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Quem fala pela oposição · 6h</span>
+        <LeituraIA
+          card="plenario-vozes"
+          contexto={`${plenario.vozes.length} vozes; top ${top?.nome ?? "?"} ${top?.mencoes ?? 0} menções`}
+          titulo="Quem fala pela oposição"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>

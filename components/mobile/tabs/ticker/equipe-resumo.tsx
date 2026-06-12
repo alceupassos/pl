@@ -12,6 +12,7 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { avatarRacingOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { avatarForChart } from "@/components/mobile/ui/m-avatar";
 import { Odometer } from "@/components/mobile/ui/odometer";
@@ -45,6 +46,11 @@ function ResumoFront({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Equipe de campo</span>
+        <LeituraIA
+          card="ticker-equipe-resumo"
+          contexto={`cad ${equipe.geral.cadastrados}/${equipe.geral.meta}; líderes ${lideres}; cabos ${cabos}; melhor ${melhor?.nome} ${melhor?.pct.toFixed(0)}%; pior ${pior?.nome} ${pior?.pct.toFixed(0)}%`}
+          titulo="Equipe de campo"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>

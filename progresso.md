@@ -239,6 +239,9 @@ Arquivo: `app/api/stream/route.ts`
 | 2026-06-12 | MetaRing | Anel SVG de progresso meta/alcançado no canto sup. direito do SOST-IDX |
 | 2026-06-12 | Página `/m/indice` | Cálculo vivo (pesos + candlestick), 4 componentes com badge, correlação Brandwatch, limitações |
 | 2026-06-12 | Redes: YouTube real | `porRede.fonte`; inscritos reais (yt-dlp) + eng. médio dos vídeos; badge real/simulado por rede |
+| 2026-06-12 | LeituraIA | Bolinha roxa Brain em cada card do /m; modal com leitura + dica via `/api/oracle?mode=leitura` (sem expor modelo) |
+| 2026-06-12 | Fita de ações | Ranking de concorrentes restaurado acima do gráfico 30d no CompetitorTape |
+| 2026-06-12 | Fix flip verso | `pointer-events`/`z-index` no FlipCard — link `/m/indice` no verso do SOST-IDX navega |
 
 ### Notas T2 (correção API)
 

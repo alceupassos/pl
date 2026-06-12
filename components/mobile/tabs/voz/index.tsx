@@ -14,6 +14,7 @@ import { ChatBubble } from "@/components/mobile/ui/chat-bubble";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
 import { Odometer } from "@/components/mobile/ui/odometer";
@@ -56,6 +57,11 @@ function HeroVozFront({ voz }: { voz: VozSnapshot }) {
     <FlashCard watch={c.totalHoje}>
       <div className="m-card-head">
         <span className="m-card-title">Voz do eleitorado · hoje</span>
+        <LeituraIA
+          card="voz-hero"
+          contexto={`${c.totalHoje} msgs; ${c.porMinuto.toFixed(1)}/min; pos ${c.sentimento.pos.toFixed(0)}% neg ${c.sentimento.neg.toFixed(0)}% saldo ${saldo.toFixed(0)}`}
+          titulo="Voz do eleitorado · hoje"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>
@@ -138,6 +144,11 @@ function PorFonteFront({ voz }: { voz: VozSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">De onde vem a voz</span>
+        <LeituraIA
+          card="voz-por-fonte"
+          contexto={`eleitor ${totalEleitor}; redes ${totalRedes}; líder ${lider?.rotulo ?? "?"} ${lider?.total ?? 0}`}
+          titulo="De onde vem a voz"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>
@@ -216,6 +227,11 @@ function ChatAoVivo({ voz, lastAt }: { voz: VozSnapshot; lastAt: number }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Chat ao vivo</span>
+        <LeituraIA
+          card="voz-chat"
+          contexto={`${msgs.length} msgs visíveis; última ${msgs[0]?.fonte ?? "?"} ${msgs[0]?.sentimento ?? ""}`}
+          titulo="Chat ao vivo"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="voz" cadenceMs={2500} />
       </div>

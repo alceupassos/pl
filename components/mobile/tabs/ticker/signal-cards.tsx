@@ -14,6 +14,7 @@ import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 
@@ -120,6 +121,11 @@ function SignalsFront({ idx }: { idx: IdxSnapshot }) {
         }}
       >
         <span className="m-card-title">Imagem do candidato · 4 sinais</span>
+        <LeituraIA
+          card="ticker-sinais"
+          contexto={`idx ${idx.valor.toFixed(2)}; imp ${idx.breakdown.imprensa.toFixed(0)} sent ${idx.breakdown.sentimento.toFixed(0)} seg ${idx.breakdown.seguidores.toFixed(0)} men ${idx.breakdown.mencoes.toFixed(0)}`}
+          titulo="4 sinais"
+        />
         <FonteBadge
           real={!!idx.fontes && Object.values(idx.fontes).some((f) => f === "real")}
           como={FONTE_COMO.idxComposto}

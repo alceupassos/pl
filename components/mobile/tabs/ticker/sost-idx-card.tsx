@@ -15,6 +15,7 @@ import { candlestickOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { InfoTip } from "@/components/mobile/ui/info-tip";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
@@ -166,6 +167,11 @@ function IdxFront({
         <span className="m-card-title">
           {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
         </span>
+        <LeituraIA
+          card="ticker-sost-idx"
+          contexto={`valor ${idx.valor.toFixed(2)}; var dia ${idx.variacaoDia.toFixed(1)}%; imp ${idx.breakdown.imprensa.toFixed(0)} sent ${idx.breakdown.sentimento.toFixed(0)} seg ${idx.breakdown.seguidores.toFixed(0)} men ${idx.breakdown.mencoes.toFixed(0)}; cad ${cadastrados}/${META_ELEITORES}`}
+          titulo="SOST-IDX"
+        />
         <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
         <LiveBadge ch="idx.sost" cadenceMs={2000} />
         <MetaRing alcancado={cadastrados} meta={META_ELEITORES} noRitmo={noRitmo} />

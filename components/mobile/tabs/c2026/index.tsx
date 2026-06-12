@@ -11,16 +11,26 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { divergingBarsOption, pollBandsOption } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import type { C2026State } from "@/lib/live-schemas";
 
 function PollOfPolls({ c }: { c: C2026State }) {
   const option = useMemo(() => pollBandsOption(c.pollOfPolls), [c.pollOfPolls]);
+  const top = [...c.pollOfPolls.series].sort(
+    (a, b) => (b.media[b.media.length - 1] ?? 0) - (a.media[a.media.length - 1] ?? 0),
+  )[0];
+  const topPct = top?.media[top.media.length - 1];
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Poll of polls · presidencial</span>
+        <LeituraIA
+          card="c2026-poll-of-polls"
+          contexto={`${c.pollOfPolls.series.length} candidatos; top ${top?.nome.split(" ")[0] ?? "?"} ${topPct?.toFixed(1) ?? "?"}%`}
+          titulo="Poll of polls · presidencial"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
@@ -40,6 +50,11 @@ function BancadaPl({ c }: { c: C2026State }) {
     <FlashCard watch={b.votosLegendaPL}>
       <div className="m-card-head">
         <span className="m-card-title">Projeção de bancada · PL federal RJ</span>
+        <LeituraIA
+          card="c2026-bancada"
+          contexto={`PL ${b.faixa[0]}-${b.faixa[1]} fed; quoc ${b.quociente.toLocaleString("pt-BR")}; leg ${b.votosLegendaPL}; pos ${b.posicaoLista}º`}
+          titulo="Projeção de bancada · PL"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
@@ -76,6 +91,11 @@ function PesqEleRadar({ c }: { c: C2026State }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Radar PesqEle</span>
+        <LeituraIA
+          card="c2026-pesqele"
+          contexto={`${c.pesqEle.diasRestantes} dias até ${c.pesqEle.proximaJanela}`}
+          titulo="Radar PesqEle"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
@@ -92,10 +112,16 @@ function PesqEleRadar({ c }: { c: C2026State }) {
 }
 
 function Polymarket({ c }: { c: C2026State }) {
+  const top = [...c.polymarket].sort((a, b) => b.prob - a.prob)[0];
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Mercados · Polymarket</span>
+        <LeituraIA
+          card="c2026-polymarket"
+          contexto={`${c.polymarket.length} mercados; top ${top?.mercado ?? "?"} ${top?.prob.toFixed(1) ?? "?"}%`}
+          titulo="Mercados · Polymarket"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>
@@ -117,6 +143,11 @@ function Aprovacao({ c }: { c: C2026State }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Aprovação do governo · por segmento</span>
+        <LeituraIA
+          card="c2026-aprovacao"
+          contexto={`aprova ${c.aprovacao.aprova.toFixed(1)}%; desaprova ${c.aprovacao.desaprova.toFixed(1)}%; ${c.aprovacao.segmentos.length} segmentos`}
+          titulo="Aprovação do governo"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="c2026" cadenceMs={30000} />
       </div>

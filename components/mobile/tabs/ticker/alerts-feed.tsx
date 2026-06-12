@@ -11,6 +11,7 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { donutOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -39,6 +40,11 @@ function AlertsFront() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Alertas</span>
+        <LeituraIA
+          card="ticker-alertas"
+          contexto={`${alertas.length} alertas; vermelhos ${alertas.filter((a) => a.nivel === "vermelho").length}; último: ${alertas[0]?.titulo?.slice(0, 80) ?? "nenhum"}`}
+          titulo="Alertas"
+        />
         <FonteBadge real={true} como={FONTE_COMO.newsRadar} />
         <LiveBadge ch="alerts" cadenceMs={20000} />
       </div>

@@ -17,6 +17,7 @@ import {
 } from "@/components/mobile/m-chart-options";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -60,6 +61,11 @@ function HeroCadastros({ equipe }: { equipe: EquipeSnapshot }) {
     <FlashCard watch={g.cadastrados}>
       <div className="m-card-head">
         <span className="m-card-title">Eleitores cadastrados</span>
+        <LeituraIA
+          card="equipe-hero"
+          contexto={`${g.cadastrados}/${g.meta} meta; ${g.velocidadeMin.toFixed(1)}/min; eng ${g.engajados}${diasParaMeta !== null ? `; ~${diasParaMeta}d p/ meta` : ""}`}
+          titulo="Eleitores cadastrados"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
@@ -123,6 +129,11 @@ function PorRegiao({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Cadastros por região · tempo real</span>
+        <LeituraIA
+          card="equipe-por-regiao"
+          contexto={`${equipe.porRegiao.length} regiões; top ${melhor?.nome ?? "?"} ${melhor?.pct.toFixed(0) ?? "?"}%; pior ${pior?.nome ?? "?"} ${pior?.pct.toFixed(0) ?? "?"}%`}
+          titulo="Cadastros por região"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
@@ -148,6 +159,11 @@ function Camadas({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">As 3 camadas da operação</span>
+        <LeituraIA
+          card="equipe-camadas"
+          contexto={`${equipe.tiers.length} camadas; elo fraco ${eloFraco?.nome ?? "?"} eng ${eloFraco?.engajadoPct.toFixed(0) ?? "?"}%`}
+          titulo="As 3 camadas da operação"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
@@ -216,6 +232,11 @@ function FunilBase({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Funil da base</span>
+        <LeituraIA
+          card="equipe-funil"
+          contexto={`lista ${f.lista}; cad ${f.cadastro}; eng ${f.engajado}; gargalo ${gargalo.etapa} -${gargalo.queda.toFixed(0)}%`}
+          titulo="Funil da base"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
@@ -252,6 +273,11 @@ function RankingLideres({ equipe }: { equipe: EquipeSnapshot }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Ranking de líderes</span>
+        <LeituraIA
+          card="equipe-ranking"
+          contexto={`top ${lider?.nome ?? "?"} ${lider?.atingimentoPct.toFixed(0) ?? "?"}% ${lider?.regiao ?? ""}; ${top8.length} líderes`}
+          titulo="Ranking de líderes"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
@@ -313,6 +339,11 @@ function AtividadeAoVivo({
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Atividade ao vivo</span>
+        <LeituraIA
+          card="equipe-atividade"
+          contexto={`${itens.length} movimentos; último ${itens[0]?.nome ?? "?"} ${itens[0]?.acao ?? ""}`}
+          titulo="Atividade ao vivo"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>

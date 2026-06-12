@@ -18,6 +18,7 @@ import {
 } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MAvatar, avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -47,6 +48,11 @@ function SeletorRegiao({
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Oportunidades por região</span>
+        <LeituraIA
+          card="oportunidades-seletor"
+          contexto={`${regioes.length} regiões; sel ${regiaoSel}`}
+          titulo="Oportunidades por região"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
@@ -82,6 +88,11 @@ function OndeAtacarFront({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Onde atacar · {regiao.nome}</span>
+        <LeituraIA
+          card="oportunidades-onde-atacar"
+          contexto={`${regiao.nome}; força ${regiao.forca.tema} score ${regiao.forca.score}; alvo ${alvo?.adversario.nome.split(" ")[0] ?? "?"} ${alvo?.tema ?? ""} sev ${alvo?.severidade ?? "?"}`}
+          titulo={`Onde atacar · ${regiao.nome}`}
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
@@ -226,6 +237,11 @@ function MatrizRegiao({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Matriz da região · demanda × satisfação</span>
+        <LeituraIA
+          card="oportunidades-matriz"
+          contexto={`${regiao.nome}; ${regiao.matriz.length} temas; ouro ${melhor?.tema ?? "?"} idx ${Math.round(melhor?.oportunidade ?? 0)}`}
+          titulo="Matriz da região"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
@@ -263,6 +279,11 @@ function RankingTemasFront({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Ranking de temas</span>
+        <LeituraIA
+          card="oportunidades-ranking-temas"
+          contexto={`top ${top?.tema ?? "?"} idx ${Math.round(top?.oportunidade ?? 0)}; ${regiao.matriz.length} temas`}
+          titulo="Ranking de temas"
+        />
         <FonteBadge real={false} />
         <span className="m-pill">índice de oportunidade 0–100</span>
       </div>
@@ -332,6 +353,11 @@ function Manchetes({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Manchetes que sustentam o discurso</span>
+        <LeituraIA
+          card="oportunidades-manchetes"
+          contexto={`${regiao.noticias.length} manchetes; temas ${[...new Set(regiao.noticias.map((n) => n.tema))].slice(0, 3).join(", ")}`}
+          titulo="Manchetes"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
@@ -372,6 +398,11 @@ function DiscursoRecomendado({ regiao }: { regiao: OportunidadeRegiao }) {
     <div className="m-card" style={{ borderColor: "var(--m-warn)" }}>
       <div className="m-card-head">
         <span className="m-card-title">Discurso recomendado</span>
+        <LeituraIA
+          card="oportunidades-discurso"
+          contexto={`${regiao.nome}; tema ${regiao.discurso.tema}`}
+          titulo="Discurso recomendado"
+        />
         <FonteBadge real={false} />
         <span className="m-pill amarelo">{regiao.discurso.tema}</span>
       </div>
@@ -396,6 +427,11 @@ function MunicaoFront({ municao }: { municao: OportunidadesState["municao"] }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Munição contra o governo</span>
+        <LeituraIA
+          card="oportunidades-municao"
+          contexto={`${top5.length} matérias; top alcance ${Math.round(top5[0]?.alcance ?? 0)}k ${top5[0]?.tema ?? ""}`}
+          titulo="Munição contra o governo"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>
@@ -488,6 +524,11 @@ function VisaoGeral({ topGeral }: { topGeral: OportunidadesState["topGeral"] }) 
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Visão geral · melhor tema por região</span>
+        <LeituraIA
+          card="oportunidades-visao-geral"
+          contexto={`${topGeral.length} regiões; top ${topGeral[0]?.regiao ?? "?"} ${topGeral[0]?.tema ?? "?"} idx ${topGeral[0]?.indice ?? "?"}`}
+          titulo="Visão geral · temas"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="oportunidades" cadenceMs={30000} />
       </div>

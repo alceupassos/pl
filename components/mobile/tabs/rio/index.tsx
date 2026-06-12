@@ -16,6 +16,7 @@ import {
 import { MapaRj } from "@/components/mobile/tabs/rio/mapa-rj";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
@@ -26,10 +27,17 @@ import type { Watchlist } from "@/lib/watchlist";
 const SERIE_CORES = ["#16C784", "#3b82f6", "#f0c030", "#8b5cf6", "#EA3943", "#06b6d4", "#f97316", "#ec4899"];
 
 function RegionCardsFront({ rio }: { rio: RioPulsos }) {
+  const total = rio.regioes.reduce((s, r) => s + r.mencoes, 0);
+  const top = [...rio.regioes].sort((a, b) => b.mencoes - a.mencoes)[0];
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Regiões · menções agora</span>
+        <LeituraIA
+          card="rio-regioes"
+          contexto={`${rio.regioes.length} regiões; ${total} menções; top ${top?.nome ?? "?"} ${top?.mencoes ?? 0}`}
+          titulo="Regiões · menções"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
@@ -120,10 +128,16 @@ function RacingRjFront({ rio, watchlist }: { rio: RioPulsos; watchlist: Watchlis
     });
   }, [rio.racing, watchlist]);
 
+  const lider = rio.racing[0];
+  const ctx = lider
+    ? `top ${nomeConcorrente(lider.simbolo, watchlist)} ${lider.mencoes} menções; ${rio.racing.length} concorrentes`
+    : `${rio.racing.length} concorrentes`;
+
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Racing · concorrentes no RJ (menções)</span>
+        <LeituraIA card="rio-racing" contexto={ctx} titulo="Racing · concorrentes RJ" />
         <FonteBadge real={false} />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>
@@ -192,11 +206,17 @@ function EqualizadorEvangelicoFront({ rio, watchlist }: { rio: RioPulsos; watchl
     () => new Map((watchlist?.ecossistema_evangelico ?? []).map((e) => [e.id, e])),
     [watchlist],
   );
+  const top = [...rio.evangelico].sort((a, b) => b.atividade - a.atividade)[0];
 
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Equalizador · ecossistema evangélico RJ</span>
+        <LeituraIA
+          card="rio-evangelico"
+          contexto={`${rio.evangelico.length} entidades; top ${nomeEvangelico(top?.id ?? "", watchlist)} ${top?.atividade ?? 0}/100`}
+          titulo="Ecossistema evangélico RJ"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="rio.pulsos" cadenceMs={8000} />
       </div>

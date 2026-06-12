@@ -19,6 +19,7 @@ import {
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { MOraculo } from "@/components/mobile/ui/m-oraculo";
@@ -71,6 +72,11 @@ function CaixaHeroFront({ gastos }: { gastos: GastosState }) {
     <FlashCard watch={saldo.gasto}>
       <div className="m-card-head">
         <span className="m-card-title">Caixa da campanha</span>
+        <LeituraIA
+          card="gastos-caixa"
+          contexto={`disp ${fmtRS(saldo.disponivel)}; gasto ${saldo.pctExecutado.toFixed(1)}% exec; ${ritmo}`}
+          titulo="Caixa da campanha"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
@@ -165,6 +171,11 @@ function ExecucaoSemanal({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Execução semanal</span>
+        <LeituraIA
+          card="gastos-execucao"
+          contexto={`proj ${fmtRS(ultProjecao)} vs plan ${fmtRS(ultPlanejado)}; ${fura ? "fura teto" : "abaixo teto"}`}
+          titulo="Execução semanal"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
@@ -206,6 +217,11 @@ function BurnRate({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Burn rate</span>
+        <LeituraIA
+          card="gastos-burn-rate"
+          contexto={`sem ${burnRate.semanaAtual} mil/sem; média ${burnRate.mediaSemanal}; ${burnRate.tendencia}`}
+          titulo="Burn rate"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
@@ -240,6 +256,11 @@ function FontesFront({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">De onde vem o dinheiro</span>
+        <LeituraIA
+          card="gastos-fontes"
+          contexto={`${fontes.length} fontes; top ${fundo?.nome ?? "?"} ${fundo?.pct.toFixed(0) ?? "?"}%${doacoes ? `; doações ${doacoes.pct.toFixed(0)}%` : ""}`}
+          titulo="De onde vem o dinheiro"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
@@ -324,6 +345,11 @@ function RubricasFront({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Orçado × gasto por rubrica</span>
+        <LeituraIA
+          card="gastos-rubricas"
+          contexto={`${rubricas.length} rubricas; ${estourada ? `${estourada.nome} ${estourada.pct.toFixed(0)}% estouro` : "sem estouro"}`}
+          titulo="Orçado × gasto por rubrica"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
@@ -391,6 +417,11 @@ function CustoPorVoto({ gastos }: { gastos: GastosState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Custo por voto</span>
+        <LeituraIA
+          card="gastos-custo-voto"
+          contexto={`atual R$${custoPorVoto.atual.toFixed(1)}; proj R$${custoPorVoto.projetado.toFixed(1)}; bench R$${custoPorVoto.benchmark.toFixed(1)}; ${acima ? "acima bench" : "abaixo bench"}`}
+          titulo="Custo por voto"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>
@@ -422,6 +453,11 @@ function AlertasEstouro({ gastos }: { gastos: GastosState }) {
     <div className="m-card" role={temVermelho ? "alert" : undefined}>
       <div className="m-card-head">
         <span className="m-card-title">Alertas de estouro</span>
+        <LeituraIA
+          card="gastos-alertas"
+          contexto={`${alertas.length} alertas; ${temVermelho ? "vermelho presente" : alertas.length ? "só amarelo" : "ok"}`}
+          titulo="Alertas de estouro"
+        />
         <GastoFonteBadge gastos={gastos} />
         <LiveBadge ch="gastos" cadenceMs={15000} />
       </div>

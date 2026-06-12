@@ -21,6 +21,7 @@ import {
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LazyChart } from "@/components/mobile/ui/lazy-chart";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { avatarForChart } from "@/components/mobile/ui/m-avatar";
@@ -66,6 +67,11 @@ function PesquisaPropriaCard({ propria }: { propria: PesquisasSnapshot["propria"
     <FlashCard watch={live.respondidos}>
       <div className="m-card-head">
         <span className="m-card-title">PESQUISA PRÓPRIA · AO VIVO</span>
+        <LeituraIA
+          card="pesquisas-propria"
+          contexto={`${live.respondidos} resp; ${live.velocidade.toFixed(1)}/min; top ${lider?.label ?? "?"} ${lider?.pct.toFixed(1) ?? "?"}%`}
+          titulo="Pesquisa própria · ao vivo"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
@@ -123,6 +129,11 @@ function PlacarOficial({ ranking }: { ranking: PesquisasSnapshot["oficiais"]["ra
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Placar oficial · Dep. Federal RJ</span>
+        <LeituraIA
+          card="pesquisas-placar"
+          contexto={`${ordenado.length} candidatos; pos SOST ${posSost > 0 ? posSost : "?"}º; líder ${nomeCurto(ordenado[0]?.nome ?? "?")} ${ordenado[0]?.intencao.toFixed(1) ?? "?"}%`}
+          titulo="Placar oficial"
+        />
         <FonteBadge real={false} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {posSost > 0 ? <span className="m-pill amarelo">você</span> : null}
@@ -176,6 +187,11 @@ function Tendencia({ oficiais }: { oficiais: PesquisasSnapshot["oficiais"] }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Tendência · 6 ondas</span>
+        <LeituraIA
+          card="pesquisas-tendencia"
+          contexto={`${timeline.series.length} candidatos; maior alta ${nomeCurto(melhor.nome)} ${melhor.delta >= 0 ? "+" : ""}${melhor.delta.toFixed(1)}pp`}
+          titulo="Tendência · 6 ondas"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
@@ -221,6 +237,11 @@ function IntencaoRejeicao({ ranking }: { ranking: PesquisasSnapshot["oficiais"][
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Intenção × Rejeição — a ameaça real</span>
+        <LeituraIA
+          card="pesquisas-intencao-rejeicao"
+          contexto={`${ranking.length} candidatos; ${ameacas.length} ameaças; média int ${mediaY.toFixed(1)}% rej ${mediaX.toFixed(1)}%`}
+          titulo="Intenção × Rejeição"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
@@ -259,6 +280,11 @@ function PorInstituto({ institutos }: { institutos: PesquisasSnapshot["oficiais"
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Por instituto</span>
+        <LeituraIA
+          card="pesquisas-por-instituto"
+          contexto={`${institutos.labels.length} institutos; espalhamento até ${espalhamento.toFixed(1)}pp`}
+          titulo="Por instituto"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
@@ -298,6 +324,11 @@ function Recortes({ recortes }: { recortes: PesquisasSnapshot["oficiais"]["recor
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Recortes demográficos</span>
+        <LeituraIA
+          card="pesquisas-recortes"
+          contexto={`recorte ${RECORTE_LABEL[atual.recorte] ?? atual.recorte}; melhor ${atual.labels[melhorIdx] ?? "?"} ${(minha?.data[melhorIdx] ?? 0).toFixed(1)}%`}
+          titulo="Recortes demográficos"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
@@ -345,6 +376,11 @@ function Sentimento({ sentimento }: { sentimento: { pos: number; neu: number; ne
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Sentimento da amostra própria</span>
+        <LeituraIA
+          card="pesquisas-sentimento"
+          contexto={`pos ${sentimento.pos}%; neu ${sentimento.neu}%; neg ${sentimento.neg}%`}
+          titulo="Sentimento da amostra"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="pesquisas" cadenceMs={5000} />
       </div>
@@ -365,6 +401,11 @@ function Calendario({ calendario }: { calendario: PesquisasSnapshot["calendario"
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Calendário de campo</span>
+        <LeituraIA
+          card="pesquisas-calendario"
+          contexto={`${calendario.length} semanas; próx ${calendario[0]?.semana ?? "?"} tema ${calendario[0]?.tema ?? "?"}`}
+          titulo="Calendário de campo"
+        />
         <FonteBadge real={false} />
         <span className="m-pill">{calendario.length} semanas</span>
       </div>

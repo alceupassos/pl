@@ -286,6 +286,12 @@ body:has(.m-app:not(.m-embed)) {
 .m-flip.virado .m-flip-inner {
   transform: rotateY(180deg);
 }
+.m-flip.virado .m-flip-front {
+  pointer-events: none;
+}
+.m-flip.virado .m-flip-back {
+  z-index: 2;
+}
 .m-flip-face {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -333,6 +339,26 @@ body:has(.m-app:not(.m-embed)) {
 
 .m-flip-wrap {
   position: relative;
+}
+
+/* ── bolinha roxa · leitura IA por card ── */
+.m-ia-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: #a855f7;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.35);
+}
+.m-ia-dot:active {
+  transform: scale(0.94);
 }
 
 /* ── badge DADO SIMULADO / DADOS REAIS ── */

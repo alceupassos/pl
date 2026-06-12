@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { getVotos2022Municipio } from "@/lib/data/votos-2022-sostenes";
 import type { RioPulsos } from "@/lib/live-schemas";
@@ -147,6 +148,11 @@ export function MapaRj() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Mapa vivo · RJ por município</span>
+        <LeituraIA
+          card="rio-mapa"
+          contexto={`camada ${camada}; ${rio?.pulsos.length ?? 0} pulsos${rio?.pulsos[0] ? `; top ${rio.pulsos[0].municipio} ${Math.round(rio.pulsos[0].intensidade * 100)}` : ""}`}
+          titulo="Mapa vivo · RJ"
+        />
         <FonteBadge
           real={camada === "v2022"}
           como={camada === "v2022" ? FONTE_COMO.votos2022 : undefined}

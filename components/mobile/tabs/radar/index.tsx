@@ -11,6 +11,7 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { donutOption, racingBarOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { RadarItem, RadarState, Tom } from "@/lib/live-schemas";
@@ -83,6 +84,7 @@ function FeedItem({ item, municao }: { item: RadarItem; municao?: boolean }) {
 function FeedsFront({ radar }: { radar: RadarState }) {
   const [ativo, setAtivo] = useState<FeedId>("falaramDeMim");
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const total = radar.falaramDeMim.length + radar.pauta.length + radar.municao.length;
 
   const irPara = (id: FeedId) => {
     setAtivo(id);
@@ -95,6 +97,11 @@ function FeedsFront({ radar }: { radar: RadarState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Radar de imprensa</span>
+        <LeituraIA
+          card="radar-feeds"
+          contexto={`${total} matérias 24h; feed ${ativo}; mim ${radar.falaramDeMim.length} pauta ${radar.pauta.length} munição ${radar.municao.length}`}
+          titulo="Radar de imprensa"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="radar" cadenceMs={10000} />
       </div>
@@ -255,6 +262,11 @@ function ScatterColunistasFront({ radar }: { radar: RadarState }) {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Colunistas · tom × alcance</span>
+        <LeituraIA
+          card="radar-colunistas"
+          contexto={`${radar.colunistas.length} colunistas; top alcance ${[...radar.colunistas].sort((a, b) => b.alcance - a.alcance)[0]?.alcance ?? 0}k`}
+          titulo="Colunistas · tom × alcance"
+        />
         <FonteBadge real={false} />
         <LiveBadge ch="radar" cadenceMs={10000} />
       </div>

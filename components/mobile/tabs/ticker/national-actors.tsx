@@ -14,6 +14,7 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { compareLinesOption } from "@/components/mobile/m-chart-options";
 import { FlipCard } from "@/components/mobile/ui/flip-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
+import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
 import { MAvatar } from "@/components/mobile/ui/m-avatar";
@@ -61,6 +62,15 @@ function NationalFront() {
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Corrida presidencial · 2026</span>
+        <LeituraIA
+          card="ticker-nacional"
+          contexto={
+            dados
+              ? `líder ${dados.linhas[0]?.meta.nome} ${dados.linhas[0]?.quote.pct ?? "?"}%; ${dados.linhas.length} atores; fonte ${dados.fonte ?? "modelado"}`
+              : ""
+          }
+          titulo="Corrida presidencial"
+        />
         <FonteBadge real={dados?.temReal ?? false} como={FONTE_COMO.pesquisasPres} />
         <LiveBadge ch="quotes.nac" cadenceMs={5000} />
       </div>

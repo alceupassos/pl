@@ -82,14 +82,79 @@ const HEURISTICAS: Record<string, string[]> = {
   ],
 };
 
+const LEITURAS_FALLBACK: Record<string, string[]> = {
+  "m-ticker": [
+    "O painel resume imprensa, sentimento, base online e buzz num único termômetro — o movimento de hoje antecipa a narrativa de amanhã.",
+    "A comparação com concorrentes mostra quem ganha relevância na disputa local, não só quem tem mais seguidores.",
+  ],
+  "m-redes": [
+    "Cada rede social reage a formatos diferentes; crescimento de seguidores sem engajamento é vaidade, não voto.",
+    "O share de veículos indica quem está puxando a cobertura — neutro é oportunidade de assessoria.",
+  ],
+  geral: [
+    "Os números deste gráfico indicam o ritmo atual da campanha — acompanhe a tendência antes de reagir.",
+    "O dado isolado não define eleição; o padrão de vários dias sim.",
+  ],
+};
+
+function hashPick(key: string, arr: string[]): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 9973;
+  return arr[h % arr.length];
+}
+
+function sectionFromCard(card: string): string {
+  const prefix = card.split("-")[0];
+  const map: Record<string, string> = {
+    ticker: "m-ticker",
+    redes: "m-redes",
+    equipe: "m-equipe",
+    gastos: "m-gastos",
+    oportunidades: "m-oportunidades",
+    pesquisas: "m-pesquisas",
+    plenario: "m-plenario",
+    radar: "m-radar",
+    rio: "m-rio",
+    voz: "m-voz",
+    c2026: "m-c2026",
+  };
+  return map[prefix] ?? "geral";
+}
+
 function heuristica(section: string, context: string): string {
   const arr = HEURISTICAS[section] ?? [
     "Priorize a ação com maior retorno por esforço e meça o resultado na próxima semana.",
   ];
-  let h = 0;
-  const s = section + context;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 9973;
-  return arr[h % arr.length];
+  return hashPick(section + context, arr);
+}
+
+function heuristicaLeitura(card: string, context: string): { leitura: string; dica: string } {
+  const section = sectionFromCard(card);
+  const leituras = LEITURAS_FALLBACK[section] ?? LEITURAS_FALLBACK.geral;
+  return {
+    leitura: hashPick(`L:${card}:${context}`, leituras),
+    dica: heuristica(section, context),
+  };
+}
+
+function parseLeituraJson(text: string): { leitura: string; dica: string } | null {
+  try {
+    const raw = text.trim();
+    const jsonStart = raw.indexOf("{");
+    const jsonEnd = raw.lastIndexOf("}");
+    if (jsonStart < 0 || jsonEnd <= jsonStart) return null;
+    const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as {
+      leitura?: unknown;
+      dica?: unknown;
+    };
+    if (typeof parsed.leitura !== "string" || typeof parsed.dica !== "string") return null;
+    const leitura = parsed.leitura.trim();
+    const dica = parsed.dica.trim();
+    if (!leitura || !dica) return null;
+    return { leitura, dica };
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -100,8 +165,46 @@ export async function POST(request: NextRequest) {
     );
   }
   const body = await request.json().catch(() => ({}));
+  const mode = typeof body?.mode === "string" ? body.mode : "insight";
   const section = typeof body?.section === "string" ? body.section : "geral";
   const context = typeof body?.context === "string" ? body.context : "";
+  const card = typeof body?.card === "string" ? body.card : "geral";
+
+  if (mode === "leitura") {
+    let leitura = "";
+    let dica = "";
+    try {
+      const res = await aiChat(
+        [
+          {
+            role: "system",
+            content:
+              "Você é um estrategista eleitoral sênior para campanha no Brasil. Responda SOMENTE com JSON válido no formato {\"leitura\":\"...\",\"dica\":\"...\"}. leitura = 1-2 frases curtas explicando o gráfico em linguagem de leigo. dica = 1 frase de ação concreta para o candidato. Sem saudações, sem markdown, sem citar modelo, provedor ou IA.",
+          },
+          {
+            role: "user",
+            content: `Card: ${card}. Dados atuais: ${context}. Gere leitura e dica de ação.`,
+          },
+        ],
+        { temperature: 0.55, maxTokens: 200 },
+      );
+      if (res.ok && res.text.trim()) {
+        const parsed = parseLeituraJson(res.text);
+        if (parsed) {
+          leitura = parsed.leitura;
+          dica = parsed.dica;
+        }
+      }
+    } catch {
+      /* cai no fallback */
+    }
+    if (!leitura || !dica) {
+      const fb = heuristicaLeitura(card, context);
+      leitura = leitura || fb.leitura;
+      dica = dica || fb.dica;
+    }
+    return NextResponse.json({ leitura, dica }, { headers: noStore });
+  }
 
   let insight = "";
   try {
@@ -110,7 +213,7 @@ export async function POST(request: NextRequest) {
         {
           role: "system",
           content:
-            "Você é um estrategista eleitoral sênior. Responda em português do Brasil, com 1 a 2 frases curtas, diretas e acionáveis. Sem saudações, sem rótulos, apenas o conselho.",
+            "Você é um estrategista eleitoral sênior. Responda em português do Brasil, com 1 a 2 frases curtas, diretas e acionáveis. Sem saudações, sem rótulos, apenas o conselho. Nunca cite modelo ou provedor de IA.",
         },
         {
           role: "user",
@@ -125,6 +228,5 @@ export async function POST(request: NextRequest) {
   }
   if (!insight) insight = heuristica(section, context);
 
-  // Nunca expõe o provedor de IA.
   return NextResponse.json({ insight }, { headers: noStore });
 }
