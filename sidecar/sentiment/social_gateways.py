@@ -13,8 +13,12 @@ import requests
 
 GRAPH_API = "https://graph.facebook.com/v21.0"
 BRIGHTDATA_BASE = "https://api.brightdata.com/datasets/v3/scrape"
+BRIGHTDATA_TRIGGER = "https://api.brightdata.com/datasets/v3/trigger"
 BRIGHTDATA_PROGRESS = "https://api.brightdata.com/datasets/v3/progress"
 BRIGHTDATA_SNAPSHOT = "https://api.brightdata.com/datasets/v3/snapshot"
+# /scrape tenta síncrono e SEGURA a conexão antes de cair pro snapshot; timeout
+# curto pra não travar o request — se estourar, dispara o /trigger (async imediato).
+BRIGHTDATA_SYNC_TIMEOUT = 15.0
 
 # Estado dos snapshots assíncronos (ex.: Facebook páginas devolvem snapshot_id em
 # vez de dados na hora). Persistido ao lado do sidecar para sobreviver a restart.
@@ -375,34 +379,53 @@ def _bd_download(snapshot_id: str) -> list:
 
 
 def _bd_scrape(network: str, tpl: str, handles: list[str]):
-    """Dispara o scrape. Retorna ('sync', {...}) | ('snapshot', id) | ('empty', None)."""
+    """Dispara a coleta. Retorna ('sync', {...}) | ('snapshot', id) | ('empty', None).
+    1) tenta /scrape rápido (IG/TikTok resolvem na hora);
+    2) se não resolveu (timeout/sem followers), dispara /trigger (async imediato)."""
     dataset = DATASET_BY_NETWORK.get(network, "")
     payload = [{"url": tpl.format(h=h)} for h in handles if h]
     if not dataset or not payload:
         return ("empty", None)
+
+    # 1) tentativa síncrona rápida
     try:
         res = _gateway_post(
             f"{BRIGHTDATA_BASE}?dataset_id={dataset}&format=json",
             kind="brightdata",
-            timeout=BRIGHTDATA_TIMEOUT,
+            timeout=BRIGHTDATA_SYNC_TIMEOUT,
             headers=_bd_auth_headers(),
             json_body=payload,
         )
-        if not res.ok:
-            return ("empty", None)
-        data = res.json()
+        if res.ok:
+            data = res.json()
+            if isinstance(data, dict) and data.get("snapshot_id"):
+                return ("snapshot", str(data["snapshot_id"]))
+            rows = data if isinstance(data, list) else (
+                data.get("data") or data.get("results") or [data]
+            ) if isinstance(data, dict) else []
+            results = _rows_to_results(rows, handles)
+            if results:
+                return ("sync", results)
     except Exception:
-        return ("empty", None)
+        pass
 
-    if isinstance(data, dict) and data.get("snapshot_id"):
-        return ("snapshot", str(data["snapshot_id"]))
-    if isinstance(data, list):
-        rows = data
-    elif isinstance(data, dict):
-        rows = data.get("data") or data.get("results") or [data]
-    else:
-        return ("empty", None)
-    return ("sync", _rows_to_results(rows, handles))
+    # 2) trigger assíncrono explícito — devolve snapshot_id na hora
+    try:
+        res = _gateway_post(
+            f"{BRIGHTDATA_TRIGGER}?dataset_id={dataset}",
+            kind="brightdata",
+            timeout=BRIGHTDATA_SYNC_TIMEOUT,
+            headers=_bd_auth_headers(),
+            json_body=payload,
+        )
+        if res.ok:
+            data = res.json()
+            sid = data.get("snapshot_id") if isinstance(data, dict) else None
+            if sid:
+                return ("snapshot", str(sid))
+    except Exception:
+        pass
+    return ("empty", None)
 
 
 def _brightdata_profiles(network: str, handles: list[str]) -> dict[str, dict]:
