@@ -5,6 +5,10 @@ import { aiChat } from "@/lib/ai/client";
 
 const noStore = { "Cache-Control": "no-store" };
 
+// Identidade do candidato — o parecer da IA é sempre sob a ótica dele.
+const CANDIDATO =
+  "o candidato Sóstenes Cavalcante (PL-RJ), deputado federal em campanha de reeleição 2026 na Costa Verde / Angra dos Reis (RJ)";
+
 // Insights determinísticos por seção (usados quando a IA não responde).
 const HEURISTICAS: Record<string, string[]> = {
   dashboard: [
@@ -90,6 +94,42 @@ const LEITURAS_FALLBACK: Record<string, string[]> = {
   "m-redes": [
     "Cada rede social reage a formatos diferentes; crescimento de seguidores sem engajamento é vaidade, não voto.",
     "O share de veículos indica quem está puxando a cobertura — neutro é oportunidade de assessoria.",
+  ],
+  "m-plenario": [
+    "O placar e a fidelidade da bancada mostram se o capital político no plenário está sólido ou rachando antes da pauta valer.",
+    "O cabo de guerra narrativo revela qual tema domina o debate hoje — quem perde o share perde a pauta da semana.",
+  ],
+  "m-rio": [
+    "O mapa do RJ aponta onde o pulso da campanha sobe e onde o adversário ocupa espaço sem disputa.",
+    "Calor de região sem presença física é palco aberto para o concorrente — o dado mostra a brecha territorial.",
+  ],
+  "m-radar": [
+    "O radar de imprensa mostra quem pauta a cobertura e em que tom; veículo neutro de alto alcance é alvo de assessoria.",
+    "Colunista crítico com alcance alto define a versão dos fatos se não houver resposta rápida.",
+  ],
+  "m-equipe": [
+    "O funil da equipe revela onde a operação trava: captação, conversão ou engajamento do cadastrado.",
+    "Comparar o ritmo por região mostra de onde realocar cabos sem custo para fechar a meta.",
+  ],
+  "m-gastos": [
+    "A execução da cota parlamentar indica se o caixa aguenta o sprint final ou se já há rubrica estourando.",
+    "Custo por voto acima do benchmark sinaliza mídia mal segmentada — dá para realocar antes de gastar mais.",
+  ],
+  "m-oportunidades": [
+    "O cruzamento demanda alta × satisfação baixa aponta o tema que converte voto mais rápido na região.",
+    "Oportunidade só vira voto ancorada em fato publicado; o card mostra onde a mensagem tem lastro.",
+  ],
+  "m-pesquisas": [
+    "A leitura das ondas separa tendência real de ruído dentro da margem — só o movimento consistente importa.",
+    "Quem tem intenção alta com rejeição baixa é a ameaça de fato; o dado mostra quem vigiar.",
+  ],
+  "m-voz": [
+    "A voz das ruas antecipa pauta: tema repetido por bairros diferentes no mesmo dia é assunto emergente.",
+    "Pico de negativas concentrado numa fonte é ataque coordenado, não opinião difusa — o card ajuda a distinguir.",
+  ],
+  "m-c2026": [
+    "A projeção de quociente mostra se a vaga está dentro do alcance e quanto a legenda inteira pesa nisso.",
+    "Banda de confiança cruzando a do rival é empate técnico — o dado diz onde a separação é real.",
   ],
   geral: [
     "Os números deste gráfico indicam o ritmo atual da campanha — acompanhe a tendência antes de reagir.",
@@ -179,14 +219,14 @@ export async function POST(request: NextRequest) {
           {
             role: "system",
             content:
-              "Você é um estrategista eleitoral sênior para campanha no Brasil. Responda SOMENTE com JSON válido no formato {\"leitura\":\"...\",\"dica\":\"...\"}. leitura = 2 a 3 frases que interpretam o dado em profundidade: o que o número mostra, a tendência ou o padrão por trás dele e o que está em jogo para a campanha (o risco ou a oportunidade concreta). dica = 1 a 2 frases com uma recomendação estratégica específica e acionável para o candidato agir sobre ESTE dado agora, dizendo o porquê. Linguagem clara para leigo, direta e sem encher linguiça. Sem saudações, sem markdown, sem citar modelo, provedor ou IA.",
+              `Você é um estrategista eleitoral sênior de ${CANDIDATO}. Interprete EXCLUSIVAMENTE os dados deste card e dê seu parecer sob a ótica desse candidato. Responda SOMENTE com JSON válido no formato {\"leitura\":\"...\",\"dica\":\"...\"}. leitura = 2 a 3 frases que interpretam estes números específicos: o que eles mostram, a tendência por trás e o que está em jogo para a campanha dele (risco ou oportunidade concreta). dica = 1 a 2 frases com uma recomendação estratégica específica e acionável para ELE agir sobre ESTE dado agora, dizendo o porquê. Baseie-se nos números fornecidos, não generalize. Linguagem clara para leigo, direta e sem encher linguiça. Sem saudações, sem markdown, sem citar modelo, provedor ou IA.`,
           },
           {
             role: "user",
-            content: `Card: ${card}. Dados atuais: ${context}. Gere uma leitura analítica e uma dica de ação útil para o candidato.`,
+            content: `Card: ${card}. Dados atuais deste card: ${context}. Gere a leitura analítica destes números e uma dica de ação para ${CANDIDATO}.`,
           },
         ],
-        { temperature: 0.55, maxTokens: 360 },
+        { temperature: 0.6, maxTokens: 360 },
       );
       if (res.ok && res.text.trim()) {
         const parsed = parseLeituraJson(res.text);
@@ -213,11 +253,11 @@ export async function POST(request: NextRequest) {
         {
           role: "system",
           content:
-            "Você é um estrategista eleitoral sênior. Responda em português do Brasil, com 2 a 3 frases diretas e acionáveis: interprete o dado, aponte a tendência ou o que está em jogo e termine com uma recomendação concreta para o candidato agir agora. Sem saudações, sem rótulos, apenas a análise. Nunca cite modelo ou provedor de IA.",
+            `Você é um estrategista eleitoral sênior de ${CANDIDATO}. Responda em português do Brasil, com 2 a 3 frases diretas e acionáveis, baseadas nos dados fornecidos: interprete o dado deste card, aponte a tendência ou o que está em jogo para a campanha dele e termine com uma recomendação concreta para ELE agir agora. Não generalize além dos números. Sem saudações, sem rótulos, apenas a análise. Nunca cite modelo ou provedor de IA.`,
         },
         {
           role: "user",
-          content: `Seção do painel: ${section}. Contexto: ${context}. Dê uma análise estratégica com uma dica específica para a campanha agora.`,
+          content: `Seção do painel: ${section}. Dados atuais: ${context}. Dê uma análise estratégica com uma dica específica para ${CANDIDATO} agora.`,
         },
       ],
       { temperature: 0.6, maxTokens: 240 },
