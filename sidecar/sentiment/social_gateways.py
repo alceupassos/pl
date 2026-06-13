@@ -18,7 +18,7 @@ BRIGHTDATA_SNAPSHOT = "https://api.brightdata.com/datasets/v3/snapshot"
 
 # Estado dos snapshots assíncronos (ex.: Facebook páginas devolvem snapshot_id em
 # vez de dados na hora). Persistido ao lado do sidecar para sobreviver a restart.
-SNAP_FILE = os.path.join(os.path.dirname(__file__), "brightdata_snapshots.json")
+SNAP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brightdata_snapshots.json")
 SNAP_RESULTS_TTL = 6 * 3600.0      # resultados baixados ficam frescos por 6h
 SNAP_MAX_PENDING = 30 * 60.0       # snapshot preso > 30min é abandonado (re-dispara)
 
