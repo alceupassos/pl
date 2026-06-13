@@ -88,6 +88,26 @@ def youtube(channel: str):
         return {"subscribers": None, "videos": None, "nome": None}
 
 
+@app.get("/youtube/profiles")
+def youtube_profiles(channels: str):
+    """Inscritos de vários canais de uma vez — URLs separadas por vírgula.
+    A chave de cada perfil é a URL EXATA recebida (o lado Node casa por URL)."""
+    urls = [u.strip() for u in (channels or "").split(",") if u.strip()]
+    opts = {"quiet": True, "skip_download": True, "extract_flat": True, "playlist_items": "0"}
+    out: dict[str, dict] = {}
+    for url in urls:
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+            out[url] = {
+                "subscribers": info.get("channel_follower_count"),
+                "nome": info.get("channel") or info.get("title"),
+            }
+        except Exception:
+            out[url] = {"subscribers": None, "nome": None}
+    return {"profiles": out}
+
+
 @app.get("/youtube/videos")
 def youtube_videos(channel: str, n: int = 10):
     """Últimos vídeos do canal com views/likes/comentários (--dump-json)."""

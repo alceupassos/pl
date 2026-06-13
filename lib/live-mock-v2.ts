@@ -18,6 +18,7 @@ import { getLinkedinFollowers } from "@/lib/sources/linkedin";
 import { getXFollowers } from "@/lib/sources/x";
 import { getTiktokFollowers, getTiktokVideos } from "@/lib/sources/tiktok";
 import { getSeguidoresCount, getVideosReal } from "@/lib/sources/youtube";
+import { getYoutubeFollowers } from "@/lib/sources/youtube-profiles";
 import { META_ELEITORES, diasAteEleicao } from "@/lib/mock/campaign-goal";
 import {
   getActivityFeed,
@@ -134,7 +135,7 @@ function handleDaRede(w: Watchlist, simbolo: string, rede: RedeId): string | und
     simbolo === w.principal.simbolo
       ? w.principal.handles
       : w.concorrentes_rj.find((c) => c.simbolo === simbolo)?.handles;
-  if (!handles || rede === "youtube") return undefined;
+  if (!handles) return undefined;
   return handles[rede];
 }
 
@@ -144,6 +145,7 @@ function seguidoresReaisRede(w: Watchlist, simbolo: string, rede: RedeId): numbe
   if (rede === "x") return getXFollowers(handle);
   if (rede === "tiktok") return getTiktokFollowers(handle);
   if (rede === "linkedin") return getLinkedinFollowers(handle);
+  if (rede === "youtube") return getYoutubeFollowers(handle);
   if (rede === "facebook" && simbolo === w.principal.simbolo) return getFacebookFollowers();
   if (rede === "facebook") return getFacebookFollowersByHandle(handle);
   return null;

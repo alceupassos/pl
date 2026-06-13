@@ -50,3 +50,14 @@ export function facebookHandlesFromWatchlist(w: Watchlist): string[] {
   }
   return out;
 }
+
+// URLs de canal do YouTube (principal + concorrentes RJ). Mantém a URL EXATA — o
+// /channel/UC... é case-sensitive (ver lib/sources/youtube-profiles.ts).
+export function youtubeChannelsFromWatchlist(w: Watchlist): string[] {
+  const out: string[] = [];
+  if (w.principal.handles?.youtube) out.push(w.principal.handles.youtube);
+  for (const c of w.concorrentes_rj) {
+    if (c.handles?.youtube) out.push(c.handles.youtube);
+  }
+  return out;
+}

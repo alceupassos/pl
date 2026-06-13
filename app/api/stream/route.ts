@@ -31,10 +31,12 @@ import {
   principalTiktokHandle,
   tiktokHandlesFromWatchlist,
   xHandlesFromWatchlist,
+  youtubeChannelsFromWatchlist,
 } from "@/lib/sources/social-handles";
 import { ensureFreshTiktok } from "@/lib/sources/tiktok";
 import { ensureFreshX } from "@/lib/sources/x";
 import { ensureFreshYoutube, ensureFreshYoutubeVideos } from "@/lib/sources/youtube";
+import { ensureFreshYoutubeProfiles } from "@/lib/sources/youtube-profiles";
 import { readWatchlist } from "@/lib/watchlist";
 
 export const runtime = "nodejs";
@@ -101,6 +103,7 @@ export async function GET(request: NextRequest) {
       ensureFreshNews(watchlist.termos);
       ensureFreshCamara();
       ensureFreshYoutubeVideos();
+      ensureFreshYoutubeProfiles(youtubeChannelsFromWatchlist(watchlist));
       ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist));
       ensureFreshFacebook(facebookHandlesFromWatchlist(watchlist));
       ensureFreshX(xHandlesFromWatchlist(watchlist));
@@ -130,6 +133,7 @@ export async function GET(request: NextRequest) {
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
         ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)
         ensureFreshYoutubeVideos(); // views/comentários por vídeo (aba redes)
+        ensureFreshYoutubeProfiles(youtubeChannelsFromWatchlist(watchlist)); // inscritos por candidato
         ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist));
         ensureFreshFacebook(facebookHandlesFromWatchlist(watchlist));
         ensureFreshX(xHandlesFromWatchlist(watchlist));
