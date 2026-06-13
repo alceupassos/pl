@@ -179,14 +179,14 @@ export async function POST(request: NextRequest) {
           {
             role: "system",
             content:
-              "Você é um estrategista eleitoral sênior para campanha no Brasil. Responda SOMENTE com JSON válido no formato {\"leitura\":\"...\",\"dica\":\"...\"}. leitura = 1-2 frases curtas explicando o gráfico em linguagem de leigo. dica = 1 frase de ação concreta para o candidato. Sem saudações, sem markdown, sem citar modelo, provedor ou IA.",
+              "Você é um estrategista eleitoral sênior para campanha no Brasil. Responda SOMENTE com JSON válido no formato {\"leitura\":\"...\",\"dica\":\"...\"}. leitura = 2 a 3 frases que interpretam o dado em profundidade: o que o número mostra, a tendência ou o padrão por trás dele e o que está em jogo para a campanha (o risco ou a oportunidade concreta). dica = 1 a 2 frases com uma recomendação estratégica específica e acionável para o candidato agir sobre ESTE dado agora, dizendo o porquê. Linguagem clara para leigo, direta e sem encher linguiça. Sem saudações, sem markdown, sem citar modelo, provedor ou IA.",
           },
           {
             role: "user",
-            content: `Card: ${card}. Dados atuais: ${context}. Gere leitura e dica de ação.`,
+            content: `Card: ${card}. Dados atuais: ${context}. Gere uma leitura analítica e uma dica de ação útil para o candidato.`,
           },
         ],
-        { temperature: 0.55, maxTokens: 200 },
+        { temperature: 0.55, maxTokens: 360 },
       );
       if (res.ok && res.text.trim()) {
         const parsed = parseLeituraJson(res.text);
@@ -213,14 +213,14 @@ export async function POST(request: NextRequest) {
         {
           role: "system",
           content:
-            "Você é um estrategista eleitoral sênior. Responda em português do Brasil, com 1 a 2 frases curtas, diretas e acionáveis. Sem saudações, sem rótulos, apenas o conselho. Nunca cite modelo ou provedor de IA.",
+            "Você é um estrategista eleitoral sênior. Responda em português do Brasil, com 2 a 3 frases diretas e acionáveis: interprete o dado, aponte a tendência ou o que está em jogo e termine com uma recomendação concreta para o candidato agir agora. Sem saudações, sem rótulos, apenas a análise. Nunca cite modelo ou provedor de IA.",
         },
         {
           role: "user",
-          content: `Seção do painel: ${section}. Contexto: ${context}. Dê um insight estratégico específico para a campanha agora.`,
+          content: `Seção do painel: ${section}. Contexto: ${context}. Dê uma análise estratégica com uma dica específica para a campanha agora.`,
         },
       ],
-      { temperature: 0.6, maxTokens: 120 },
+      { temperature: 0.6, maxTokens: 240 },
     );
     if (res.ok && res.text.trim()) insight = res.text.trim();
   } catch {

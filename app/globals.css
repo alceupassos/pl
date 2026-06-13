@@ -723,9 +723,22 @@ html {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* o #main é o scroller do cockpit: só o ticker (sticky) fica preso no topo;
+     command center, overview e topbar rolam junto com o conteúdo. */
+  overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0;
   min-height: 0;
+}
+#main::-webkit-scrollbar {
+  width: 5px;
+}
+#main::-webkit-scrollbar-track {
+  background: transparent;
+}
+#main::-webkit-scrollbar-thumb {
+  background: #2a2a38;
+  border-radius: 3px;
 }
 
 /* ── TOPBAR ── */
@@ -828,8 +841,6 @@ html {
 /* ── CONTENT ── */
 #content {
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   padding: 16px;
   background: var(--cinza-bg);
 }
@@ -1774,7 +1785,7 @@ html {
 }
 .downloads-upload {
   position: sticky;
-  top: 0;
+  top: 30px; /* abaixo do ticker sticky (30px) — único elemento preso no topo */
 }
 .upload-dropzone {
   width: 100%;
@@ -3654,6 +3665,7 @@ input[type="range"] {
 .top-ticker {
   display: flex; align-items: center; gap: 0;
   height: 30px; flex-shrink: 0;
+  position: sticky; top: 0; z-index: 30;
   background: linear-gradient(90deg, #0c0c12, #14141d);
   border-bottom: 1px solid var(--cinza-borda);
   overflow: hidden;
@@ -3882,11 +3894,9 @@ body.cfg-contrast { --texto-sec: #aab; }
     -webkit-overflow-scrolling: touch;
     padding-bottom: 88px !important; /* espaço para a bottom-nav */
   }
-  /* topbar gruda no topo enquanto rola — sem backdrop-filter: o fundo
-     (--cinza-painel) é opaco, então o blur era custo de repaint por frame
-     de scroll sem nenhum efeito visível. */
+  /* topbar rola junto com o conteúdo — apenas o ticker fica preso no topo. */
   #topbar, .topbar {
-    position: sticky; top: 0; z-index: 40;
+    position: static;
   }
   /* trava o fundo só quando o drawer está aberto */
   #app.sidebar-open { overflow: hidden; }

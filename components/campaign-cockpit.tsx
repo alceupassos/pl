@@ -326,10 +326,11 @@ export function CampaignCockpit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveTick]);
 
-  // Ao trocar de seção, volta ao topo (mobile rola o documento; desktop rola #content).
+  // Ao trocar de seção, volta ao topo (mobile rola o documento; desktop rola #main).
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
     sectionHostRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    document.getElementById("main")?.scrollTo({ top: 0, behavior: "auto" });
   }, [activeSection]);
 
   useEffect(() => {
