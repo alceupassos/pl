@@ -553,9 +553,9 @@ body:has(.m-app:not(.m-embed)) {
   cursor: default;
 }
 .m-fonte-badge.real {
-  color: #16c784;
-  background: rgba(22, 199, 132, 0.12);
-  border: 1px solid rgba(22, 199, 132, 0.35);
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
 }
 .m-fonte-badge.mock {
   color: #f5a623;

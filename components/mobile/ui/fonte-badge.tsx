@@ -11,7 +11,7 @@ export function FonteBadge({
   /** Obrigatório quando `real` — como o dado foi extraído. */
   como?: string;
 }) {
-  const label = real ? "DADOS REAIS" : "DADO SIMULADO";
+  const label = real ? "DEMO" : "DADO SIMULADO";
   const cls = `m-fonte-badge ${real ? "real" : "mock"}`;
 
   if (real && como) {

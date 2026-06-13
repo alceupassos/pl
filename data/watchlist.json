@@ -8,11 +8,10 @@
     "votos2022": 152763,
     "cor": "#16C784",
     "handles": {
-      "x": "sostenes",
       "instagram": "sostenescavalcante",
       "facebook": "sostenescavalcante",
-      "tiktok": "sostenescavalcante",
-      "linkedin": "sostenescavalcante"
+      "x": "DepSostenes",
+      "youtube": "https://www.youtube.com/channel/UCI2j76o7JyLVSmooEcSvLxA"
     },
     "foto": "/sostenes1.png"
   },
@@ -31,10 +30,11 @@
       "votos2022": null,
       "cor": "#3B82F6",
       "handles": {
-        "x": "carlosjordy",
         "instagram": "carlosjordy",
-        "facebook": "carlosjordy",
-        "tiktok": "carlosjordy"
+        "tiktok": "carlosjordydep",
+        "facebook": "carlosjordyoficial",
+        "x": "carlosjordy",
+        "youtube": "https://www.youtube.com/carlosjordy"
       },
       "foto": "/candidatos/carlos_jordy_PL.png"
     },
@@ -46,10 +46,9 @@
       "votos2022": 213706,
       "cor": "#A855F7",
       "handles": {
-        "instagram": "danieladowaguinho",
-        "x": "danieladowaguinho",
-        "facebook": "danieladowaguinho",
-        "tiktok": "danieladowaguinho"
+        "instagram": "danielacarneirooficial",
+        "facebook": "danielacarneirooficial",
+        "x": "DanielaCarneiro"
       }
     },
     {
@@ -60,10 +59,10 @@
       "votos2022": 205324,
       "cor": "#22D3EE",
       "handles": {
-        "instagram": "gen.pazuello",
-        "x": "genpazuello",
-        "facebook": "genpazuello",
-        "tiktok": "genpazuello"
+        "instagram": "generalpazuello.oficial",
+        "tiktok": "generalpazuello",
+        "facebook": "generalpazuello.oficial",
+        "x": "PazuelloGeneral"
       }
     },
     {
@@ -74,10 +73,10 @@
       "votos2022": 198548,
       "cor": "#FB923C",
       "handles": {
-        "x": "taliriapetrone",
         "instagram": "taliriapetrone",
-        "facebook": "taliriapetrone",
-        "tiktok": "taliriapetrone"
+        "tiktok": "taliriapetrone",
+        "facebook": "taliriapetronepsol",
+        "x": "taliriapetrone"
       }
     },
     {
@@ -89,9 +88,9 @@
       "cor": "#FACC15",
       "handles": {
         "instagram": "doutorluizinho",
-        "x": "doutorluizinho",
-        "facebook": "doutorluizinho",
-        "tiktok": "doutorluizinho"
+        "facebook": "DoutorLuizinho",
+        "x": "Doutorluizinhot",
+        "youtube": "https://www.youtube.com/@doutorluizinho"
       },
       "foto": "/candidatos/dr_luizinho_psb.png"
     }
@@ -101,29 +100,67 @@
       "id": "lula",
       "nome": "Lula",
       "partido": "PT",
-      "foto": "/ai/fig-lula.png"
+      "foto": "/ai/fig-lula.png",
+      "handles": {
+        "instagram": "lulaoficial",
+        "tiktok": "lulaoficial",
+        "facebook": "Lula",
+        "x": "LulaOficial",
+        "linkedin": "lulaoficial",
+        "youtube": "https://www.youtube.com/LulaOficial"
+      }
     },
     {
       "id": "flavio-bolsonaro",
       "nome": "Flávio Bolsonaro",
       "partido": "PL",
-      "foto": "/ai/fig-flavio-bolsonaro.png"
+      "foto": "/ai/fig-flavio-bolsonaro.png",
+      "handles": {
+        "instagram": "flaviobolsonaro",
+        "tiktok": "flaviobolsonaro",
+        "facebook": "flaviobolsonaro",
+        "x": "FlavioBolsonaro",
+        "youtube": "https://www.youtube.com/flaviobolsonaro"
+      }
     },
     {
       "id": "renan-santos",
       "nome": "Renan Santos",
       "partido": "Missão",
-      "foto": "/ai/fig-renan-santos.png"
+      "foto": "/ai/fig-renan-santos.png",
+      "handles": {
+        "instagram": "renansantosmbl",
+        "tiktok": "renansantosmbl",
+        "facebook": "renansantosmbl",
+        "x": "RenanSantosMBL",
+        "youtube": "https://www.youtube.com/@renansantosmbl"
+      }
     },
     {
       "id": "ronaldo-caiado",
       "nome": "Ronaldo Caiado",
-      "partido": "União"
+      "partido": "União",
+      "handles": {
+        "instagram": "ronaldocaiado",
+        "tiktok": "ronaldocaiado44",
+        "facebook": "governador.ronaldo.caiado.2024",
+        "x": "ronaldocaiado",
+        "linkedin": "ronaldocaiado",
+        "youtube": "https://www.youtube.com/@ronaldocaiado44"
+      }
     },
     {
       "id": "zema",
       "nome": "Romeu Zema",
-      "partido": "Novo"
+      "partido": "Novo",
+      "handles": {
+        "instagram": "romeuzemaoficial",
+        "tiktok": "romeuzemaoficial",
+        "facebook": "RomeuZemaOficial",
+        "x": "RomeuZema",
+        "linkedin": "romeuzema",
+        "youtube": "https://www.youtube.com/c/RomeuZema30"
+      }
     }
   ],
   "ecossistema_evangelico": [

@@ -36,9 +36,9 @@ META_FB_PAGE_ID = os.environ.get("META_FB_PAGE_ID", "")
 
 DATASET_BY_NETWORK = {
     "instagram": os.environ.get("BRIGHTDATA_INSTAGRAM_PROFILES_DATASET_ID", "gd_l1vikfch901nx3by4"),
-    "facebook": os.environ.get("BRIGHTDATA_FACEBOOK_PROFILES_DATASET_ID", ""),
+    "facebook": os.environ.get("BRIGHTDATA_FACEBOOK_PROFILES_DATASET_ID", "gd_mf0urb782734ik94dz"),
     "x": os.environ.get("BRIGHTDATA_X_PROFILES_DATASET_ID", ""),
-    "tiktok": os.environ.get("BRIGHTDATA_TIKTOK_PROFILES_DATASET_ID", ""),
+    "tiktok": os.environ.get("BRIGHTDATA_TIKTOK_PROFILES_DATASET_ID", "gd_l1villgoiiidt09ci"),
     "linkedin": os.environ.get("BRIGHTDATA_LINKEDIN_PROFILES_DATASET_ID", ""),
 }
 
