@@ -13,6 +13,14 @@ import requests
 
 GRAPH_API = "https://graph.facebook.com/v21.0"
 BRIGHTDATA_BASE = "https://api.brightdata.com/datasets/v3/scrape"
+BRIGHTDATA_PROGRESS = "https://api.brightdata.com/datasets/v3/progress"
+BRIGHTDATA_SNAPSHOT = "https://api.brightdata.com/datasets/v3/snapshot"
+
+# Estado dos snapshots assíncronos (ex.: Facebook páginas devolvem snapshot_id em
+# vez de dados na hora). Persistido ao lado do sidecar para sobreviver a restart.
+SNAP_FILE = os.path.join(os.path.dirname(__file__), "brightdata_snapshots.json")
+SNAP_RESULTS_TTL = 6 * 3600.0      # resultados baixados ficam frescos por 6h
+SNAP_MAX_PENDING = 30 * 60.0       # snapshot preso > 30min é abandonado (re-dispara)
 
 
 def _env(*names: str, default: str = "") -> str:
@@ -117,10 +125,18 @@ def _request_verify(kind: str) -> bool | str:
     return True
 
 
-def _gateway_get(url: str, *, kind: str, timeout: float = 30, params: dict | None = None) -> requests.Response:
+def _gateway_get(
+    url: str,
+    *,
+    kind: str,
+    timeout: float = 30,
+    params: dict | None = None,
+    headers: dict[str, str] | None = None,
+) -> requests.Response:
     return requests.get(
         url,
         params=params,
+        headers=headers,
         timeout=timeout,
         proxies=_request_proxies(kind),
         verify=_request_verify(kind),
@@ -154,8 +170,13 @@ def _followers_from_obj(obj: dict) -> int | None:
         "followers",
         "followers_count",
         "follower_count",
+        "page_followers",
+        "page_followers_count",
         "fan_count",
         "fans",
+        "likes",
+        "likes_count",
+        "page_likes",
         "seguidores",
         "subscribers",
         "connections",
@@ -271,52 +292,23 @@ def _fetch_kondado_index(network: str) -> dict[str, dict]:
     return out
 
 
-def _brightdata_profiles(network: str, handles: list[str]) -> dict[str, dict]:
-    dataset = DATASET_BY_NETWORK.get(network, "")
-    if not BRIGHTDATA_TOKEN or not dataset:
-        return {}
-    tpl = PROFILE_URL.get(network)
-    if not tpl:
-        return {}
-    payload = [{"url": tpl.format(h=h)} for h in handles if h]
-    if not payload:
-        return {}
-    try:
-        res = _gateway_post(
-            f"{BRIGHTDATA_BASE}?dataset_id={dataset}&format=json",
-            kind="brightdata",
-            timeout=BRIGHTDATA_TIMEOUT,
-            headers={
-                "Authorization": f"Bearer {BRIGHTDATA_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json_body=payload,
-        )
-        if not res.ok:
-            return {}
-        data = res.json()
-    except Exception:
-        return {}
+def _bd_auth_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {BRIGHTDATA_TOKEN}", "Content-Type": "application/json"}
 
-    rows: list[Any]
-    if isinstance(data, list):
-        rows = data
-    elif isinstance(data, dict):
-        if data.get("snapshot_id"):
-            return {}
-        rows = data.get("data") or data.get("results") or [data]
-    else:
-        return {}
 
+def _rows_to_results(rows: list, fallback_handles: list[str] | None = None) -> dict[str, dict]:
     out: dict[str, dict] = {}
-    for row in rows:
+    fallback_handles = list(fallback_handles or [])
+    for idx, row in enumerate(rows):
         if not isinstance(row, dict):
-            continue
-        h = _handle_from_obj(row)
-        if not h:
             continue
         followers = _followers_from_obj(row)
         if followers is None:
+            continue
+        h = _handle_from_obj(row)
+        if not h and idx < len(fallback_handles):
+            h = fallback_handles[idx]
+        if not h:
             continue
         out[h] = {
             "followers": followers,
@@ -324,6 +316,160 @@ def _brightdata_profiles(network: str, handles: list[str]) -> dict[str, dict]:
             "nome": row.get("full_name") or row.get("name") or row.get("nome"),
             "source": "brightdata",
         }
+    return out
+
+
+def _snap_load() -> dict:
+    try:
+        with open(SNAP_FILE, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _snap_save(state: dict) -> None:
+    try:
+        with open(SNAP_FILE, "w", encoding="utf-8") as fh:
+            json.dump(state, fh)
+    except Exception:
+        pass
+
+
+def _bd_progress(snapshot_id: str) -> str:
+    try:
+        res = _gateway_get(
+            f"{BRIGHTDATA_PROGRESS}/{snapshot_id}",
+            kind="brightdata",
+            timeout=20,
+            headers=_bd_auth_headers(),
+        )
+        if not res.ok:
+            return "unknown"
+        return str((res.json() or {}).get("status", "")).lower()
+    except Exception:
+        return "unknown"
+
+
+def _bd_download(snapshot_id: str) -> list:
+    try:
+        res = _gateway_get(
+            f"{BRIGHTDATA_SNAPSHOT}/{snapshot_id}",
+            kind="brightdata",
+            timeout=BRIGHTDATA_TIMEOUT,
+            params={"format": "json"},
+            headers=_bd_auth_headers(),
+        )
+        if not res.ok:
+            return []
+        data = res.json()
+    except Exception:
+        return []
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        for key in ("data", "results", "rows"):
+            if isinstance(data.get(key), list):
+                return data[key]
+    return []
+
+
+def _bd_scrape(network: str, tpl: str, handles: list[str]):
+    """Dispara o scrape. Retorna ('sync', {...}) | ('snapshot', id) | ('empty', None)."""
+    dataset = DATASET_BY_NETWORK.get(network, "")
+    payload = [{"url": tpl.format(h=h)} for h in handles if h]
+    if not dataset or not payload:
+        return ("empty", None)
+    try:
+        res = _gateway_post(
+            f"{BRIGHTDATA_BASE}?dataset_id={dataset}&format=json",
+            kind="brightdata",
+            timeout=BRIGHTDATA_TIMEOUT,
+            headers=_bd_auth_headers(),
+            json_body=payload,
+        )
+        if not res.ok:
+            return ("empty", None)
+        data = res.json()
+    except Exception:
+        return ("empty", None)
+
+    if isinstance(data, dict) and data.get("snapshot_id"):
+        return ("snapshot", str(data["snapshot_id"]))
+    if isinstance(data, list):
+        rows = data
+    elif isinstance(data, dict):
+        rows = data.get("data") or data.get("results") or [data]
+    else:
+        return ("empty", None)
+    return ("sync", _rows_to_results(rows, handles))
+
+
+def _brightdata_profiles(network: str, handles: list[str]) -> dict[str, dict]:
+    """Resolve seguidores via Bright Data. Síncrono (IG/TikTok) ou assíncrono por
+    snapshot (Facebook páginas): dispara, faz polling do progresso a cada chamada
+    e baixa quando pronto, cacheando o resultado em SNAP_FILE."""
+    if not BRIGHTDATA_TOKEN:
+        return {}
+    tpl = PROFILE_URL.get(network)
+    dataset = DATASET_BY_NETWORK.get(network, "")
+    handles = [h for h in handles if h]
+    if not tpl or not dataset or not handles:
+        return {}
+
+    now = time.time()
+    state = _snap_load()
+    net = state.get(network) or {}
+    changed = False
+
+    # 1) avança um snapshot assíncrono pendente
+    sid = net.get("snapshot_id")
+    if sid:
+        status = _bd_progress(sid)
+        if status == "ready":
+            results = _rows_to_results(_bd_download(sid), net.get("pending_handles") or [])
+            merged = net.get("results") or {}
+            merged.update(results)
+            net["results"] = merged
+            net["ready_at"] = now
+            net["snapshot_id"] = None
+            net["pending_handles"] = []
+            changed = True
+        elif status in ("failed", "error", "expired", "unknown"):
+            net["snapshot_id"] = None
+            changed = True
+        elif now - net.get("snapshot_at", 0) > SNAP_MAX_PENDING:
+            net["snapshot_id"] = None  # preso demais → permite re-disparar
+            changed = True
+
+    # 2) coleta resultados em cache ainda frescos
+    out: dict[str, dict] = {}
+    if now - net.get("ready_at", 0) < SNAP_RESULTS_TTL:
+        for h in handles:
+            r = (net.get("results") or {}).get(h)
+            if r and r.get("followers") is not None:
+                out[h] = r
+
+    # 3) handles faltando → dispara scrape (sync resolve na hora; async guarda snapshot)
+    missing = [h for h in handles if h not in out]
+    if missing and not net.get("snapshot_id"):
+        kind, payload = _bd_scrape(network, tpl, missing)
+        if kind == "sync" and payload:
+            out.update(payload)
+            merged = net.get("results") or {}
+            merged.update(payload)
+            net["results"] = merged
+            net["ready_at"] = now
+            changed = True
+        elif kind == "snapshot":
+            net["snapshot_id"] = payload
+            net["snapshot_at"] = now
+            net["pending_handles"] = missing
+            changed = True
+
+    if changed:
+        state[network] = net
+        _snap_save(state)
     return out
 
 
