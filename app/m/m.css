@@ -29,6 +29,7 @@ body:has(.m-app:not(.m-embed)) {
   --m-text: #e8ecf4;
   --m-muted: #8a93a8;
   --m-tab-h: 58px;
+  --m-legal-h: 26px; /* altura do rodapé de aviso legal acima da tabbar */
 
   --m-font-display: var(--font-display, var(--font-sora), system-ui);
   --m-font-mono: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
@@ -49,7 +50,8 @@ body:has(.m-app:not(.m-embed)) {
   font-size: 14px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: calc(var(--m-tab-h) + env(safe-area-inset-bottom));
+  /* reserva tabbar + rodapé do aviso legal (--m-legal-h) acima dela */
+  padding-bottom: calc(var(--m-tab-h) + var(--m-legal-h) + env(safe-area-inset-bottom));
 }
 .m-app *,
 .m-app *::before,
@@ -951,3 +953,51 @@ body:has(.m-app:not(.m-embed)) {
   .m-live i { animation: none; }
   .m-tape-track > span { animation: none; }
 }
+
+/* ── aviso legal: rodapé discreto fixo acima da tabbar + corpo do modal ── */
+.m-legal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--m-tab-h) + env(safe-area-inset-bottom));
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--m-legal-h);
+  padding: 0 12px;
+  background: rgba(11, 14, 20, 0.96);
+  border-top: 1px solid var(--m-border);
+  font-size: 9.5px;
+  line-height: 1.25;
+  color: var(--m-muted);
+}
+.m-legal-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.m-legal-link {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--m-up);
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.m-legal-link:active { opacity: 0.7; }
+.m-legal-body p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--m-text);
+}
+.m-legal-body p:last-child { margin-bottom: 0; }

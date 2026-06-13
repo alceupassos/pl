@@ -4320,3 +4320,113 @@ body.cfg-no-anim .pc-arrow { animation: none !important; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ── aviso legal (variante page: cockpit desktop, login, páginas internas) ── */
+.legal-notice {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 7px 16px calc(7px + env(safe-area-inset-bottom));
+  background: rgba(8, 9, 16, 0.94);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(220, 225, 240, 0.62);
+}
+.legal-notice-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.legal-notice-link {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6ee7b7;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.legal-notice-link:hover { color: #34d399; }
+/* No cockpit autenticado em telas estreitas, o mobile-bottom-nav fixo (z-index 80)
+   ocupa o rodapé — a barra de aviso sobe para ficar logo acima dele. */
+@media (max-width: 900px) {
+  body:has(#app.logado) .legal-notice {
+    bottom: calc(46px + env(safe-area-inset-bottom));
+    padding-bottom: 7px;
+  }
+}
+
+.legal-notice-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.legal-notice-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(8, 9, 16, 0.82);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+.legal-notice-card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: 32px 32px 28px;
+  background: rgba(17, 18, 28, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+}
+.legal-notice-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(230, 235, 245, 0.9);
+  cursor: pointer;
+}
+.legal-notice-close svg { width: 17px; height: 17px; }
+.legal-notice-card-title {
+  margin: 0 0 16px;
+  padding-right: 40px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #f3f5fb;
+}
+.legal-notice-body p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(214, 220, 235, 0.86);
+}
+.legal-notice-body p:last-child { margin-bottom: 0; }

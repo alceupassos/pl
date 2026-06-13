@@ -8,6 +8,8 @@ import {
 import "./globals.css";
 import "./landing.css";
 
+import { LegalNotice } from "@/components/legal-notice";
+
 const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "700", "800"],
@@ -58,7 +60,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${dmSans.variable} ${playfair.variable} ${sora.variable} ${jetbrains.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <LegalNotice variant="page" />
+      </body>
     </html>
   );
 }

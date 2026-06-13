@@ -5,6 +5,7 @@ import { Archivo } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { LegalNotice } from "@/components/legal-notice";
 import { LiveDataProvider } from "@/components/mobile/live/provider";
 import { RegisterSW } from "@/components/mobile/register-sw";
 import { appendAccessLog } from "@/lib/access-log";
@@ -62,6 +63,7 @@ export default async function MobileLayout({ children }: { children: React.React
       <LiveDataProvider>
         <RegisterSW />
         {children}
+        <LegalNotice variant="mobile" />
         {/* alvo dos bottom sheets — fora do track com transform */}
         <div id="m-portal" />
       </LiveDataProvider>
