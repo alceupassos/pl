@@ -1,16 +1,6 @@
 "use client";
 
-// Aba PLENÁRIO — a liderança da oposição em tempo real: placar de votação
-// nominal, fidelidade da bancada do PL, traições, cabo de guerra narrativo
-// e quem está falando pela oposição. Os blocos exportados são reusados na
-// seção espelho do desktop (components/sections/plenario-section.tsx).
-//
-// Os três cards principais (placar, fidelidade, vozes) têm VERSO (toque):
-//  · Placar → donut Sim/Não/Outros com total no centro + leitura da orientação.
-//  · Fidelidade → gauge da fidelidade + lista das traições à orientação.
-//  · Vozes → racing de quem mais fala pela oposição.
-
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
@@ -22,32 +12,51 @@ import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
-import type { PlenarioState } from "@/lib/live-schemas";
+import type { PlenarioState, Votacao } from "@/lib/live-schemas";
 import { FONTE_COMO } from "@/lib/mobile/fonte-meta";
+
+function votoCor(voto: string): string {
+  if (/^sim$/i.test(voto)) return "var(--m-up)";
+  if (/^n[aã]o$/i.test(voto)) return "var(--m-down)";
+  return "var(--m-muted)";
+}
 
 /* ── PLACAR DE VOTAÇÃO ── */
 
-function PlacarFront({ plenario }: { plenario: PlenarioState }) {
-  const v = plenario.votacao!;
+function PlacarFront({
+  plenario,
+  v,
+  aoVivo,
+}: {
+  plenario: PlenarioState;
+  v: Votacao;
+  aoVivo: boolean;
+}) {
   const total = Math.max(1, v.sim + v.nao);
   const pctSim = (v.sim / total) * 100;
   const orientacaoSim = v.orientacaoPL === "Sim";
+  const real = plenario.fonte === "real";
 
   return (
     <FlashCard watch={v.sim + v.nao}>
       <div className="m-card-head">
         <span className="m-card-title">
-          <span className="m-pill vermelho" style={{ marginRight: 6 }}>
-            EM VOTAÇÃO
+          <span className={`m-pill ${aoVivo ? "vermelho" : "azul"}`} style={{ marginRight: 6 }}>
+            {aoVivo ? "EM VOTAÇÃO" : "ÚLTIMA VOTAÇÃO"}
           </span>
+          {v.orgao ? (
+            <span className="m-pill" style={{ marginRight: 6, background: "rgba(96,165,250,0.15)", color: "#60a5fa" }}>
+              {v.orgao}
+            </span>
+          ) : null}
         </span>
         <LeituraIA
           card="plenario-placar"
-          contexto={`SIM ${v.sim} NÃO ${v.nao}; ${pctSim.toFixed(0)}% sim; orient PL ${v.orientacaoPL}`}
-          titulo="Placar de votação"
+          contexto={`${v.orgao ?? "PLEN"} SIM ${v.sim} NÃO ${v.nao}; orient PL ${v.orientacaoPL}`}
+          titulo={aoVivo ? "Placar de votação" : "Última votação"}
         />
-        <FonteBadge real={false} />
-        <LiveBadge ch="plenario" cadenceMs={1000} />
+        <FonteBadge real={real} como={FONTE_COMO.plenario} />
+        <LiveBadge ch="plenario" cadenceMs={aoVivo ? 1000 : 10000} />
       </div>
       <div className="m-feed-title" style={{ marginBottom: 10 }}>
         {v.titulo}
@@ -75,10 +84,10 @@ function PlacarFront({ plenario }: { plenario: PlenarioState }) {
   );
 }
 
-function PlacarBack({ plenario }: { plenario: PlenarioState }) {
-  const v = plenario.votacao!;
+function PlacarBack({ plenario, v }: { plenario: PlenarioState; v: Votacao }) {
   const total = v.sim + v.nao + v.outros;
   const orientacaoSim = v.orientacaoPL === "Sim";
+  const real = plenario.fonte === "real";
 
   const option = useMemo(
     () =>
@@ -97,8 +106,8 @@ function PlacarBack({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Placar detalhado</span>
-        <FonteBadge real={false} />
-        <LiveBadge ch="plenario" cadenceMs={1000} />
+        <FonteBadge real={real} como={FONTE_COMO.plenario} />
+        <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={option} height={170} />
@@ -113,21 +122,29 @@ function PlacarBack({ plenario }: { plenario: PlenarioState }) {
 }
 
 export function PlacarVotacao({ plenario }: { plenario: PlenarioState }) {
-  if (!plenario.votacaoAtiva || !plenario.votacao) {
+  const v = plenario.votacaoAtiva && plenario.votacao ? plenario.votacao : plenario.votacaoRecente;
+  const aoVivo = Boolean(plenario.votacaoAtiva && plenario.votacao);
+
+  if (!v) {
     return (
       <div className="m-card">
         <div className="m-card-head">
           <span className="m-card-title">Votação nominal</span>
           <LeituraIA card="plenario-placar-idle" contexto="sem votação nominal em andamento" titulo="Votação nominal" />
-          <FonteBadge real={false} />
+          <FonteBadge real={plenario.fonte === "real"} como={FONTE_COMO.plenario} />
           <LiveBadge ch="plenario" cadenceMs={10000} />
         </div>
-        <div className="m-ghost">plenário sem votação nominal em andamento</div>
+        <div className="m-ghost">carregando histórico de votações…</div>
       </div>
     );
   }
 
-  return <FlipCard front={<PlacarFront plenario={plenario} />} back={<PlacarBack plenario={plenario} />} />;
+  return (
+    <FlipCard
+      front={<PlacarFront plenario={plenario} v={v} aoVivo={aoVivo} />}
+      back={<PlacarBack plenario={plenario} v={v} />}
+    />
+  );
 }
 
 /* ── FIDELIDADE DA BANCADA ── */
@@ -139,7 +156,8 @@ function FidelidadeFront({ plenario }: { plenario: PlenarioState }) {
     () => mGaugeOption({ pct: f.pct, cor, label: `${f.com} de ${f.total} com a orientação` }),
     [f.pct, f.com, f.total, cor],
   );
-  const traicoes = plenario.votacao?.traicoes ?? [];
+  const traicoes = (plenario.votacao ?? plenario.votacaoRecente)?.traicoes ?? [];
+  const real = plenario.fonte === "real";
 
   return (
     <div className="m-card">
@@ -150,7 +168,7 @@ function FidelidadeFront({ plenario }: { plenario: PlenarioState }) {
           contexto={`${f.pct.toFixed(1)}% fidelidade; ${f.com}/${f.total}; ${traicoes.length} traições`}
           titulo="Fidelidade da bancada PL"
         />
-        <FonteBadge real={false} />
+        <FonteBadge real={real} como={FONTE_COMO.plenario} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <EChart option={option} height={140} />
@@ -182,7 +200,8 @@ function FidelidadeFront({ plenario }: { plenario: PlenarioState }) {
 
 function FidelidadeBack({ plenario }: { plenario: PlenarioState }) {
   const f = plenario.fidelidade;
-  const traicoes = plenario.votacao?.traicoes ?? [];
+  const traicoes = (plenario.votacao ?? plenario.votacaoRecente)?.traicoes ?? [];
+  const real = plenario.fonte === "real";
   const option = useMemo(
     () => mGaugeOption({ pct: f.pct, label: "fidelidade à orientação", cor: "#16C784" }),
     [f.pct],
@@ -192,7 +211,7 @@ function FidelidadeBack({ plenario }: { plenario: PlenarioState }) {
     <div className="m-card" style={{ height: "100%", overflowY: "auto" }}>
       <div className="m-card-head">
         <span className="m-card-title">Disciplina da bancada</span>
-        <FonteBadge real={false} />
+        <FonteBadge real={real} como={FONTE_COMO.plenario} />
         <LiveBadge ch="plenario" cadenceMs={10000} />
       </div>
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
@@ -343,6 +362,137 @@ export function RacingVoz({ plenario }: { plenario: PlenarioState }) {
   return <FlipCard front={<VozFront plenario={plenario} />} back={<VozBack plenario={plenario} />} />;
 }
 
+/* ── HISTÓRICO MULTI-ÓRGÃO (PLEN, CCJC, comissões) ── */
+
+export function HistoricoVotacoes({ plenario }: { plenario: PlenarioState }) {
+  const [filtro, setFiltro] = useState<string>("TODOS");
+  const historico = useMemo(() => plenario.historico ?? [], [plenario.historico]);
+  const orgaos = plenario.orgaosMonitorados ?? [];
+  const real = plenario.fonte === "real";
+
+  const filtrado = useMemo(() => {
+    if (filtro === "TODOS") return historico;
+    return historico.filter((h) => h.orgao === filtro);
+  }, [historico, filtro]);
+
+  if (!historico.length) return null;
+
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Histórico · Plenário e comissões</span>
+        <LeituraIA
+          card="plenario-historico"
+          contexto={`${historico.length} votações; órgãos ${orgaos.map((o) => o.sigla).join(", ")}`}
+          titulo="Histórico de votações"
+        />
+        <FonteBadge real={real} como={FONTE_COMO.plenarioHistorico} />
+        <LiveBadge ch="plenario" cadenceMs={60000} />
+      </div>
+      <div className="m-carousel" data-no-swipe style={{ marginBottom: 8, gap: 6, flexWrap: "wrap" }}>
+        {["TODOS", ...orgaos.map((o) => o.sigla)].map((sigla) => (
+          <button
+            key={sigla}
+            type="button"
+            onClick={() => setFiltro(sigla)}
+            className="m-pill"
+            style={{
+              cursor: "pointer",
+              border: "none",
+              opacity: filtro === sigla ? 1 : 0.55,
+              background: filtro === sigla ? "rgba(96,165,250,0.25)" : "rgba(255,255,255,0.06)",
+            }}
+          >
+            {sigla === "TODOS" ? "Todos" : sigla}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+        {filtrado.slice(0, 20).map((h) => (
+          <div className="m-feed-item" key={h.id}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+              <span className="m-pill" style={{ fontSize: 9, background: "rgba(96,165,250,0.12)", color: "#60a5fa" }}>
+                {h.orgao}
+              </span>
+              <span className="m-muted-c" style={{ fontSize: 10 }}>
+                {h.data}
+              </span>
+            </div>
+            <div className="m-feed-title" style={{ fontSize: 11.5, lineHeight: 1.35 }}>
+              {h.titulo}
+            </div>
+            <div className="m-feed-meta" style={{ justifyContent: "space-between", marginTop: 4 }}>
+              <span className="m-mono" style={{ fontSize: 10 }}>
+                <span className="m-up-c">Sim {h.sim}</span>
+                {" · "}
+                <span className="m-down-c">Não {h.nao}</span>
+                {h.outros ? ` · ${h.outros} outr.` : ""}
+              </span>
+              {h.votoSostenes ? (
+                <span className="m-mono" style={{ fontSize: 10, color: votoCor(h.votoSostenes), fontWeight: 700 }}>
+                  Sóstenes: {h.votoSostenes}
+                </span>
+              ) : (
+                <span className="m-muted-c" style={{ fontSize: 9.5 }}>
+                  {h.temNominal ? "sem voto nominal" : "simbólica"}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── VOTOS DO DEPUTADO (178947) ── */
+
+export function VotosSostenes({ plenario }: { plenario: PlenarioState }) {
+  const votos = plenario.votosDeputado ?? [];
+  const real = plenario.fonte === "real";
+
+  if (!votos.length) return null;
+
+  return (
+    <div className="m-card">
+      <div className="m-card-head">
+        <span className="m-card-title">Votos de Sóstenes · nominais</span>
+        <LeituraIA
+          card="plenario-votos-dep"
+          contexto={`${votos.length} votações nominais recentes do dep. 178947`}
+          titulo="Votos do deputado"
+        />
+        <FonteBadge real={real} como={FONTE_COMO.plenarioVotosDep} />
+        <LiveBadge ch="plenario" cadenceMs={60000} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
+        {votos.map((v) => (
+          <div className="m-feed-item" key={`${v.idVotacao}-${v.data}`}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <span className="m-pill" style={{ fontSize: 9 }}>
+                {v.orgao}
+              </span>
+              <span className="m-mono" style={{ fontSize: 12, fontWeight: 800, color: votoCor(v.voto) }}>
+                {v.voto}
+              </span>
+            </div>
+            <div className="m-feed-title" style={{ fontSize: 11.5, marginTop: 4 }}>
+              {v.titulo}
+            </div>
+            <div className="m-muted-c" style={{ fontSize: 9.5, marginTop: 2 }}>
+              {v.data}
+            </div>
+          </div>
+        ))}
+      </div>
+      <SectionLeitura>
+        Votações nominais do dep. Sóstenes Cavalcante (PL-RJ) no ano corrente. Comissões como CCJC aparecem no
+        histórico geral; voto nominal do deputado só quando ele participou da votação nominal.
+      </SectionLeitura>
+    </div>
+  );
+}
+
 export default function PlenarioTab() {
   const plenario = useLiveChannel<PlenarioState>("plenario").data;
 
@@ -360,6 +510,8 @@ export default function PlenarioTab() {
       </div>
       <PlacarVotacao plenario={plenario} />
       <FidelidadeBancada plenario={plenario} />
+      <HistoricoVotacoes plenario={plenario} />
+      <VotosSostenes plenario={plenario} />
       <CaboDeGuerra plenario={plenario} />
       <RacingVoz plenario={plenario} />
     </div>

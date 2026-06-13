@@ -16,7 +16,7 @@ import { calcularQuociente, projetarBancada } from "@/lib/quociente";
 // — todas com fallback para o sintético.
 import { getImprensaIndex as getGdeltImprensa, getSentimentoIndex } from "@/lib/sources/gdelt";
 import { getNewsImprensa, newsAlertasRecentes } from "@/lib/sources/google-news";
-import { getPlenarioReal } from "@/lib/sources/plenario";
+import { getPlenarioReal, fidelidadePLDeNominais } from "@/lib/sources/plenario";
 import { getSentimentoReal } from "@/lib/sources/sentiment";
 import { getTrendsReal, hasTrendsReal } from "@/lib/sources/trends";
 import { idxOpenToday, mergeIdxCandles, recordIdxClose } from "@/lib/sources/idx-history";
@@ -576,15 +576,26 @@ function votacaoJanela(now: number, opts: MockOptions = {}) {
 
 export function snapshotPlenario(now: number, opts: MockOptions = {}): PlenarioState {
   const real = getPlenarioReal();
-  if (real?.votacao && !opts.demoVotacao) {
-    const traicoes = real.votacao.traicoes.length;
-    const fidelidadeBase = 88;
-    const com = fidelidadeBase - traicoes;
+  if ((real?.votacao || real?.votacaoRecente || real?.historico?.length) && !opts.demoVotacao) {
+    const exibir = real.votacao?.emAndamento ? real.votacao : real.votacaoRecente;
+    const nominais = exibir ? (real.nominais[exibir.id] ?? []) : [];
+    const fidReal = nominais.length ? fidelidadePLDeNominais(nominais) : null;
+    const traicoes = exibir?.traicoes.length ?? 0;
+    const fidelidadeBase = fidReal?.total ?? 88;
+    const com = fidReal?.com ?? fidelidadeBase - traicoes;
     const share = 50 + 13 * noise("plenario:voz", now, 3);
     return {
-      votacaoAtiva: real.votacao.emAndamento,
-      votacao: real.votacao,
-      fidelidade: { com, total: fidelidadeBase, pct: round1((com / fidelidadeBase) * 100) },
+      votacaoAtiva: Boolean(real.votacao?.emAndamento),
+      votacao: real.votacao?.emAndamento ? real.votacao : null,
+      votacaoRecente: real.votacaoRecente ?? null,
+      historico: real.historico,
+      votosDeputado: real.votosDeputado,
+      orgaosMonitorados: real.orgaosMonitorados,
+      fidelidade: {
+        com,
+        total: fidelidadeBase,
+        pct: fidReal?.pct ?? round1((com / fidelidadeBase) * 100),
+      },
       caboDeGuerra: {
         temaOposicao: "Segurança pública e anistia",
         temaGoverno: "Isenção do IR e salário mínimo",

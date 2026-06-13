@@ -39,6 +39,7 @@ const REDE_META: Record<RedeId, { nome: string; cor: string; sigla: string }> = 
   x: { nome: "X (Twitter)", cor: "#d6dbe2", sigla: "X" },
   youtube: { nome: "YouTube", cor: "#FF4444", sigla: "YT" },
   tiktok: { nome: "TikTok", cor: "#69C9D0", sigla: "TT" },
+  linkedin: { nome: "LinkedIn", cor: "#0A66C2", sigla: "IN" },
 };
 
 const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -86,6 +87,10 @@ function YoutubeVideosReais({ videos }: { videos: YoutubeVideo[] }) {
 const FONTE_COMO_REDE: Partial<Record<RedeId, string>> = {
   youtube: `${FONTE_COMO.seguidores} Engajamento: média dos últimos vídeos reais (${FONTE_COMO.youtubeVideos}). Série 30d ancorada no nº real de hoje.`,
   tiktok: `${FONTE_COMO.tiktok} Engajamento: média dos últimos vídeos reais (${FONTE_COMO.tiktokVideos}). Série 30d ancorada no nº real de hoje.`,
+  instagram: FONTE_COMO.instagram,
+  facebook: FONTE_COMO.facebook,
+  x: FONTE_COMO.x,
+  linkedin: FONTE_COMO.linkedin,
 };
 
 function RedeHeroFront({ rede }: { rede: RedeHist }) {
@@ -227,7 +232,7 @@ function RedesHero({ redes }: { redes: RedesV2Snapshot }) {
         />
         <FonteBadge
           real={redes.porRede.some((r) => r.fonte === "real")}
-          como="YouTube e TikTok com números reais (yt-dlp, fonte aberta); IG/X/FB modelados sem credencial META/X. Veja o badge em cada rede."
+          como="Redes com dados reais via Bright Data/Kondado (cache Postgres) ou fallback nativo (Meta, yt-dlp). Veja o badge em cada rede."
         />
         <LiveBadge ch="redes" cadenceMs={3000} />
       </div>

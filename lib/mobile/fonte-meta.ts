@@ -11,9 +11,15 @@ export const FONTE_COMO = {
   seguidores: "Sidecar yt-dlp — inscritos do canal oficial do YouTube, sem API key.",
   mencoes: "Sidecar pytrends — interesse de busca no Google Trends (Brasil, 7 dias), normalizado ~100.",
   youtubeVideos: "Sidecar yt-dlp — views, likes e comentários dos últimos vídeos do canal oficial.",
-  tiktok: "Sidecar yt-dlp — seguidores do perfil @handle no TikTok, sem API key.",
+  tiktok: "Bright Data / Kondado / yt-dlp — seguidores e vídeos do perfil TikTok; cache Postgres evita créditos repetidos.",
   tiktokVideos: "Sidecar yt-dlp — views, likes e comentários dos últimos vídeos do perfil principal.",
-  plenario: "API Câmara Dados Abertos — votações do Plenário (órgão 180); placar na descrição.",
+  instagram: "Bright Data / Kondado / Meta Graph — seguidores IG; cache Postgres com TTL configurável.",
+  facebook: "Bright Data / Kondado / Meta Graph — seguidores da página FB; cache Postgres.",
+  x: "Bright Data / Kondado / cookies X — seguidores no X.com; cache Postgres.",
+  linkedin: "Bright Data / Kondado — seguidores/conexões LinkedIn; cache Postgres.",
+  plenario: "API Câmara Dados Abertos — Plenário e comissões (CCJC, CSPCCO etc.); votos nominais do dep. 178947 via arquivos bulk anuais.",
+  plenarioHistorico: "Arquivos bulk Câmara — votações por órgão (PLEN, CCJC, comissões) com placar e voto do deputado quando nominal.",
+  plenarioVotosDep: "Arquivos bulk votacoesVotos — histórico nominal de votações do dep. Sóstenes Cavalcante (178947) no ano corrente.",
   gastosCamara:
     "API Câmara Dados Abertos — despesas CEAP do deputado 178947 (cota parlamentar), agregadas por categoria e mês.",
   pesquisasPres:

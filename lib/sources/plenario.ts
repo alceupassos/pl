@@ -1,10 +1,22 @@
 // Fonte REAL de plenário — Câmara Dados Abertos (JSON, sem chave).
-// Votações do Plenário (órgão 180). Placar via parse da descrição quando a API
-// de votos nominais retorna 400 (comum em 2025/2026).
+// Camada 1: API REST (votações recentes do Plenário, órgão 180).
+// Camada 2: arquivos bulk anuais (comissões CCJC etc. + votos nominais do dep. 178947).
 // https://dadosabertos.camara.leg.br/swagger/api.html
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import type { DeputadoVoto } from "@/lib/live-schemas";
+import {
+  fidelidadePLDeNominais,
+  getPlenarioHistoricoBulk,
+  ensureFreshPlenarioHistorico,
+  refreshPlenarioHistoricoIfNeeded,
+  traicoesPLDeNominais,
+  type PlenarioHistoricoBulk,
+  type VotacaoHistoricoItem,
+  type VotoDeputadoItem,
+} from "@/lib/sources/plenario-bulk";
 
 const TTL_MS = 60 * 60 * 1000; // 1h
 const FETCH_TIMEOUT_MS = 25_000;
@@ -12,17 +24,26 @@ const CACHE_FILE = join(process.cwd(), "data", "plenario-cache.json");
 const BASE = "https://dadosabertos.camara.leg.br/api/v2";
 const ORGAO_PLENARIO = 180;
 
+export type PlenarioVotacaoReal = {
+  id: string;
+  titulo: string;
+  orientacaoPL: "Sim" | "Não";
+  sim: number;
+  nao: number;
+  outros: number;
+  emAndamento: boolean;
+  orgao: string;
+  traicoes: DeputadoVoto[];
+};
+
 export type PlenarioReal = {
-  votacao: {
-    id: string;
-    titulo: string;
-    orientacaoPL: "Sim" | "Não";
-    sim: number;
-    nao: number;
-    outros: number;
-    emAndamento: boolean;
-    traicoes: { deputado_: { nome: string; siglaPartido: string; siglaUf: string }; tipoVoto: "Sim" | "Não" }[];
-  } | null;
+  votacao: PlenarioVotacaoReal | null;
+  /** Última votação com placar — exibida quando não há sessão ao vivo. */
+  votacaoRecente: PlenarioVotacaoReal | null;
+  historico: VotacaoHistoricoItem[];
+  votosDeputado: VotoDeputadoItem[];
+  orgaosMonitorados: { sigla: string; nome: string }[];
+  nominais: Record<string, DeputadoVoto[]>;
   votacoesRecentes: { id: string; titulo: string; data: string; tipoVotoDeputado: string }[];
   presencaPct: number | null;
 };
@@ -44,6 +65,7 @@ export function getPlenarioReal(): PlenarioReal | null {
 }
 
 export function ensureFreshPlenario(): void {
+  ensureFreshPlenarioHistorico();
   if (inFlight) return;
   if (Date.now() - cache.at < TTL_MS && cache.value !== null) return;
   inFlight = true;
@@ -58,6 +80,7 @@ type VotacaoRaw = {
   dataHoraRegistro?: string;
   descricao?: string;
   aprovacao?: number;
+  siglaOrgao?: string;
 };
 
 function parsePlacar(descricao: string): { sim: number; nao: number; outros: number } | null {
@@ -79,8 +102,92 @@ function dataInicioDiasAtras(dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function votacaoFromRaw(
+  raw: VotacaoRaw,
+  placar: { sim: number; nao: number; outros: number },
+  emAndamento: boolean,
+  nominais: DeputadoVoto[],
+): PlenarioVotacaoReal {
+  const orientacaoPL: "Sim" | "Não" = raw.aprovacao === 1 ? "Sim" : "Não";
+  const traicoes = nominais.length ? traicoesPLDeNominais(nominais) : [];
+  return {
+    id: String(raw.id ?? ""),
+    titulo: String(raw.descricao ?? "Votação").slice(0, 160),
+    orientacaoPL,
+    sim: placar.sim,
+    nao: placar.nao,
+    outros: placar.outros,
+    emAndamento,
+    orgao: raw.siglaOrgao ?? "PLEN",
+    traicoes,
+  };
+}
+
+function votacaoFromHistorico(
+  h: VotacaoHistoricoItem,
+  nominais: DeputadoVoto[],
+): PlenarioVotacaoReal {
+  const orientacaoPL: "Sim" | "Não" = h.aprovacao ? "Sim" : "Não";
+  return {
+    id: h.id,
+    titulo: h.titulo,
+    orientacaoPL,
+    sim: h.sim,
+    nao: h.nao,
+    outros: h.outros,
+    emAndamento: false,
+    orgao: h.orgao,
+    traicoes: nominais.length ? traicoesPLDeNominais(nominais) : [],
+  };
+}
+
+function mergeComBulk(
+  apiVotacao: PlenarioVotacaoReal | null,
+  apiRecentes: PlenarioReal["votacoesRecentes"],
+  bulk: PlenarioHistoricoBulk | null,
+): PlenarioReal {
+  const historico = bulk?.historico ?? [];
+  const votosDeputado = bulk?.votosDeputado ?? [];
+  const orgaosMonitorados = bulk?.orgaosMonitorados ?? [];
+  const nominais = bulk?.nominais ?? {};
+
+  let votacaoRecente: PlenarioVotacaoReal | null = null;
+  if (apiVotacao && !apiVotacao.emAndamento) {
+    votacaoRecente = apiVotacao;
+  } else if (historico.length) {
+    const h = historico.find((x) => x.sim + x.nao + x.outros > 0) ?? historico[0];
+    votacaoRecente = votacaoFromHistorico(h, nominais[h.id] ?? []);
+  }
+
+  const votacoesRecentes =
+    apiRecentes.length > 0
+      ? apiRecentes.map((v) => {
+          const dep = votosDeputado.find((d) => d.idVotacao === v.id);
+          return dep ? { ...v, tipoVotoDeputado: dep.voto } : v;
+        })
+      : historico.slice(0, 12).map((h) => ({
+          id: h.id,
+          titulo: h.titulo,
+          data: h.data,
+          tipoVotoDeputado: h.votoSostenes ?? "—",
+        }));
+
+  return {
+    votacao: apiVotacao?.emAndamento ? apiVotacao : null,
+    votacaoRecente,
+    historico,
+    votosDeputado,
+    orgaosMonitorados,
+    nominais,
+    votacoesRecentes,
+    presencaPct: null,
+  };
+}
+
 async function refresh(): Promise<void> {
   try {
+    const bulk = (await refreshPlenarioHistoricoIfNeeded()) ?? getPlenarioHistoricoBulk();
+
     const params = new URLSearchParams({
       idOrgao: String(ORGAO_PLENARIO),
       dataInicio: dataInicioDiasAtras(120),
@@ -90,7 +197,8 @@ async function refresh(): Promise<void> {
     });
     const votacoes = await fetchJson<{ dados?: VotacaoRaw[] }>(`${BASE}/votacoes?${params}`);
     const lista = votacoes?.dados ?? [];
-    if (!lista.length) return;
+
+    if (!lista.length && !bulk?.historico.length) return;
 
     const votacoesRecentes = lista.slice(0, 12).map((v) => ({
       id: String(v.id ?? ""),
@@ -99,36 +207,24 @@ async function refresh(): Promise<void> {
       tipoVotoDeputado: "—",
     }));
 
-    const comPlacar = lista.find((v) => parsePlacar(String(v.descricao ?? "")));
-    const ultima = comPlacar ?? lista[0];
-    const descricao = String(ultima.descricao ?? "Votação em plenário");
-    const placar = parsePlacar(descricao);
-    const votacaoId = ultima.id;
-    if (!votacaoId) return;
+    let apiVotacao: PlenarioVotacaoReal | null = null;
+    if (lista.length) {
+      const comPlacar = lista.find((v) => parsePlacar(String(v.descricao ?? "")));
+      const ultima = comPlacar ?? lista[0];
+      const descricao = String(ultima.descricao ?? "Votação em plenário");
+      const placar = parsePlacar(descricao);
+      const votacaoId = ultima.id;
+      if (votacaoId && placar) {
+        const registro = ultima.dataHoraRegistro ?? ultima.data;
+        const tReg = registro ? Date.parse(registro) : 0;
+        const emAndamento = tReg > 0 && Date.now() - tReg < 3 * 60 * 60 * 1000;
+        const idStr = String(votacaoId);
+        const nom = bulk?.nominais[idStr] ?? [];
+        apiVotacao = votacaoFromRaw(ultima, placar, emAndamento, nom);
+      }
+    }
 
-    const registro = ultima.dataHoraRegistro ?? ultima.data;
-    const tReg = registro ? Date.parse(registro) : 0;
-    const emAndamento = tReg > 0 && Date.now() - tReg < 3 * 60 * 60 * 1000;
-
-    const orientacaoPL: "Sim" | "Não" = ultima.aprovacao === 1 ? "Sim" : "Não";
-
-    const value: PlenarioReal = {
-      votacao: placar
-        ? {
-            id: String(votacaoId),
-            titulo: descricao.slice(0, 160),
-            orientacaoPL,
-            sim: placar.sim,
-            nao: placar.nao,
-            outros: placar.outros,
-            emAndamento,
-            traicoes: [],
-          }
-        : null,
-      votacoesRecentes,
-      presencaPct: null,
-    };
-
+    const value = mergeComBulk(apiVotacao, votacoesRecentes, bulk);
     cache = { at: Date.now(), value };
     persist(value);
   } catch {
@@ -157,3 +253,5 @@ function persist(value: PlenarioReal): void {
     /* FS read-only */
   }
 }
+
+export { fidelidadePLDeNominais, traicoesPLDeNominais };

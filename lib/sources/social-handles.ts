@@ -32,3 +32,21 @@ export function tiktokHandlesFromWatchlist(w: Watchlist): string[] {
 export function principalTiktokHandle(w: Watchlist): string | undefined {
   return w.principal.handles?.tiktok;
 }
+
+export function linkedinHandlesFromWatchlist(w: Watchlist): string[] {
+  const out: string[] = [];
+  if (w.principal.handles?.linkedin) out.push(w.principal.handles.linkedin);
+  for (const c of w.concorrentes_rj) {
+    if (c.handles?.linkedin) out.push(c.handles.linkedin);
+  }
+  return out;
+}
+
+export function facebookHandlesFromWatchlist(w: Watchlist): string[] {
+  const out: string[] = [];
+  if (w.principal.handles?.facebook) out.push(w.principal.handles.facebook);
+  for (const c of w.concorrentes_rj) {
+    if (c.handles?.facebook) out.push(c.handles.facebook);
+  }
+  return out;
+}

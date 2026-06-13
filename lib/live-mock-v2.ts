@@ -12,8 +12,9 @@ import { ORCAMENTO_TOTAL, RUBRICAS } from "@/lib/mock/gastos-rubricas";
 import { MUNICAO } from "@/lib/mock/media";
 // Fonte REAL: cota parlamentar (Câmara) alimenta a aba gastos quando disponível.
 import { getCotaReal, type CotaReal } from "@/lib/sources/camara";
-import { getFacebookFollowers } from "@/lib/sources/facebook";
+import { getFacebookFollowers, getFacebookFollowersByHandle } from "@/lib/sources/facebook";
 import { getInstagramFollowers } from "@/lib/sources/instagram";
+import { getLinkedinFollowers } from "@/lib/sources/linkedin";
 import { getXFollowers } from "@/lib/sources/x";
 import { getTiktokFollowers, getTiktokVideos } from "@/lib/sources/tiktok";
 import { getSeguidoresCount, getVideosReal } from "@/lib/sources/youtube";
@@ -116,6 +117,7 @@ const REDE_BASE: Record<RedeId, { seg: number; eng: number }> = {
   x: { seg: 268_000, eng: 3.4 },
   tiktok: { seg: 124_000, eng: 6.2 },
   youtube: { seg: 96_000, eng: 3.0 },
+  linkedin: { seg: 89_000, eng: 2.2 },
 };
 
 const REDE_IDS = Object.keys(REDE_BASE) as RedeId[];
@@ -141,7 +143,9 @@ function seguidoresReaisRede(w: Watchlist, simbolo: string, rede: RedeId): numbe
   if (rede === "instagram") return getInstagramFollowers(handle);
   if (rede === "x") return getXFollowers(handle);
   if (rede === "tiktok") return getTiktokFollowers(handle);
+  if (rede === "linkedin") return getLinkedinFollowers(handle);
   if (rede === "facebook" && simbolo === w.principal.simbolo) return getFacebookFollowers();
+  if (rede === "facebook") return getFacebookFollowersByHandle(handle);
   return null;
 }
 
@@ -205,7 +209,8 @@ export function snapshotRedesV2(w: Watchlist, now: number): RedesV2Snapshot {
         rede === "instagram" ||
         rede === "facebook" ||
         rede === "x" ||
-        rede === "tiktok") &&
+        rede === "tiktok" ||
+        rede === "linkedin") &&
       vivo.fonte === "real"
     ) {
       // Ancora a série sintética no número real de hoje (mesma forma, nível real).
@@ -334,6 +339,13 @@ function redeVivo(
     const videos = getTiktokVideos();
     if (videos?.length) {
       engajamentoAgora = round1(videos.reduce((s, v) => s + v.engajamento, 0) / videos.length);
+      fonte = "real";
+    }
+  }
+  if (w && rede === "linkedin") {
+    const real = getLinkedinFollowers(w.principal.handles?.linkedin);
+    if (real !== null) {
+      seguidoresAgora = real;
       fonte = "real";
     }
   }

@@ -17,6 +17,8 @@ from pydantic import BaseModel
 
 import yt_dlp
 
+from social_gateways import resolve_profile, resolve_profiles_batch
+
 app = FastAPI(title="cockpit-sentiment")
 
 GRAPH_API = "https://graph.facebook.com/v21.0"
@@ -178,10 +180,14 @@ def _norm_handle(handle: str | None) -> str:
 
 
 def _ig_profile(handle: str) -> dict:
-    """Seguidores IG via Graph API (própria conta ou business_discovery)."""
+    """Seguidores IG — Bright Data / Kondado / Graph API."""
+    return resolve_profile("instagram", handle, _meta_ig)
+
+
+def _meta_ig(handle: str) -> dict:
     h = _norm_handle(handle)
     if not META_TOKEN or not META_IG_USER_ID or not h:
-        return {"followers": None, "username": h}
+        return {"followers": None, "username": h, "nome": None, "source": None}
     try:
         if h == META_IG_USERNAME:
             r = requests.get(
@@ -191,12 +197,14 @@ def _ig_profile(handle: str) -> dict:
             )
             data = r.json()
             if "error" in data:
-                return {"followers": None, "username": h}
+                return {"followers": None, "username": h, "nome": None, "source": None}
             return {
                 "followers": data.get("followers_count"),
                 "username": data.get("username") or h,
+                "nome": data.get("username"),
+                "source": "meta",
             }
-        fields = f"business_discovery.username({h}){{followers_count,username}}"
+        fields = f"business_discovery.username({h}){{followers_count,username,name}}"
         r = requests.get(
             f"{GRAPH_API}/{META_IG_USER_ID}",
             params={"fields": fields, "access_token": META_TOKEN},
@@ -204,14 +212,16 @@ def _ig_profile(handle: str) -> dict:
         )
         data = r.json()
         if "error" in data:
-            return {"followers": None, "username": h}
+            return {"followers": None, "username": h, "nome": None, "source": None}
         bd = data.get("business_discovery") or {}
         return {
             "followers": bd.get("followers_count"),
             "username": bd.get("username") or h,
+            "nome": bd.get("name"),
+            "source": "meta",
         }
     except Exception:
-        return {"followers": None, "username": h}
+        return {"followers": None, "username": h, "nome": None, "source": None}
 
 
 @app.get("/instagram")
@@ -223,45 +233,57 @@ def instagram(handle: str):
 @app.get("/instagram/profiles")
 def instagram_profiles(handles: str):
     """Vários perfis de uma vez — handles separados por vírgula."""
-    out: dict[str, dict] = {}
-    for raw in (handles or "").split(","):
-        h = _norm_handle(raw)
-        if h:
-            out[h] = _ig_profile(h)
-    return {"profiles": out}
+    hs = [x for x in (_norm_handle(raw) for raw in (handles or "").split(",")) if x]
+    return {"profiles": resolve_profiles_batch("instagram", hs, _meta_ig)}
 
 
-@app.get("/facebook")
-def facebook():
-    """Seguidores da página FB do candidato (fan_count)."""
+def _meta_fb_page() -> dict:
     if not META_TOKEN or not META_FB_PAGE_ID:
-        return {"followers": None, "nome": None}
+        return {"followers": None, "username": None, "nome": None, "source": None}
     try:
         r = requests.get(
             f"{GRAPH_API}/{META_FB_PAGE_ID}",
-            params={
-                "fields": "fan_count,followers_count,name",
-                "access_token": META_TOKEN,
-            },
+            params={"fields": "fan_count,followers_count,name", "access_token": META_TOKEN},
             timeout=20,
         )
         data = r.json()
         if "error" in data:
-            return {"followers": None, "nome": None}
+            return {"followers": None, "username": None, "nome": None, "source": None}
         fans = data.get("followers_count") or data.get("fan_count")
-        return {"followers": fans, "nome": data.get("name")}
+        return {
+            "followers": fans,
+            "username": META_FB_PAGE_ID,
+            "nome": data.get("name"),
+            "source": "meta",
+        }
     except Exception:
-        return {"followers": None, "nome": None}
+        return {"followers": None, "username": None, "nome": None, "source": None}
+
+
+def _meta_fb_native(_handle: str) -> dict:
+    return _meta_fb_page()
+
+
+@app.get("/facebook")
+def facebook():
+    """Seguidores da página FB — Bright Data / Kondado / Graph API."""
+    return resolve_profile("facebook", META_FB_PAGE_ID or "page", _meta_fb_native)
+
+
+@app.get("/facebook/profiles")
+def facebook_profiles(handles: str):
+    hs = [x for x in (_norm_handle(raw) for raw in (handles or "").split(",")) if x]
+    return {"profiles": resolve_profiles_batch("facebook", hs, _meta_fb_native)}
 
 
 async def _x_user_async(handle: str) -> dict:
     h = _norm_handle(handle)
     if not h or not X_COOKIES_RAW:
-        return {"followers": None, "username": h}
+        return {"followers": None, "username": h, "nome": None, "source": None}
     try:
         cookies = json.loads(X_COOKIES_RAW)
         if not cookies.get("auth_token") or not cookies.get("ct0"):
-            return {"followers": None, "username": h}
+            return {"followers": None, "username": h, "nome": None, "source": None}
         from twikit import Client
 
         client = Client("pt-BR")
@@ -271,43 +293,39 @@ async def _x_user_async(handle: str) -> dict:
             client.set_cookies(cookies)
         user = await client.get_user_by_screen_name(h)
         followers = getattr(user, "followers_count", None)
-        return {"followers": followers, "username": h}
+        return {"followers": followers, "username": h, "nome": h, "source": "x-cookies"}
     except Exception:
-        return {"followers": None, "username": h}
+        return {"followers": None, "username": h, "nome": None, "source": None}
+
+
+def _x_native(handle: str) -> dict:
+    try:
+        return asyncio.run(_x_user_async(handle))
+    except Exception:
+        h = _norm_handle(handle)
+        return {"followers": None, "username": h, "nome": None, "source": None}
 
 
 @app.get("/x")
 def x_profile(handle: str):
-    """Seguidores no X via twifork/twikit + cookies (X_COOKIES env)."""
-    try:
-        return asyncio.run(_x_user_async(handle))
-    except Exception:
-        return {"followers": None, "username": _norm_handle(handle)}
+    """Seguidores no X — Bright Data / Kondado / cookies."""
+    return resolve_profile("x", handle, _x_native)
 
 
 @app.get("/x/profiles")
 def x_profiles(handles: str):
-    """Vários perfis X — handles separados por vírgula."""
-    out: dict[str, dict] = {}
-    for raw in (handles or "").split(","):
-        h = _norm_handle(raw)
-        if not h:
-            continue
-        try:
-            out[h] = asyncio.run(_x_user_async(h))
-        except Exception:
-            out[h] = {"followers": None, "username": h}
-    return {"profiles": out}
+    hs = [x for x in (_norm_handle(raw) for raw in (handles or "").split(",")) if x]
+    return {"profiles": resolve_profiles_batch("x", hs, _x_native)}
 
 
 def _tiktok_url(handle: str) -> str:
     return f"https://www.tiktok.com/@{_norm_handle(handle)}"
 
 
-def _tiktok_profile(handle: str) -> dict:
+def _tiktok_native(handle: str) -> dict:
     h = _norm_handle(handle)
     if not h:
-        return {"followers": None, "videos": None, "nome": None, "username": h}
+        return {"followers": None, "videos": None, "nome": None, "username": h, "source": None}
     opts = {"quiet": True, "skip_download": True, "extract_flat": True}
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -320,26 +338,42 @@ def _tiktok_profile(handle: str) -> dict:
             "videos": videos,
             "nome": nome,
             "username": h,
+            "source": "yt-dlp",
         }
     except Exception:
-        return {"followers": None, "videos": None, "nome": None, "username": h}
+        return {"followers": None, "videos": None, "nome": None, "username": h, "source": None}
+
+
+def _tiktok_profile(handle: str) -> dict:
+    return resolve_profile("tiktok", handle, _tiktok_native)
 
 
 @app.get("/tiktok")
 def tiktok(handle: str):
-    """Seguidores de um perfil TikTok via yt-dlp (sem chave)."""
+    """Seguidores TikTok — Bright Data / Kondado / yt-dlp."""
     return _tiktok_profile(handle)
 
 
 @app.get("/tiktok/profiles")
 def tiktok_profiles(handles: str):
-    """Vários perfis TikTok — handles separados por vírgula."""
-    out: dict[str, dict] = {}
-    for raw in (handles or "").split(","):
-        h = _norm_handle(raw)
-        if h:
-            out[h] = _tiktok_profile(h)
-    return {"profiles": out}
+    hs = [x for x in (_norm_handle(raw) for raw in (handles or "").split(",")) if x]
+    return {"profiles": resolve_profiles_batch("tiktok", hs, _tiktok_native)}
+
+
+def _linkedin_native(_handle: str) -> dict:
+    return {"followers": None, "username": _norm_handle(_handle), "nome": None, "source": None}
+
+
+@app.get("/linkedin")
+def linkedin(handle: str):
+    """Seguidores LinkedIn — Bright Data / Kondado."""
+    return resolve_profile("linkedin", handle, _linkedin_native)
+
+
+@app.get("/linkedin/profiles")
+def linkedin_profiles(handles: str):
+    hs = [x for x in (_norm_handle(raw) for raw in (handles or "").split(",")) if x]
+    return {"profiles": resolve_profiles_batch("linkedin", hs, _linkedin_native)}
 
 
 @app.get("/tiktok/videos")

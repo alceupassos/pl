@@ -23,8 +23,11 @@ import { ensureFreshPlenario } from "@/lib/sources/plenario";
 import { ensureFreshTrends } from "@/lib/sources/trends";
 import { ensureFreshFacebook } from "@/lib/sources/facebook";
 import { ensureFreshInstagram } from "@/lib/sources/instagram";
+import { ensureFreshLinkedin } from "@/lib/sources/linkedin";
 import {
+  facebookHandlesFromWatchlist,
   instagramHandlesFromWatchlist,
+  linkedinHandlesFromWatchlist,
   principalTiktokHandle,
   tiktokHandlesFromWatchlist,
   xHandlesFromWatchlist,
@@ -99,12 +102,13 @@ export async function GET(request: NextRequest) {
       ensureFreshCamara();
       ensureFreshYoutubeVideos();
       ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist));
-      ensureFreshFacebook();
+      ensureFreshFacebook(facebookHandlesFromWatchlist(watchlist));
       ensureFreshX(xHandlesFromWatchlist(watchlist));
       ensureFreshTiktok(
         tiktokHandlesFromWatchlist(watchlist),
         principalTiktokHandle(watchlist),
       );
+      ensureFreshLinkedin(linkedinHandlesFromWatchlist(watchlist));
       ensureFreshPlenario();
       ensureFreshTrends();
       const t0 = Date.now();
@@ -126,14 +130,15 @@ export async function GET(request: NextRequest) {
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
         ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)
         ensureFreshYoutubeVideos(); // views/comentários por vídeo (aba redes)
-        ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist)); // IG Graph API
-        ensureFreshFacebook(); // página FB do candidato
-        ensureFreshX(xHandlesFromWatchlist(watchlist)); // X via twifork + cookies
+        ensureFreshInstagram(instagramHandlesFromWatchlist(watchlist));
+        ensureFreshFacebook(facebookHandlesFromWatchlist(watchlist));
+        ensureFreshX(xHandlesFromWatchlist(watchlist));
         ensureFreshTiktok(
           tiktokHandlesFromWatchlist(watchlist),
           principalTiktokHandle(watchlist),
-        ); // TikTok via yt-dlp (sem chave)
-        ensureFreshPlenario(); // votações reais (Câmara Dados Abertos)
+        );
+        ensureFreshLinkedin(linkedinHandlesFromWatchlist(watchlist));
+        ensureFreshPlenario();
         ensureFreshTrends(); // buzz de busca (Google Trends via sidecar)
         ensureFreshPesquisas(); // pesquisas presidenciais reais (Wikipédia via sidecar)
 

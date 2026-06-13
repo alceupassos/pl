@@ -11,8 +11,10 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import {
   CaboDeGuerra,
   FidelidadeBancada,
+  HistoricoVotacoes,
   PlacarVotacao,
   RacingVoz,
+  VotosSostenes,
 } from "@/components/mobile/tabs/plenario";
 import type { PlenarioState } from "@/lib/live-schemas";
 
@@ -32,6 +34,8 @@ function PlenarioInner() {
     >
       <PlacarVotacao plenario={plenario} />
       <FidelidadeBancada plenario={plenario} />
+      <HistoricoVotacoes plenario={plenario} />
+      <VotosSostenes plenario={plenario} />
       <CaboDeGuerra plenario={plenario} />
       <RacingVoz plenario={plenario} />
     </div>

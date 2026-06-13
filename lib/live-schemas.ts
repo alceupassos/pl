@@ -250,14 +250,43 @@ export const VotacaoSchema = z.object({
   nao: z.number(),
   outros: z.number(),
   emAndamento: z.boolean(),
+  orgao: z.string().optional(),
   /** Traições à orientação do PL detectadas até agora. */
   traicoes: z.array(DeputadoVotoSchema),
 });
 export type Votacao = z.infer<typeof VotacaoSchema>;
 
+export const VotacaoHistoricoItemSchema = z.object({
+  id: z.string(),
+  titulo: z.string(),
+  data: z.string(),
+  orgao: z.string(),
+  sim: z.number(),
+  nao: z.number(),
+  outros: z.number(),
+  aprovacao: z.boolean(),
+  votoSostenes: z.string().nullable().optional(),
+  temNominal: z.boolean().optional(),
+});
+export type VotacaoHistoricoItem = z.infer<typeof VotacaoHistoricoItemSchema>;
+
+export const VotoDeputadoItemSchema = z.object({
+  idVotacao: z.string(),
+  data: z.string(),
+  voto: z.string(),
+  titulo: z.string(),
+  orgao: z.string(),
+});
+export type VotoDeputadoItem = z.infer<typeof VotoDeputadoItemSchema>;
+
 export const PlenarioStateSchema = z.object({
   votacaoAtiva: z.boolean(),
   votacao: VotacaoSchema.nullable(),
+  /** Última votação encerrada com placar (quando não há sessão ao vivo). */
+  votacaoRecente: VotacaoSchema.nullable().optional(),
+  historico: z.array(VotacaoHistoricoItemSchema).optional(),
+  votosDeputado: z.array(VotoDeputadoItemSchema).optional(),
+  orgaosMonitorados: z.array(z.object({ sigla: z.string(), nome: z.string() })).optional(),
   fidelidade: z.object({ com: z.number(), total: z.number(), pct: z.number() }),
   caboDeGuerra: z.object({
     temaOposicao: z.string(),
@@ -327,7 +356,7 @@ export type RadarState = z.infer<typeof RadarStateSchema>;
 /* ── redes — engajamento próprio ── */
 
 export const PlataformaSchema = z.object({
-  rede: z.enum(["instagram", "x", "youtube", "facebook", "tiktok"]),
+  rede: z.enum(["instagram", "x", "youtube", "facebook", "tiktok", "linkedin"]),
   seguidores: z.number(),
   deltaDia: z.number(),
   engajamento: z.number(), // %
@@ -399,7 +428,7 @@ export type C2026State = z.infer<typeof C2026StateSchema>;
 
 /* ── redes (AMPLIADO): histórico por rede + concorrentes + veículos ── */
 
-export const RedeIdSchema = z.enum(["x", "instagram", "facebook", "youtube", "tiktok"]);
+export const RedeIdSchema = z.enum(["x", "instagram", "facebook", "youtube", "tiktok", "linkedin"]);
 export type RedeId = z.infer<typeof RedeIdSchema>;
 
 export const ConcorrenteRedeSchema = z.object({
