@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthCookieName, getClientIp, verifyJwt } from "@/lib/auth";
+import { getAuthCookieName, getClientIp, isAuthDisabled, verifyJwt } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  // Login desligado provisoriamente → todos autenticados (cockpit não mostra login).
+  if (isAuthDisabled()) {
+    return NextResponse.json(
+      {
+        authenticated: true,
+        expiresAt: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const token = request.cookies.get(getAuthCookieName())?.value;
 
   if (!token) {

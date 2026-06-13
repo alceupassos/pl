@@ -9,12 +9,25 @@ const ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET || "dev-altcha-secret-
 const AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET || "dev-jwt-secret-change-me";
 // Bypass temporário do ALTCHA para testes (mobile) — controlado por .env.local.
 const DISABLE_ALTCHA = process.env.DISABLE_ALTCHA === "true";
+// Desliga login/senha PROVISORIAMENTE: todo acesso é tratado como autenticado.
+const AUTH_DISABLED = process.env.AUTH_DISABLED === "true";
 const JWT_TTL_SECONDS = 60 * 60 * 24 * 5;
 
 if (DISABLE_ALTCHA) {
   console.warn(
     "⚠️ [AUTH] BYPASS ALTCHA ATIVO (DISABLE_ALTCHA=true) — REMOVER ANTES DE PRODUÇÃO",
   );
+}
+
+if (AUTH_DISABLED) {
+  console.warn(
+    "⚠️ [AUTH] LOGIN DESLIGADO (AUTH_DISABLED=true) — ACESSO ABERTO, PROVISÓRIO — REMOVER ANTES DE PRODUÇÃO",
+  );
+}
+
+/** Login desligado provisoriamente (acesso aberto) — controlado por .env. */
+export function isAuthDisabled() {
+  return AUTH_DISABLED;
 }
 
 export function getAuthCookieName() {
@@ -79,6 +92,14 @@ export function verifyJwt(token: string) {
  * gate server-side do /m (app/m/layout.tsx).
  */
 export function verifySession(token: string | undefined, requestHeaders: Headers) {
+  // Login desligado provisoriamente → sessão sintética "aberta" para todos.
+  if (AUTH_DISABLED) {
+    return {
+      credentialType: "main" as const,
+      sub: "auth-disabled",
+      exp: Math.floor(Date.now() / 1000) + JWT_TTL_SECONDS,
+    };
+  }
   if (!token) return null;
   const payload = verifyJwt(token);
   if (!payload) return null;
