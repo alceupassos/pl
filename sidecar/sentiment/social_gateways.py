@@ -14,13 +14,20 @@ import requests
 GRAPH_API = "https://graph.facebook.com/v21.0"
 BRIGHTDATA_BASE = "https://api.brightdata.com/datasets/v3/scrape"
 
-BRIGHTDATA_TOKEN = os.environ.get("BRIGHTDATA_TOKEN", "") or os.environ.get(
-    "BRIGHTDATA_INSTAGRAM_TOKEN", ""
-)
+
+def _env(*names: str, default: str = "") -> str:
+    for name in names:
+        val = os.environ.get(name, "").strip()
+        if val:
+            return val
+    return default
+
+
+BRIGHTDATA_TOKEN = _env("BRIGHTDATA_TOKEN", "BRIGHTDATA_API_KEY", "BRIGHTDATA_INSTAGRAM_TOKEN")
 BRIGHTDATA_TIMEOUT = int(os.environ.get("BRIGHTDATA_TIMEOUT_MS", "60000")) / 1000.0
 
-KONDADO_KEY = os.environ.get("KONDADO_API_KEY", "")
-KONDADO_TOKEN = os.environ.get("KONDADO_API_TOKEN", "")
+KONDADO_KEY = _env("KONDADO_API_KEY", "KONDADO_CHAVE_TOKEN")
+KONDADO_TOKEN = _env("KONDADO_API_TOKEN", "KONDADO_TOKEN")
 
 META_TOKEN = os.environ.get("META_ACCESS_TOKEN", "")
 META_IG_USER_ID = os.environ.get("META_IG_USER_ID", "")

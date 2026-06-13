@@ -5,6 +5,10 @@
 # Roda em 127.0.0.1 (nunca exposto). Setup no VPS: ver README.md.
 #   pm2 start ".venv/bin/uvicorn" --name sentiment -- app:app --host 127.0.0.1 --port 8088
 
+import load_env
+
+load_env.bootstrap()
+
 import asyncio
 import io
 import json
