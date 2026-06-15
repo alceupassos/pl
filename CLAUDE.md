@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`politica-cockpit` (repo also referred to as "pl" / "sostenes" / "angra") is a Next.js 16 App Router app combining two experiences on one site:
+`politica-cockpit` (repo also referred to as "pl" / "sostenes" / "angra") is a Next.js 16 App Router app with three authenticated experiences:
 
 - **Public landing + login** rendered by `components/login-screen.tsx`, gated by an ALTCHA proof-of-work captcha.
-- **Authenticated campaign cockpit** at `/` — a ~20-section operator dashboard for a Brazilian election campaign (dashboard, pesquisas, territórios, concorrentes, redes sociais, candidatos, CRM eleitoral, financeiro, compliance TSE, calculadora, downloads, etc.).
-
-The cockpit currently renders **mockup data** (note the "MOCKUP" banner injected in `campaign-cockpit.tsx`). `design.md` describes the intended migration toward Supabase-backed real data and away from `dangerouslySetInnerHTML` — neither is done yet, so treat the HTML-string rendering below as the current reality, not the target.
+- **Desktop campaign cockpit** at `/` — a ~20-section operator dashboard (dashboard, pesquisas, territórios, concorrentes, redes sociais, candidatos, CRM eleitoral, financeiro, compliance TSE, calculadora, downloads, etc.).
+- **Mobile cockpit** at `/m` — swipeable tab shell driven by a live SSE stream (`/api/stream`). Tabs: ticker, redes, plenário, rio, radar, equipe, oportunidades, pesquisas, gastos, voz, c2026.
+- **Election cockpit** at `/w` — Polymarket-style aggregator for Brasil 2026. Tabs: mercados, pesquisas, candidatos, apuração, histórico, radar, config.
 
 ## Commands
 
@@ -37,11 +37,33 @@ Environment is Windows 11 + PowerShell 5.1 (`powershell.exe`, not `pwsh`): no `&
   - **Icons**: Lucide is loaded from a CDN UMD `<Script>`; `window.lucide.createIcons()` hydrates `<i data-lucide="...">` placeholders. After any DOM change you must re-call it (the component already does this on a `setTimeout`).
   - **Charts**: `components/campaign-charts.ts` (`renderSectionCharts(sectionId)`) creates Chart.js instances by `getElementById`. Only sections listed in `refreshableSections` (`campaign-config.ts`) get charts re-rendered.
   - **Calculator**: the `calculadora` section is driven by raw DOM reads/writes in `syncCalculatorOutputs()` against hardcoded element ids (`inp_eleitores`, `res_coef`, …).
-- **Exceptions** — two sections ARE real React components, switched on in the render: `candidato-detalhe` → `CandidateDetail`, `downloads` → `CampaignDownloads`.
+- **React sections** — most sections are now real React components imported from `components/sections/`. The `REACT_SECTIONS` set in `campaign-cockpit.tsx` lists them all (currently ~15 sections including dashboard, pesquisas, social, territorios, crm, agenda, diario, noc, plenario, raiox, meta, organizadores, influenciadores, candidatos, midia, posts, comunicacao). Remaining HTML-string sections still live in `campaign-data.ts`.
 
-Consequence: adding/editing a normal section means editing HTML strings in `campaign-data.ts` + (optionally) a chart config in `campaign-charts.ts` + registering the nav item in `campaign-config.ts`. The `refreshTick` state and `data-candidate-key` click delegation bridge the imperative DOM world back into React state.
+Consequence: adding a React section means creating `components/sections/<name>-section.tsx`, adding it to `REACT_SECTIONS`, importing it in `campaign-cockpit.tsx`, and registering the nav item in `campaign-config.ts`. For an HTML-string section, edit `campaign-data.ts` + optionally `campaign-charts.ts`.
 
 Navigation structure lives in `components/campaign-config.ts` (`navigationGroups`). Section ids there must match keys in `campaignSections`/`pageTitles`.
+
+### /m — Mobile cockpit (SSE live stream)
+
+`app/m/[[...tab]]/page.tsx` renders `<MobileShell>` (`components/mobile/shell.tsx`), a scroll-snap tab shell where switching tabs never remounts the page — tabs are lazy-loaded once and kept alive via CSS visibility. URL is synced with `history.replaceState`.
+
+The entire `/m` data layer flows through a **single SSE connection** (`/api/stream`):
+
+- Server: `app/api/stream/route.ts` sends a snapshot-then-delta protocol. On connect it fires all channel snapshots; then sends deltas on each channel's cadence. Channels are typed in `lib/live-schemas.ts`.
+- Client: `components/mobile/live/provider.tsx` owns the `EventSource`, feeds `LiveStore` (`components/mobile/live/store.ts`). Tab components subscribe via `useLiveChannel` / `useLiveStore`.
+- Mix of real and mock data: real scrapers in `lib/sources/` are called from the stream route; `lib/live-mock.ts` fills any channel without a real source.
+
+### /w — Election cockpit (Polymarket-style)
+
+`app/w/[[...tab]]/page.tsx` renders `<WShell>` (`components/w/shell.tsx`), same swipe-tab pattern as `/m` but without an SSE stream — all data comes from `lib/w/w-mock.ts` (deterministic mock functions). To add a new race or candidate, edit only `lib/w/w-mock.ts` plus the two display components (`components/w/tabs/mercados/index.tsx` and `components/w/tabs/candidatos/index.tsx`).
+
+### Real data sources (`lib/sources/`)
+
+Each file in `lib/sources/` is a server-side scraper with a 5-minute (or longer) in-memory TTL cache. The stream route calls `ensureFresh*()` functions to refresh on demand. Sources: Google News, YouTube (subscribers + videos), Instagram, Facebook, TikTok, X (Twitter), LinkedIn, Google Trends, Câmara API (plenário), pysentimiento sidecar (sentiment), GDELT (fallback for imprensa index), and TSE pesquisas CSV.
+
+### Watchlist — editable candidate config
+
+`data/watchlist.json` is the source of truth for the `/m` cockpit: who the principal candidate is, which RJ competitors to track, social media handles, index weights. It's read server-side by `lib/watchlist.ts` (5-second cache) and broadcast to clients via the SSE `watchlist` channel. Editable at runtime via `/m/config`. If the file is missing or invalid, the app falls back to `DEFAULT_WATCHLIST` in `lib/watchlist.ts`.
 
 ### Auth: hand-rolled, no auth library
 

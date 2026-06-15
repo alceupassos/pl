@@ -8,6 +8,7 @@ import { snapshotCandidatos, type Cargo } from "@/lib/w/w-mock";
 const CARGOS: { id: Cargo | "todos"; label: string }[] = [
   { id: "todos", label: "Todos" },
   { id: "presidente", label: "Presidente" },
+  { id: "governador_sp", label: "Gov. SP" },
   { id: "governador_rj", label: "Gov. RJ" },
   { id: "senador_rj", label: "Senador RJ" },
   { id: "dep_federal_rj", label: "Dep. Fed. RJ" },
@@ -16,7 +17,8 @@ const CARGOS: { id: Cargo | "todos"; label: string }[] = [
 export default function CandidatosWTab() {
   const [cargo, setCargo] = useState<Cargo | "todos">("todos");
   const todos = useMemo(() => snapshotCandidatos(), []);
-  const filtrados = cargo === "todos" ? todos : todos.filter((c) => c.cargo === cargo);
+  const filtrados =
+    cargo === "todos" ? todos : todos.filter((c) => c.cargo === cargo);
 
   return (
     <div className="m-tab-content">
@@ -25,7 +27,14 @@ export default function CandidatosWTab() {
           <span className="m-card-title">Candidatos registrados — TSE</span>
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginBottom: 10,
+          }}
+        >
           {CARGOS.map((c) => (
             <button
               key={c.id}
@@ -70,7 +79,8 @@ export default function CandidatosWTab() {
         ))}
       </div>
       <SectionLeitura>
-        Candidaturas deferidas — fonte TSE (consulta_cand_2026_BRASIL.csv). Atualização mensal.
+        Candidaturas deferidas — fonte TSE (consulta_cand_2026_BRASIL.csv).
+        Atualização mensal.
       </SectionLeitura>
     </div>
   );

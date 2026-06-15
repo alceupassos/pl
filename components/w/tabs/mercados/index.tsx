@@ -8,6 +8,7 @@ import { snapshotMercados, type Cargo } from "@/lib/w/w-mock";
 
 const CARGO_ORDER: Cargo[] = [
   "presidente",
+  "governador_sp",
   "governador_rj",
   "senador_rj",
   "dep_federal_rj",
@@ -17,6 +18,7 @@ const _LOAD_NOW = Date.now();
 
 const CARGO_LABELS: Record<Cargo, string> = {
   presidente: "Presidente",
+  governador_sp: "Governador SP",
   governador_rj: "Governador RJ",
   senador_rj: "Senador RJ",
   dep_federal_rj: "Dep. Federal RJ",
@@ -40,8 +42,8 @@ export default function MercadosTab() {
         </div>
       ))}
       <SectionLeitura>
-        Probabilidades calculadas por agregador de pesquisas (média móvel 30d + Monte Carlo).
-        Arraste para ver todos os candidatos por cargo.
+        Probabilidades calculadas por agregador de pesquisas (média móvel 30d +
+        Monte Carlo). Arraste para ver todos os candidatos por cargo.
       </SectionLeitura>
     </div>
   );
