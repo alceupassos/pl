@@ -3,18 +3,18 @@
 // manchetes recentes com data de publicação.
 // https://news.google.com/rss/search?q=...&hl=pt-BR&gl=BR&ceid=BR:pt
 //
-// Dois sinais derivados do feed:
+// Dois sinais derivados do feed (por TERMO/candidato):
 //   • imprensa → índice ~100 a partir do VOLUME diário de matérias (cobertura
-//     recente vs mediana da janela). Entra em idx.sost.breakdown.imprensa.
+//     recente vs mediana da janela). Entra em idx.sost.breakdown.imprensa e no
+//     índice por candidato (lib/index-real.ts).
 //   • alertas  → as manchetes mais novas viram Alert (tipo "falaram_de_mim"),
 //     com tempo de DESCOBERTA (igual ao gdelt) para casar na janela do delta SSE.
 //
 // Regras de ouro (idênticas ao lib/sources/gdelt.ts):
 //   • getters SÍNCRONOS, nunca lançam — o tick do SSE só lê cache.
-//   • busca assíncrona fora de banda (ensureFreshNews), TTL + guarda "em voo".
-//   • falhou? mantém o último bom; sem nenhum, devolve null/[] → live-mock cai
-//     no sintético. Nunca quebra.
-//   • último índice persistido em data/ para warm-start após restart/deploy.
+//   • busca assíncrona fora de banda (ensureFreshNews*), TTL + guarda "em voo".
+//   • falhou? mantém o último bom; sem nenhum, devolve null/[]. Nunca quebra.
+//   • índices persistidos por termo em data/ para warm-start após restart/deploy.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,55 +30,100 @@ const IDX_MIN = 40;
 const IDX_MAX = 220;
 const MAX_ALERTAS = 50;
 const DIA_MS = 24 * 60 * 60 * 1000;
+const TERMO_PADRAO = "Sóstenes Cavalcante";
 
-type Cache = { at: number; value: number | null };
+type TermoState = {
+  at: number;
+  imprensa: number | null;
+  alertas: Alert[]; // rolling, mais novo primeiro
+  guidsVistos: Set<string>;
+  inFlight: boolean;
+};
 
-let imprensa: Cache = { at: 0, value: null };
-let alertas: Alert[] = []; // rolling, mais novo primeiro
-const guidsVistos = new Set<string>();
-let inFlight = false;
+const byTermo = new Map<string, TermoState>();
+let principalTermo = TERMO_PADRAO;
+
+function st(termo: string): TermoState {
+  let s = byTermo.get(termo);
+  if (!s) {
+    s = { at: 0, imprensa: null, alertas: [], guidsVistos: new Set(), inFlight: false };
+    byTermo.set(termo, s);
+  }
+  return s;
+}
 
 (function loadDisk() {
   try {
     const raw = JSON.parse(readFileSync(CACHE_FILE, "utf8"));
-    if (typeof raw.imprensa === "number" && Number.isFinite(raw.imprensa)) {
-      imprensa = { at: 0, value: raw.imprensa }; // at=0 força refresh no 1º tick
+    // Formato novo: { termos: { [termo]: number } }. Formato antigo: { imprensa: number }.
+    if (raw && typeof raw.termos === "object" && raw.termos) {
+      for (const [termo, v] of Object.entries(raw.termos)) {
+        if (typeof v === "number" && Number.isFinite(v)) st(termo).imprensa = v; // at=0 força refresh
+      }
+    } else if (typeof raw.imprensa === "number" && Number.isFinite(raw.imprensa)) {
+      st(TERMO_PADRAO).imprensa = raw.imprensa;
     }
   } catch {
     /* primeira execução */
   }
 })();
 
-// ── getters síncronos ────────────────────────────────────────────────────────
+// ── getters síncronos (POR TERMO) ─────────────────────────────────────────────
 
-/** Índice de imprensa real (~100) do volume de notícias. null = sem sinal. */
-export function getNewsImprensa(): number | null {
-  return imprensa.value;
+/** Índice de imprensa real (~100) do volume de notícias para um termo. */
+export function getNewsImprensaFor(termo: string): number | null {
+  return byTermo.get(termo)?.imprensa ?? null;
 }
 
-/** Manchetes reais com tempo de DESCOBERTA em (from, to]. */
-export function newsAlertasBetween(from: number, to: number): Alert[] {
-  return alertas.filter((a) => a.t > from && a.t <= to).sort((x, y) => x.t - y.t);
+/** Textos das manchetes recentes do termo — insumo para o sidecar de sentimento. */
+export function getManchetesTextoFor(termo: string, max = 30): string[] {
+  return (byTermo.get(termo)?.alertas ?? []).slice(0, max).map((a) => a.titulo);
 }
 
-/** Backlog de manchetes reais (mais novo primeiro) — para o snapshot inicial. */
-export function newsAlertasRecentes(max = 20): Alert[] {
-  return alertas.slice(0, max);
-}
-
-/** Textos das manchetes recentes — insumo para o sidecar de sentimento. */
-export function getManchetesTexto(max = 30): string[] {
-  return alertas.slice(0, max).map((a) => a.titulo);
-}
-
-/** Dispara um refresh se o cache venceu e não há busca em voo. NÃO bloqueia. */
-export function ensureFreshNews(termos: string[]): void {
-  if (inFlight) return;
-  if (Date.now() - imprensa.at < TTL_MS && imprensa.value !== null) return;
-  inFlight = true;
-  void refresh(termos).finally(() => {
-    inFlight = false;
+/** Dispara refresh do termo se o cache venceu e não há busca em voo. Não bloqueia. */
+export function ensureFreshNewsFor(termo: string): void {
+  const s = st(termo);
+  if (s.inFlight) return;
+  if (Date.now() - s.at < TTL_MS && s.imprensa !== null) return;
+  s.inFlight = true;
+  void refresh(termo).finally(() => {
+    s.inFlight = false;
   });
+}
+
+/** Atualiza imprensa para vários candidatos de uma vez. */
+export function ensureFreshNewsAll(termos: string[]): void {
+  for (const termo of termos) if (termo) ensureFreshNewsFor(termo);
+}
+
+/** Termo do candidato principal (para os getters de compatibilidade). */
+export function getPrincipalTermo(): string {
+  return principalTermo;
+}
+
+// ── compat: APIs antigas operam sobre o termo do principal ─────────────────────
+
+export function getNewsImprensa(): number | null {
+  return getNewsImprensaFor(principalTermo);
+}
+
+export function getManchetesTexto(max = 30): string[] {
+  return getManchetesTextoFor(principalTermo, max);
+}
+
+export function newsAlertasBetween(from: number, to: number): Alert[] {
+  return (byTermo.get(principalTermo)?.alertas ?? [])
+    .filter((a) => a.t > from && a.t <= to)
+    .sort((x, y) => x.t - y.t);
+}
+
+export function newsAlertasRecentes(max = 20): Alert[] {
+  return (byTermo.get(principalTermo)?.alertas ?? []).slice(0, max);
+}
+
+export function ensureFreshNews(termos: string[]): void {
+  principalTermo = termos[0] ?? principalTermo;
+  ensureFreshNewsFor(principalTermo);
 }
 
 // ── busca + parse ────────────────────────────────────────────────────────────
@@ -97,13 +142,13 @@ type ItemRaw = {
   source?: string | { "#text"?: string };
 };
 
-async function refresh(termos: string[]): Promise<void> {
+async function refresh(termo: string): Promise<void> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
     let xml: string;
     try {
-      const res = await fetch(urlFor(termos[0] ?? "Sóstenes Cavalcante"), {
+      const res = await fetch(urlFor(termo || TERMO_PADRAO), {
         signal: ctrl.signal,
         // Google News exige um UA de browser; fetch segue o 302 automaticamente.
         headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
@@ -117,12 +162,14 @@ async function refresh(termos: string[]): Promise<void> {
     const itens = extrairItens(xml);
     if (!itens.length) return;
 
+    const s = st(termo);
     const idx = indiceDeVolume(itens);
     if (idx !== null) {
-      imprensa = { at: Date.now(), value: idx };
-      persist(idx);
+      s.at = Date.now();
+      s.imprensa = idx;
+      persist();
     }
-    ingerirAlertas(itens);
+    ingerirAlertas(termo, itens);
   } catch {
     /* rede/abort — mantém o último bom */
   }
@@ -176,12 +223,13 @@ function indiceDeVolume(itens: Item[]): number | null {
   return round1(clamp((recentePorDia / baselinePorDia) * 100, IDX_MIN, IDX_MAX));
 }
 
-function ingerirAlertas(itens: Item[]): void {
+function ingerirAlertas(termo: string, itens: Item[]): void {
+  const s = st(termo);
   const agora = Date.now();
   const novos: Alert[] = [];
   for (const it of itens) {
-    if (guidsVistos.has(it.guid)) continue;
-    guidsVistos.add(it.guid);
+    if (s.guidsVistos.has(it.guid)) continue;
+    s.guidsVistos.add(it.guid);
     novos.push({
       id: `gnews:${hash(it.guid)}`,
       t: agora, // descoberta — entra na janela do delta SSE
@@ -192,19 +240,20 @@ function ingerirAlertas(itens: Item[]): void {
       tab: "radar",
     });
   }
-  // Só empilha se já tínhamos visto algo antes (1º fetch popula o "seen" sem
-  // despejar 100 alertas de uma vez na tela).
-  if (novos.length && guidsVistos.size > novos.length) {
-    alertas = [...novos, ...alertas].slice(0, MAX_ALERTAS);
-  } else if (!alertas.length) {
-    // 1º fetch: mostra as 8 mais recentes como backlog, sem alarde de delta.
-    alertas = novos.slice(0, 8);
+  // Só empilha como "novo" se já tínhamos visto algo antes (1º fetch popula o
+  // "seen" sem despejar 100 alertas de uma vez na tela).
+  if (novos.length && s.guidsVistos.size > novos.length) {
+    s.alertas = [...novos, ...s.alertas].slice(0, MAX_ALERTAS);
+  } else if (!s.alertas.length) {
+    s.alertas = novos.slice(0, 8);
   }
 }
 
-function persist(value: number): void {
+function persist(): void {
   try {
-    writeFileSync(CACHE_FILE, `${JSON.stringify({ at: Date.now(), imprensa: value })}\n`);
+    const termos: Record<string, number> = {};
+    for (const [termo, s] of byTermo) if (s.imprensa !== null) termos[termo] = s.imprensa;
+    writeFileSync(CACHE_FILE, `${JSON.stringify({ at: Date.now(), termos })}\n`);
   } catch {
     /* FS read-only */
   }

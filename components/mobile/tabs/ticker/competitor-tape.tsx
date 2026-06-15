@@ -20,6 +20,7 @@ import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
 import { useFlash } from "@/components/mobile/ui/flash-card";
 import { LeituraIA } from "@/components/mobile/ui/leitura-ia";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Odometer } from "@/components/mobile/ui/odometer";
 import { SectionLeitura } from "@/components/mobile/ui/section-leitura";
 import type { IdxSnapshot, QuoteRj, QuotesRjSnapshot } from "@/lib/live-schemas";
@@ -58,10 +59,60 @@ function quoteChartOption(meta: MetaAtivo, quote: QuoteRj, mode: ChartMode) {
     : closeLineOption({ candles, compact: true, cor: meta.cor, refLine });
 }
 
+const TEND_C = {
+  up: { sym: "▲", cor: "#16C784" },
+  flat: { sym: "▬", cor: "#8a93a8" },
+  down: { sym: "▼", cor: "#EA3943" },
+} as const;
+
+function corRep(v: number | null): string {
+  if (v == null) return "var(--m-muted)";
+  if (v >= 60) return "#16C784";
+  if (v >= 45) return "#F5A623";
+  return "#EA3943";
+}
+
+function MiniValor({ label, value, cor }: { label: string; value: number | null; cor: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <span className="m-mono" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: cor }}>
+        {value == null ? "—" : Math.round(value)}
+      </span>
+      <span
+        style={{ fontSize: 7.5, color: "var(--m-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function QuoteTres({ quote }: { quote: QuoteRj }) {
+  const rep = quote.reputacao ?? null;
+  const pos = quote.posicao ?? null;
+  const posCor = pos == null ? "var(--m-muted)" : pos >= 100 ? "#16C784" : "#EA3943";
+  const tend = TEND_C[quote.tendencia ?? "flat"];
+  return (
+    <div style={{ display: "flex", gap: 12, margin: "6px 0 2px", alignItems: "flex-end" }}>
+      <MiniValor label="reput." value={rep} cor={corRep(rep)} />
+      <MiniValor label="vs adv." value={pos} cor={posCor} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <span className="m-mono" style={{ fontSize: 16, fontWeight: 800, lineHeight: 1, color: tend.cor }}>
+          {tend.sym}
+        </span>
+        <span
+          style={{ fontSize: 7.5, color: "var(--m-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}
+        >
+          tend.
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function CompetitorCard({ item, chartMode }: { item: CardAtivo; chartMode: ChartMode }) {
   const { meta, quote, voce } = item;
-  const flash = useFlash(quote.valor);
-  const positivo = quote.variacao24h >= 0;
+  const flash = useFlash(quote.reputacao ?? quote.valor);
   const interno = meta.interno ?? false;
 
   const chartOpt = useMemo(
@@ -95,14 +146,7 @@ function CompetitorCard({ item, chartMode }: { item: CardAtivo; chartMode: Chart
         {meta.nome} ({meta.partido}-RJ)
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "6px 0 2px" }}>
-        <span className="m-quote-val">
-          <Odometer value={quote.valor} decimals={2} />
-        </span>
-        <span className={`m-mono ${positivo ? "m-up-c" : "m-down-c"}`} style={{ fontSize: 11.5, fontWeight: 700 }}>
-          {positivo ? "▲" : "▼"} <Odometer value={quote.variacao24h} decimals={2} signed suffix="%" />
-        </span>
-      </div>
+      <QuoteTres quote={quote} />
 
       <div data-no-swipe onClick={(e) => e.stopPropagation()}>
         <EChart option={chartOpt} height={88} />
@@ -162,6 +206,10 @@ function CompetitorFront() {
         sparkSeguidores: idx.candles30d.slice(-14).map((c) => c.c),
         seguidoresReais: null,
         fonteSeguidores: idx.fontes?.seguidores === "real" ? "real" : "modelado",
+        reputacao: idx.reputacao,
+        posicao: idx.posicao,
+        tendencia: idx.tendencia,
+        ingredientes: idx.ingredientes,
       },
       voce: true,
     };

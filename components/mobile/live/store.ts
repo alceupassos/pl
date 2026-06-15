@@ -168,6 +168,10 @@ function reduceDelta(ch: Channel, prev: unknown, delta: unknown): unknown {
             variacao24h: upd.variacao24h,
             candleVivo: upd.candleVivo,
             sparkSeguidores: [...q.sparkSeguidores.slice(-SPARK_RJ_CAP + 1), upd.sparkLast],
+            reputacao: upd.reputacao,
+            posicao: upd.posicao,
+            tendencia: upd.tendencia,
+            ingredientes: upd.ingredientes,
           };
         }),
       };

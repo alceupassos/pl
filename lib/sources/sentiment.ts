@@ -1,36 +1,65 @@
 // Cliente do sidecar de sentimento (pysentimiento, PT) — ver sidecar/sentiment.
-// Pontua as manchetes reais do Google News e devolve um índice ~100 para
-// idx.sost.breakdown.sentimento. Tudo com fallback: sidecar fora do ar / poucas
-// manchetes → getSentimentoReal() = null → live-mock cai no sintético.
+// Pontua as manchetes reais do Google News (POR CANDIDATO) e devolve um índice
+// ~100. Alimenta idx.sost.breakdown.sentimento e o índice por candidato
+// (lib/index-real.ts → Índice de Reputação). Tudo com fallback: sidecar fora do
+// ar / poucas manchetes → getSentimentoRealFor() = null.
 
-import { getManchetesTexto } from "@/lib/sources/google-news";
+import {
+  getManchetesTextoFor,
+  getPrincipalTermo,
+} from "@/lib/sources/google-news";
 
 const SIDECAR_URL = process.env.SENTIMENT_URL ?? "http://127.0.0.1:8088/sentiment";
 const TTL_MS = 15 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8_000;
 const MIN_TEXTOS = 5;
 
-let cache: { at: number; value: number | null } = { at: 0, value: null };
-let inFlight = false;
+type State = { at: number; value: number | null; inFlight: boolean };
+const byTermo = new Map<string, State>();
 
-/** Índice de sentimento real (~100; >100 = clima favorável). null = sem sinal. */
-export function getSentimentoReal(): number | null {
-  return cache.value;
+function st(termo: string): State {
+  let s = byTermo.get(termo);
+  if (!s) {
+    s = { at: 0, value: null, inFlight: false };
+    byTermo.set(termo, s);
+  }
+  return s;
 }
 
-/** Dispara a pontuação das manchetes no sidecar se o cache venceu. Não bloqueia. */
-export function ensureFreshSentimento(): void {
-  if (inFlight) return;
-  if (Date.now() - cache.at < TTL_MS && cache.value !== null) return;
-  const textos = getManchetesTexto(30);
+/** Índice de sentimento real (~100; >100 = clima favorável) do candidato. */
+export function getSentimentoRealFor(termo: string): number | null {
+  return byTermo.get(termo)?.value ?? null;
+}
+
+/** Pontua as manchetes do candidato no sidecar se o cache venceu. Não bloqueia. */
+export function ensureFreshSentimentoFor(termo: string): void {
+  const s = st(termo);
+  if (s.inFlight) return;
+  if (Date.now() - s.at < TTL_MS && s.value !== null) return;
+  const textos = getManchetesTextoFor(termo, 30);
   if (textos.length < MIN_TEXTOS) return; // espera as manchetes do Google News
-  inFlight = true;
-  void pontuar(textos).finally(() => {
-    inFlight = false;
+  s.inFlight = true;
+  void pontuar(termo, textos).finally(() => {
+    s.inFlight = false;
   });
 }
 
-async function pontuar(textos: string[]): Promise<void> {
+/** Atualiza o sentimento de vários candidatos de uma vez. */
+export function ensureFreshSentimentoAll(termos: string[]): void {
+  for (const termo of termos) if (termo) ensureFreshSentimentoFor(termo);
+}
+
+// ── compat: APIs antigas operam sobre o termo do principal ─────────────────────
+
+export function getSentimentoReal(): number | null {
+  return getSentimentoRealFor(getPrincipalTermo());
+}
+
+export function ensureFreshSentimento(): void {
+  ensureFreshSentimentoFor(getPrincipalTermo());
+}
+
+async function pontuar(termo: string, textos: string[]): Promise<void> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -44,7 +73,9 @@ async function pontuar(textos: string[]): Promise<void> {
       if (!res.ok) return; // sidecar fora do ar → mantém o último bom / null
       const json = (await res.json()) as { indice?: number | null };
       if (typeof json.indice === "number" && Number.isFinite(json.indice)) {
-        cache = { at: Date.now(), value: json.indice };
+        const s = st(termo);
+        s.at = Date.now();
+        s.value = json.indice;
       }
     } finally {
       clearTimeout(timer);

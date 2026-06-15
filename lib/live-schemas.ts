@@ -66,6 +66,32 @@ export const IdxBreakdownSchema = z.object({
 
 const FonteDadoSchema = z.enum(["real", "modelado"]);
 
+/* Índice de Popularidade Digital — 3 valores por candidato (lib/index-real.ts).
+   Reputação = nota de sentimento (0–100); Posição = Score ÷ média × 100 (100 =
+   média do páreo); Tendência = Score agora vs. ~24h atrás. Campos OPCIONAIS para
+   compatibilidade com snapshots antigos. */
+export const CelulaIndiceSchema = z.object({
+  valor: z.number().nullable(),
+  nota: z.number().nullable(),
+  fonte: z.enum(["real", "indisponivel"]),
+});
+export const IngredientesSchema = z.object({
+  mencoes: CelulaIndiceSchema,
+  sentimento: CelulaIndiceSchema,
+  imprensa: CelulaIndiceSchema,
+  seguidores: CelulaIndiceSchema,
+});
+export type Ingredientes = z.infer<typeof IngredientesSchema>;
+
+export const TendenciaSchema = z.enum(["up", "flat", "down"]);
+
+const tresValores = {
+  reputacao: z.number().nullable().optional(),
+  posicao: z.number().nullable().optional(),
+  tendencia: TendenciaSchema.optional(),
+  ingredientes: IngredientesSchema.optional(),
+};
+
 export const IdxSnapshotSchema = z.object({
   valor: z.number(),
   variacaoDia: z.number(), // % vs fechamento de ontem
@@ -81,6 +107,7 @@ export const IdxSnapshotSchema = z.object({
       imprensa: FonteDadoSchema,
     })
     .optional(),
+  ...tresValores,
 });
 export type IdxSnapshot = z.infer<typeof IdxSnapshotSchema>;
 
@@ -90,6 +117,7 @@ export const IdxDeltaSchema = z.object({
   candleVivo: CandleSchema,
   breakdown: IdxBreakdownSchema,
   fontes: IdxSnapshotSchema.shape.fontes,
+  ...tresValores,
 });
 export type IdxDelta = z.infer<typeof IdxDeltaSchema>;
 
@@ -150,6 +178,7 @@ export const QuoteRjSchema = z.object({
   seguidoresReais: z.number().nullable().optional(),
   /** Origem dos seguidores exibidos (controla o badge real/demo do card). */
   fonteSeguidores: FonteDadoSchema.optional(),
+  ...tresValores,
 });
 export type QuoteRj = z.infer<typeof QuoteRjSchema>;
 
@@ -164,6 +193,7 @@ export const QuotesRjDeltaSchema = z.object({
       variacao24h: z.number(),
       candleVivo: CandleSchema,
       sparkLast: z.number(),
+      ...tresValores,
     }),
   ),
 });

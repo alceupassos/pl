@@ -16,11 +16,11 @@ import {
 import type { Channel, Envelope } from "@/lib/live-schemas";
 import { sendPushToAll } from "@/lib/push";
 import { ensureFreshCamara } from "@/lib/sources/camara";
-import { ensureFreshNews, newsAlertasBetween } from "@/lib/sources/google-news";
+import { ensureFreshNews, ensureFreshNewsAll, newsAlertasBetween } from "@/lib/sources/google-news";
 import { ensureFreshPesquisas } from "@/lib/sources/pesquisas";
-import { ensureFreshSentimento } from "@/lib/sources/sentiment";
+import { ensureFreshSentimento, ensureFreshSentimentoAll } from "@/lib/sources/sentiment";
 import { ensureFreshPlenario } from "@/lib/sources/plenario";
-import { ensureFreshTrends } from "@/lib/sources/trends";
+import { ensureFreshTrends, ensureFreshTrendsAll } from "@/lib/sources/trends";
 import { ensureFreshFacebook } from "@/lib/sources/facebook";
 import { ensureFreshInstagram } from "@/lib/sources/instagram";
 import { ensureFreshLinkedin } from "@/lib/sources/linkedin";
@@ -97,10 +97,19 @@ export async function GET(request: NextRequest) {
       write("retry: 3000\n\n");
 
       const watchlist = await readWatchlist();
+      // Termos por candidato (principal + concorrentes RJ) para o índice real
+      // por candidato (lib/index-real.ts): imprensa, sentimento e menções reais.
+      const termosCandidatos = [
+        watchlist.principal.nome,
+        ...watchlist.concorrentes_rj.map((c) => c.nome),
+      ];
       // Dispara as buscas reais já na conexão (cada módulo respeita TTL e dedup
       // entre conexões — é barato): imprensa/manchetes (Google News) e a cota
       // parlamentar (Câmara) que alimenta a aba gastos.
       ensureFreshNews(watchlist.termos);
+      ensureFreshNewsAll(termosCandidatos);
+      ensureFreshSentimentoAll(termosCandidatos);
+      ensureFreshTrendsAll(termosCandidatos);
       ensureFreshCamara();
       ensureFreshYoutubeVideos();
       ensureFreshYoutubeProfiles(youtubeChannelsFromWatchlist(watchlist));
@@ -129,6 +138,9 @@ export async function GET(request: NextRequest) {
 
         // Mantém os feeds reais frescos (cada um só refaz no seu TTL).
         ensureFreshNews(watchlist.termos);
+        ensureFreshNewsAll(termosCandidatos); // imprensa por candidato
+        ensureFreshSentimentoAll(termosCandidatos); // sentimento por candidato
+        ensureFreshTrendsAll(termosCandidatos); // menções por candidato (fila)
         ensureFreshCamara();
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
         ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)

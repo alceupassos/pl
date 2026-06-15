@@ -11,8 +11,14 @@ import { useMemo, useState } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import { candlestickOption, closeLineOption } from "@/components/mobile/m-chart-options";
-import { ChartModeToggle, type ChartMode } from "@/components/mobile/ui/chart-mode-toggle";
+import {
+  candlestickOption,
+  closeLineOption,
+} from "@/components/mobile/m-chart-options";
+import {
+  ChartModeToggle,
+  type ChartMode,
+} from "@/components/mobile/ui/chart-mode-toggle";
 import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
@@ -69,7 +75,14 @@ function MetaRing({
         role="img"
         aria-label={`Meta de eleitores: ${pct.toFixed(0)}% alcançada`}
       >
-        <circle cx={21} cy={21} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={4} />
+        <circle
+          cx={21}
+          cy={21}
+          r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={4}
+        />
         <circle
           cx={21}
           cy={21}
@@ -92,7 +105,10 @@ function MetaRing({
           {pct.toFixed(0)}%
         </text>
       </svg>
-      <span className="m-mono" style={{ fontSize: 7.5, color: "var(--m-muted)", whiteSpace: "nowrap" }}>
+      <span
+        className="m-mono"
+        style={{ fontSize: 7.5, color: "var(--m-muted)", whiteSpace: "nowrap" }}
+      >
         {fmtCompact(alcancado)} / meta {fmtCompact(meta)}
       </span>
     </span>
@@ -142,11 +158,103 @@ function idxTemReal(idx: IdxSnapshot): boolean {
   return Object.values(idx.fontes).some((f) => f === "real");
 }
 
+/* ── Os 3 valores do índice (Reputação · Posição · Tendência) ── */
+function corReputacao(v: number | null): string {
+  if (v == null) return "var(--m-muted)";
+  if (v >= 60) return "#16C784";
+  if (v >= 45) return "#F5A623";
+  return "#EA3943";
+}
+
+const TEND = {
+  up: { sym: "▲", cor: "#16C784", label: "subindo" },
+  flat: { sym: "▬", cor: "#8a93a8", label: "estável" },
+  down: { sym: "▼", cor: "#EA3943", label: "caindo" },
+} as const;
+
+function ValorBloco({
+  label,
+  children,
+  hint,
+  compact,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+      <span
+        className="m-mono"
+        style={{
+          fontSize: compact ? 24 : 30,
+          fontWeight: 800,
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {children}
+      </span>
+      <span
+        style={{
+          fontSize: 8.5,
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: "var(--m-muted)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+        {hint ? <span style={{ opacity: 0.7 }}> · {hint}</span> : null}
+      </span>
+    </div>
+  );
+}
+
+function TresValores({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
+  const rep = idx.reputacao ?? null;
+  const pos = idx.posicao ?? null;
+  const posCor = pos == null ? "var(--m-muted)" : pos >= 100 ? "#16C784" : "#EA3943";
+  const tend = TEND[idx.tendencia ?? "flat"];
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: compact ? 14 : 22,
+        flexWrap: "wrap",
+      }}
+    >
+      <ValorBloco label="reputação" compact={compact}>
+        <span style={{ color: corReputacao(rep) }}>
+          {rep == null ? "—" : <Odometer value={rep} decimals={0} />}
+        </span>
+      </ValorBloco>
+      <ValorBloco label="vs adversários" hint="100 = média" compact={compact}>
+        <span style={{ color: posCor }}>
+          {pos == null ? "—" : <Odometer value={pos} decimals={0} />}
+        </span>
+      </ValorBloco>
+      <ValorBloco label="tendência" compact={compact}>
+        <span style={{ color: tend.cor, fontSize: compact ? 18 : 22 }}>
+          {tend.sym} {tend.label}
+        </span>
+      </ValorBloco>
+    </div>
+  );
+}
+
 function MetaPills({ alcancado }: { alcancado: number }) {
   return (
     <div className="m-meta-pills">
-      <span className="m-pill meta-goal">meta {fmtCompact(META_ELEITORES)}</span>
-      <span className="m-pill meta-goal">alcançado {fmtCompact(alcancado)}</span>
+      <span className="m-pill meta-goal">
+        meta {fmtCompact(META_ELEITORES)}
+      </span>
+      <span className="m-pill meta-goal">
+        alcançado {fmtCompact(alcancado)}
+      </span>
     </div>
   );
 }
@@ -173,12 +281,14 @@ function IdxCompact({
   chartMode: ChartMode;
   onChartMode: (mode: ChartMode) => void;
 }) {
-  const option = useMemo(() => idxChartOption(idx, chartMode, true), [idx, chartMode]);
-  const positivo = idx.variacaoDia >= 0;
+  const option = useMemo(
+    () => idxChartOption(idx, chartMode, true),
+    [idx, chartMode],
+  );
   const cadastrados = equipe?.geral.cadastrados ?? 0;
 
   return (
-    <FlashCard watch={idx.valor} className="m-card-compact">
+    <FlashCard watch={idx.reputacao ?? idx.valor} className="m-card-compact">
       <div className="m-card-head m-card-head-ticker">
         <span className="m-card-title">
           {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
@@ -197,15 +307,13 @@ function IdxCompact({
 
       <div className="m-compact-row">
         <div className="m-compact-main">
-          <div className="m-headline-num">
-            <Odometer value={idx.valor} decimals={2} />
-          </div>
-          <div className={`m-headline-var ${positivo ? "m-up-c" : "m-down-c"}`} style={{ fontSize: 13 }}>
-            {positivo ? "▲" : "▼"}{" "}
-            <Odometer value={idx.variacaoDia} decimals={2} signed suffix="%" /> hoje
-          </div>
+          <TresValores idx={idx} compact />
         </div>
-        <div className="m-compact-chart" data-no-swipe onClick={(e) => e.stopPropagation()}>
+        <div
+          className="m-compact-chart"
+          data-no-swipe
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="m-chart-toolbar">
             <ChartModeToggle mode={chartMode} onChange={onChartMode} />
           </div>
@@ -232,11 +340,14 @@ function IdxFront({
   chartMode: ChartMode;
   onChartMode: (mode: ChartMode) => void;
 }) {
-  const option = useMemo(() => idxChartOption(idx, chartMode, false), [idx, chartMode]);
-  const positivo = idx.variacaoDia >= 0;
+  const option = useMemo(
+    () => idxChartOption(idx, chartMode, false),
+    [idx, chartMode],
+  );
   const cadastrados = equipe?.geral.cadastrados ?? 0;
   // "no ritmo" = cadastros de hoje >= onde a curva linear até out/2026 manda estar.
-  const noRitmo = cadastrados >= previstoPara(agora > 0 ? agora : ELEICAO_MS - 120 * DIA_MS);
+  const noRitmo =
+    cadastrados >= previstoPara(agora > 0 ? agora : ELEICAO_MS - 120 * DIA_MS);
   return (
     <FlashCard watch={idx.valor}>
       <div className="m-card-head">
@@ -250,26 +361,43 @@ function IdxFront({
         />
         <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
         <LiveBadge ch="idx.sost" cadenceMs={2000} />
-        <MetaRing alcancado={cadastrados} meta={META_ELEITORES} noRitmo={noRitmo} />
+        <MetaRing
+          alcancado={cadastrados}
+          meta={META_ELEITORES}
+          noRitmo={noRitmo}
+        />
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <div className="m-headline-num">
-          <Odometer value={idx.valor} decimals={2} />
-        </div>
-        <div className={`m-headline-var ${positivo ? "m-up-c" : "m-down-c"}`}>
-          {positivo ? "▲" : "▼"} <Odometer value={idx.variacaoDia} decimals={2} signed suffix="%" /> hoje
-        </div>
+      <div style={{ margin: "2px 0" }}>
+        <TresValores idx={idx} />
       </div>
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "10px 0 4px" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          flexWrap: "wrap",
+          margin: "10px 0 4px",
+        }}
+      >
         {PARTES.map((p) => {
-          const pesoPct = watchlist ? Math.round(watchlist.pesosIndice[p.key] * 100) : 0;
+          const pesoPct = watchlist
+            ? Math.round(watchlist.pesosIndice[p.key] * 100)
+            : 0;
+          const cel = idx.ingredientes?.[p.key];
+          const real = cel?.fonte === "real";
+          const nota = cel?.nota ?? null;
           return (
-            <InfoTip key={p.key} texto={p.explica(idx.breakdown[p.key], pesoPct)}>
-              <span className="m-pill">
+            <InfoTip
+              key={p.key}
+              texto={p.explica(idx.breakdown[p.key], pesoPct)}
+            >
+              <span className="m-pill" style={{ opacity: real ? 1 : 0.55 }}>
+                <span style={{ color: real ? "#16C784" : "#F5A623" }}>
+                  {real ? "●" : "○"}
+                </span>{" "}
                 {p.label} {watchlist ? `${pesoPct}%` : ""} ·{" "}
-                <Odometer value={idx.breakdown[p.key]} decimals={1} />
+                {nota == null ? "—" : nota.toFixed(0)}
               </span>
             </InfoTip>
           );
@@ -288,7 +416,13 @@ function IdxFront({
 }
 
 /* ── VERSO — explicação + placar da campanha (fusão com equipe) ── */
-function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: number }) {
+function IdxBack({
+  equipe,
+  agora,
+}: {
+  equipe: EquipeSnapshot | null;
+  agora: number;
+}) {
   const g = equipe?.geral;
   const calc = useMemo(() => {
     if (!g) return null;
@@ -296,7 +430,10 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
     const pctMeta = Math.min(100, (g.cadastrados / Math.max(1, g.meta)) * 100);
     const ritmoDia = g.velocidadeMin * 60 * 14; // cadastros/dia (14h de operação)
     const base = agora > 0 ? agora : ELEICAO_MS - 120 * DIA_MS;
-    const diasAteEleicao = Math.max(1, Math.round((ELEICAO_MS - base) / DIA_MS));
+    const diasAteEleicao = Math.max(
+      1,
+      Math.round((ELEICAO_MS - base) / DIA_MS),
+    );
     const projecao = g.cadastrados + ritmoDia * diasAteEleicao;
     const dentro = projecao >= g.meta;
     const diasParaMeta = ritmoDia > 0 ? Math.ceil(faltam / ritmoDia) : null;
@@ -317,7 +454,11 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
       yAxis: {
         type: "value",
         splitLine: { lineStyle: { color: "rgba(255,255,255,0.05)" } },
-        axisLabel: { color: "#8a93a8", fontSize: 9, formatter: (v: number) => `${Math.round(v / 1000)}k` },
+        axisLabel: {
+          color: "#8a93a8",
+          fontSize: 9,
+          formatter: (v: number) => `${Math.round(v / 1000)}k`,
+        },
       },
       series: [
         {
@@ -326,13 +467,20 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
           smooth: true,
           symbol: "none",
           lineStyle: { color: dentro ? "#16C784" : "#EA3943", width: 2 },
-          areaStyle: { color: dentro ? "rgba(22,199,132,0.12)" : "rgba(234,57,67,0.10)" },
+          areaStyle: {
+            color: dentro ? "rgba(22,199,132,0.12)" : "rgba(234,57,67,0.10)",
+          },
           markLine: {
             silent: true,
             symbol: "none",
             data: [{ yAxis: g.meta }],
             lineStyle: { color: "#F5A623", type: "dashed" },
-            label: { formatter: "meta", color: "#F5A623", fontSize: 9, position: "insideEndTop" },
+            label: {
+              formatter: "meta",
+              color: "#F5A623",
+              fontSize: 9,
+              position: "insideEndTop",
+            },
           },
         },
       ],
@@ -345,16 +493,38 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
       <div className="m-card-head">
         <span className="m-card-title">O que é o índice SOST?</span>
       </div>
-      <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: "2px 0 8px", color: "#cfd6e4" }}>
-        É o <strong>termômetro da campanha</strong>: junta 4 sinais num número só, como uma ação na
-        bolsa. <strong>Subiu = candidato em alta.</strong>
+      <p
+        style={{
+          fontSize: 12.5,
+          lineHeight: 1.5,
+          margin: "2px 0 8px",
+          color: "#cfd6e4",
+        }}
+      >
+        É o <strong>termômetro da campanha</strong>: junta 4 sinais num número
+        só, como uma ação na bolsa. <strong>Subiu = candidato em alta.</strong>
       </p>
-      <p style={{ fontSize: 11.5, lineHeight: 1.45, margin: "0 0 8px", color: "var(--m-muted)" }}>
-        Mesma filosofia do <strong>Brandwatch</strong> e de índices de reputação: um número único que
-        resume a imagem pública do candidato — imprensa, sentimento, base online e buzz de busca —
-        para qualquer campanha entender de relance se está ganhando ou perdendo terreno.
+      <p
+        style={{
+          fontSize: 11.5,
+          lineHeight: 1.45,
+          margin: "0 0 8px",
+          color: "var(--m-muted)",
+        }}
+      >
+        Mesma filosofia do <strong>Brandwatch</strong> e de índices de
+        reputação: um número único que resume a imagem pública do candidato —
+        imprensa, sentimento, base online e buzz de busca — para qualquer
+        campanha entender de relance se está ganhando ou perdendo terreno.
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          marginBottom: 10,
+        }}
+      >
         {PARTES.map((p) => (
           <div key={p.key} style={{ fontSize: 11, color: "var(--m-muted)" }}>
             <strong style={{ color: "#cfd6e4" }}>{p.label}</strong> — {p.curto}
@@ -362,14 +532,24 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
         ))}
       </div>
 
-      <div className="m-card-head" style={{ borderTop: "1px solid var(--m-border)", paddingTop: 8 }}>
+      <div
+        className="m-card-head"
+        style={{ borderTop: "1px solid var(--m-border)", paddingTop: 8 }}
+      >
         <span className="m-card-title">Placar da campanha</span>
         <LiveBadge ch="equipe" cadenceMs={2000} />
       </div>
 
       {g && calc ? (
         <>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
             <div className="m-headline-num" style={{ fontSize: 30 }}>
               <Odometer value={g.cadastrados} />
             </div>
@@ -395,7 +575,8 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
             }}
           >
             <span className="m-mono" style={{ fontSize: 11 }}>
-              {calc.pctMeta.toFixed(0)}% · faltam {calc.faltam.toLocaleString("pt-BR")}
+              {calc.pctMeta.toFixed(0)}% · faltam{" "}
+              {calc.faltam.toLocaleString("pt-BR")}
             </span>
             <span className={`m-pill ${calc.dentro ? "up" : "amarelo"}`}>
               {calc.dentro ? "DENTRO DA META ✓" : "FORA DA META ⚠"}
@@ -403,7 +584,10 @@ function IdxBack({ equipe, agora }: { equipe: EquipeSnapshot | null; agora: numb
           </div>
 
           <div style={{ marginTop: 8 }}>
-            <div className="m-muted-c" style={{ fontSize: 10.5, marginBottom: 2 }}>
+            <div
+              className="m-muted-c"
+              style={{ fontSize: 10.5, marginBottom: 2 }}
+            >
               chegada realista de cadastros até outubro
             </div>
             <EChart option={calc.option} height={120} />

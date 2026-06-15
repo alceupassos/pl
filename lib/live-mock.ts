@@ -4,6 +4,7 @@
 // então snapshot-then-delta na reconexão é barato e sempre coerente.
 // Server-only (lê a watchlist do disco via lib/watchlist).
 
+import { computeIndexTable, type LinhaIndice } from "@/lib/index-real";
 import { getRaceTimeline } from "@/lib/mock/races";
 // Builders v2 (equipe/oportunidades/pesquisas/gastos/voz + redes ampliado).
 // Import dinâmico-circular seguro: só usamos as funções em tempo de chamada.
@@ -273,6 +274,17 @@ function concorrenteParams(simbolo: string, votos2022: number | null): SeriesPar
 
 export type MockOptions = { demoVotacao?: boolean };
 
+// Os 3 valores do índice (Reputação · Posição · Tendência) de uma linha da
+// tabela real (lib/index-real.ts), prontos para anexar a IdxSnapshot/QuoteRj.
+function tresValoresDe(l: LinhaIndice | null) {
+  return {
+    reputacao: l?.reputacao ?? null,
+    posicao: l?.posicao ?? null,
+    tendencia: l?.tendencia ?? ("flat" as const),
+    ingredientes: l?.ingredientes,
+  };
+}
+
 export function snapshotIdx(w: Watchlist, now: number): IdxSnapshot {
   const valor = idxValueAt(now, w);
   recordIdxClose(now, valor);
@@ -299,6 +311,9 @@ export function snapshotIdx(w: Watchlist, now: number): IdxSnapshot {
       };
     })(),
     fontes: idxFontes(),
+    ...tresValoresDe(
+      computeIndexTable(w, now).linhas.find((l) => l.voce) ?? null,
+    ),
   };
 }
 
@@ -310,6 +325,10 @@ export function deltaIdx(w: Watchlist, now: number): IdxDelta {
     candleVivo: snap.candleVivo,
     breakdown: snap.breakdown,
     fontes: snap.fontes,
+    reputacao: snap.reputacao,
+    posicao: snap.posicao,
+    tendencia: snap.tendencia,
+    ingredientes: snap.ingredientes,
   };
 }
 
@@ -390,6 +409,8 @@ export function deltaTape(now: number): TapeDelta {
 }
 
 export function snapshotQuotesRj(w: Watchlist, now: number): QuotesRjSnapshot {
+  const tabela = computeIndexTable(w, now);
+  const linhaPor = new Map(tabela.linhas.map((l) => [l.simbolo, l]));
   const quotes: QuoteRj[] = w.concorrentes_rj.map((c) => {
     const p = concorrenteParams(c.simbolo, c.votos2022);
     const vivo = liveCandle(`conc:${c.simbolo}`, now, p);
@@ -409,12 +430,15 @@ export function snapshotQuotesRj(w: Watchlist, now: number): QuotesRjSnapshot {
       ),
       seguidoresReais,
       fonteSeguidores: seguidoresReais != null ? "real" : "modelado",
+      ...tresValoresDe(linhaPor.get(c.simbolo) ?? null),
     };
   });
   return { quotes };
 }
 
 export function deltaQuotesRj(w: Watchlist, now: number): QuotesRjDelta {
+  const tabela = computeIndexTable(w, now);
+  const linhaPor = new Map(tabela.linhas.map((l) => [l.simbolo, l]));
   return {
     quotes: w.concorrentes_rj.map((c) => {
       const p = concorrenteParams(c.simbolo, c.votos2022);
@@ -427,6 +451,7 @@ export function deltaQuotesRj(w: Watchlist, now: number): QuotesRjDelta {
         sparkLast: round1(
           seriesValue(`seg:${c.simbolo}`, now, { base: 100, vol: 0.02, trend: 0.0018, seasonalWeight: 0.02 }),
         ),
+        ...tresValoresDe(linhaPor.get(c.simbolo) ?? null),
       };
     }),
   };

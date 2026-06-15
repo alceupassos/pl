@@ -128,6 +128,30 @@ export default function MobileIndicePage() {
           Cada dia vira um candle (abertura, máxima, mínima, fechamento), igual a um pregão — por
           isso o gráfico de velas no card principal.
         </p>
+        <p style={{ fontSize: 11.5, lineHeight: 1.5, margin: "8px 0 0", color: "var(--m-muted)" }}>
+          O card agora resume tudo em <strong>3 leituras</strong>: <strong>Reputação</strong> (falam
+          bem ou mal — sentimento 0–100), <strong>Posição vs. adversários</strong> (100 = média do
+          páreo) e <strong>Tendência</strong> (▲ ▬ ▼ vs. as últimas 24h). Esses números são reais por
+          candidato.
+        </p>
+        <Link
+          href="/basecalculo"
+          style={{
+            display: "block",
+            marginTop: 10,
+            padding: "9px 12px",
+            borderRadius: 10,
+            border: "1px solid rgba(22,199,132,0.35)",
+            background: "rgba(22,199,132,0.08)",
+            color: "#16C784",
+            fontSize: 12,
+            fontWeight: 700,
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          Ver a base de cálculo · candidato por candidato →
+        </Link>
       </div>
 
       {/* ── como é calculado (vivo) ── */}
