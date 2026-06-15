@@ -9,6 +9,8 @@ export const FONTE_COMO = {
   imprensa: "Google News RSS — volume de matérias sobre o candidato nos últimos dias, normalizado ~100.",
   sentimento: "Sidecar pysentimiento (BERT em PT) sobre manchetes reais do Google News — positivo vs negativo.",
   seguidores: "Sidecar yt-dlp — inscritos do canal oficial do YouTube, sem API key.",
+  seguidoresRede:
+    "Soma dos seguidores reais por rede (Instagram/TikTok/Facebook via Bright Data + YouTube via yt-dlp) dos perfis oficiais na watchlist. Redes sem fonte real entram como modeladas.",
   mencoes: "Sidecar pytrends — interesse de busca no Google Trends (Brasil, 7 dias), normalizado ~100.",
   youtubeVideos: "Sidecar yt-dlp — views, likes e comentários dos últimos vídeos do canal oficial.",
   tiktok: "Bright Data / Kondado / yt-dlp — seguidores e vídeos do perfil TikTok; cache Postgres evita créditos repetidos.",

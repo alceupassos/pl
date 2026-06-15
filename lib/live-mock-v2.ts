@@ -151,6 +151,24 @@ function seguidoresReaisRede(w: Watchlist, simbolo: string, rede: RedeId): numbe
   return null;
 }
 
+/**
+ * Soma os seguidores REAIS de um perfil (principal ou concorrente) em todas as
+ * redes que têm fonte real disponível. Retorna `null` quando nenhuma rede tem
+ * dado real — sinaliza ao chamador que deve cair no sintético/modelado.
+ */
+export function seguidoresReaisTotais(w: Watchlist, simbolo: string): number | null {
+  let total = 0;
+  let temReal = false;
+  for (const rede of REDE_IDS) {
+    const r = seguidoresReaisRede(w, simbolo, rede);
+    if (r != null) {
+      total += r;
+      temReal = true;
+    }
+  }
+  return temReal ? total : null;
+}
+
 function concorrentesDaRede(w: Watchlist, rede: RedeId, now: number): ConcorrenteRede[] {
   const todos = [
     {

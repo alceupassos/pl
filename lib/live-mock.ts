@@ -394,6 +394,10 @@ export function snapshotQuotesRj(w: Watchlist, now: number): QuotesRjSnapshot {
     const p = concorrenteParams(c.simbolo, c.votos2022);
     const vivo = liveCandle(`conc:${c.simbolo}`, now, p);
     const sparkP: SeriesParams = { base: 100, vol: 0.02, trend: 0.0018, seasonalWeight: 0.02 };
+    // Seguidores REAIS por concorrente (IG/TikTok/FB via Bright Data + YouTube
+    // via yt-dlp). A sparkline continua sendo a forma da tendência (~100); o
+    // total real é exibido como número no card e controla o badge real/demo.
+    const seguidoresReais = v2.seguidoresReaisTotais(w, c.simbolo);
     return {
       simbolo: c.simbolo,
       valor: vivo.c,
@@ -403,6 +407,8 @@ export function snapshotQuotesRj(w: Watchlist, now: number): QuotesRjSnapshot {
       sparkSeguidores: Array.from({ length: 14 }, (_, i) =>
         round1(seriesValue(`seg:${c.simbolo}`, now - (13 - i) * DAY, sparkP)),
       ),
+      seguidoresReais,
+      fonteSeguidores: seguidoresReais != null ? "real" : "modelado",
     };
   });
   return { quotes };

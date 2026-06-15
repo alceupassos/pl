@@ -41,6 +41,12 @@ type CardAtivo = {
   voce: boolean;
 };
 
+function fmtSeguidores(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(".", ",")} mi`;
+  if (n >= 1_000) return `${Math.round(n / 1000)}k`;
+  return n.toLocaleString("pt-BR");
+}
+
 function quoteChartOption(meta: MetaAtivo, quote: QuoteRj, mode: ChartMode) {
   const candles = [...quote.candles30d, quote.candleVivo];
   const refLine =
@@ -104,11 +110,17 @@ function CompetitorCard({ item, chartMode }: { item: CardAtivo; chartMode: Chart
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
         <span className="m-muted-c" style={{ fontSize: 9, fontFamily: "var(--m-font-mono)" }}>
-          seguidores 14d
+          seguidores
         </span>
+        {quote.seguidoresReais != null ? (
+          <span className="m-mono" style={{ fontSize: 11, fontWeight: 700 }}>
+            {fmtSeguidores(quote.seguidoresReais)}
+          </span>
+        ) : null}
         <div style={{ flex: 1 }}>
           <EChart option={sparkOpt} height={26} />
         </div>
+        <FonteBadge real={quote.fonteSeguidores === "real"} como={FONTE_COMO.seguidoresRede} />
       </div>
       {meta.votos2022 ? (
         <div className="m-muted-c" style={{ fontSize: 9.5, marginTop: 4, fontFamily: "var(--m-font-mono)" }}>
@@ -148,6 +160,8 @@ function CompetitorFront() {
         candles30d: idx.candles30d,
         candleVivo: idx.candleVivo,
         sparkSeguidores: idx.candles30d.slice(-14).map((c) => c.c),
+        seguidoresReais: null,
+        fonteSeguidores: idx.fontes?.seguidores === "real" ? "real" : "modelado",
       },
       voce: true,
     };
@@ -163,14 +177,20 @@ function CompetitorFront() {
     ? `você ${idx?.valor.toFixed(2)} (${idx?.variacaoDia.toFixed(1)}%); ${cards.length - 1} concorrentes na fita`
     : "";
 
+  // A fita tem dado real quando ao menos um concorrente traz seguidores reais.
+  const fitaReal = useMemo(
+    () => cards.some((c) => c.quote.fonteSeguidores === "real"),
+    [cards],
+  );
+
   return (
     <div className="m-card">
       <div className="m-card-head">
         <span className="m-card-title">Fita de concorrentes · RJ</span>
         <LeituraIA card="ticker-competitor" contexto={ctxIa} titulo="Fita concorrentes" />
         <FonteBadge
-          real={!!idx?.fontes && Object.values(idx.fontes).some((f) => f === "real")}
-          como={`${FONTE_COMO.idxComposto} Base 2022: ${FONTE_COMO.votos2022}`}
+          real={fitaReal}
+          como={`Seguidores: ${FONTE_COMO.seguidoresRede} · Cotação/índice: ${FONTE_COMO.idxComposto}`}
         />
         <ChartModeToggle mode={chartMode} onChange={setChartMode} />
         <LiveBadge ch="quotes.rj" cadenceMs={5000} />

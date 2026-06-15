@@ -146,6 +146,10 @@ export const QuoteRjSchema = z.object({
   candleVivo: CandleSchema,
   /** Sparkline de seguidores (últimos 14 pontos). */
   sparkSeguidores: z.array(z.number()),
+  /** Total de seguidores somando as redes; null quando não há fonte real. */
+  seguidoresReais: z.number().nullable().optional(),
+  /** Origem dos seguidores exibidos (controla o badge real/demo do card). */
+  fonteSeguidores: FonteDadoSchema.optional(),
 });
 export type QuoteRj = z.infer<typeof QuoteRjSchema>;
 
