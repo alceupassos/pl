@@ -48,6 +48,13 @@ export function recordScore(now: number, simbolo: string, score: number): void {
   if (Date.now() - lastWrite >= MIN_WRITE_MS) persist();
 }
 
+/** Série de Score por candidato (cópia) — alimenta os gráficos temporais 3D. */
+export function readScoreSeries(): Record<string, Sample[]> {
+  const out: Record<string, Sample[]> = {};
+  for (const [simbolo, arr] of Object.entries(hist)) out[simbolo] = arr.slice();
+  return out;
+}
+
 /** Score do candidato no instante mais próximo de (alvo), preferindo t <= alvo. */
 export function scoreAt(simbolo: string, alvo: number): number | null {
   const arr = hist[simbolo];

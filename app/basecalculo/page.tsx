@@ -16,6 +16,8 @@ import {
   type Celula,
   type Ingrediente,
 } from "@/lib/index-real";
+import { Showcase3D } from "@/components/basecalculo/showcase-3d";
+import { readScoreSeries } from "@/lib/sources/index-history";
 import { warmIndexSources } from "@/lib/warm-index";
 import { readWatchlist } from "@/lib/watchlist";
 
@@ -78,6 +80,9 @@ export default async function BaseCalculoPage() {
   // Server Component (não é hook): a leitura do relógio é intencional.
   // eslint-disable-next-line react-hooks/purity
   const tabela = computeIndexTable(watchlist, Date.now());
+  const series = readScoreSeries();
+  // eslint-disable-next-line react-hooks/purity
+  const agora = Date.now();
 
   return (
     <main className="log-page">
@@ -101,6 +106,56 @@ export default async function BaseCalculoPage() {
             <span>Média do páreo (Score)</span>
             <strong>{tabela.mediaScore == null ? "—" : tabela.mediaScore.toFixed(1)}</strong>
           </div>
+        </div>
+      </section>
+
+      <section className="log-panel">
+        <Showcase3D
+          linhas={tabela.linhas}
+          pesos={tabela.pesos}
+          mediaScore={tabela.mediaScore}
+          series={series}
+          now={agora}
+        />
+      </section>
+
+      <section className="log-panel">
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#e8ecf4", margin: "0 0 10px" }}>
+          Descritivo de cada dado
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {[
+            { t: "Menções", p: "35%", d: "Atenção pública medida pelas visitas diárias ao artigo do candidato na Wikipedia (pageviews). Índice ~100: ritmo recente vs. a média da janela. Open-source, sem chave." },
+            { t: "Sentimento", p: "30%", d: "Tom das manchetes reais sobre o candidato, classificado por IA em português (pysentimiento/BERT-PT). Acima de 100 = clima favorável; abaixo = adverso. É a base da Reputação." },
+            { t: "Imprensa", p: "15%", d: "Volume de cobertura jornalística (Google News RSS): ritmo de matérias dos últimos dias vs. o normal do candidato. Acima de 100 = em alta na imprensa." },
+            { t: "Seguidores", p: "20%", d: "Base real somando as redes (Instagram, TikTok, Facebook, X, YouTube) via BrightData/yt-dlp. Mede o tamanho da audiência própria." },
+            { t: "Score", p: "nota composta", d: "0–100 = soma das notas de cada pilar multiplicadas pelos pesos, renormalizada sobre os ingredientes com dado real." },
+            { t: "Reputação", p: "= sentimento", d: "É a nota de sentimento (0–100): responde 'falam bem ou mal de nós?'. 50 = na média do páreo." },
+            { t: "Posição", p: "100 = média", d: "Score ÷ média dos Scores × 100. Acima de 100 = à frente dos adversários; abaixo = atrás." },
+            { t: "Tendência", p: "24h", d: "Compara o Score de agora com o de ~24h atrás: ▲ subindo, ▬ estável, ▼ caindo." },
+          ].map((item) => (
+            <div
+              key={item.t}
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12,
+                padding: "12px 14px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                <strong style={{ color: "#e8ecf4", fontSize: 14 }}>{item.t}</strong>
+                <span style={{ color: "#7fb0ff", fontSize: 11, fontWeight: 700 }}>{item.p}</span>
+              </div>
+              <p style={{ color: "#9aa3b8", fontSize: 12, lineHeight: 1.55, margin: "6px 0 0" }}>{item.d}</p>
+            </div>
+          ))}
         </div>
       </section>
 
