@@ -62,13 +62,7 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
     e.preventDefault();
     setErro("");
 
-    if (
-      !nome.trim() ||
-      !cidade.trim() ||
-      !uf ||
-      !situacao ||
-      !whatsapp.trim()
-    ) {
+    if (!nome.trim() || !whatsapp.trim() || !email.trim()) {
       setErro("Preencha os campos obrigatórios (*).");
       return;
     }
@@ -89,6 +83,7 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
           email,
           pergunta,
         }),
+        signal: AbortSignal.timeout(12000),
       });
 
       if (!res.ok) throw new Error("Falha ao salvar");
@@ -230,7 +225,7 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
               gap: 10,
             }}
           >
-            <Field label="Cidade *">
+            <Field label="Cidade">
               <input
                 type="text"
                 autoComplete="address-level2"
@@ -239,7 +234,7 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
                 onChange={(e) => setCidade(e.target.value)}
               />
             </Field>
-            <Field label="Estado *">
+            <Field label="Estado">
               <select value={uf} onChange={(e) => setUf(e.target.value)}>
                 <option value="">UF</option>
                 {UF_LIST.map((u) => (
@@ -251,7 +246,7 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
             </Field>
           </div>
 
-          <Field label="Sua situação *">
+          <Field label="Sua situação">
             <div
               style={{
                 display: "flex",
@@ -303,11 +298,11 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
             />
           </Field>
 
-          <Field label="E-mail">
+          <Field label="E-mail *">
             <input
               type="email"
               autoComplete="email"
-              placeholder="seu@email.com (opcional)"
+              placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

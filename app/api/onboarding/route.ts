@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     typeof body?.pergunta === "string" ? body.pergunta.trim() : "";
   const uid = typeof body?.uid === "string" ? body.uid.trim() : "";
 
-  if (!nome || !cidade || !whatsapp) {
+  if (!nome || !whatsapp || !email) {
     return NextResponse.json(
       { saved: false, error: "missing_required_fields" },
       { status: 400, headers: { "Cache-Control": "no-store" } },
