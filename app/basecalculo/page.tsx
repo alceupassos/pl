@@ -166,10 +166,10 @@ export default async function BaseCalculoPage() {
           </table>
         </div>
         <p style={{ color: "#5b6478", fontSize: 11.5, marginTop: 12 }}>
-          Incremental: <strong>engajamento</strong> (curtidas/comentários) e{" "}
-          <strong>crescimento</strong> de seguidores entram como novas colunas e pesos quando a
-          coleta estiver pronta. Menções dependem do Google Trends (fila com espaçamento) — vão
-          preenchendo aos poucos.
+          Fontes reais (open-source): imprensa = Google News, sentimento = pysentimiento (BERT-PT)
+          nas manchetes, <strong>menções = visitas ao artigo na Wikipedia</strong> (pageviews),
+          seguidores = BrightData/YouTube. Incremental: <strong>engajamento</strong> e{" "}
+          <strong>crescimento</strong> entram como novas colunas/pesos quando a coleta estiver pronta.
         </p>
       </section>
     </main>

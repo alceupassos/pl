@@ -20,7 +20,8 @@ import { ensureFreshNews, ensureFreshNewsAll, newsAlertasBetween } from "@/lib/s
 import { ensureFreshPesquisas } from "@/lib/sources/pesquisas";
 import { ensureFreshSentimento, ensureFreshSentimentoAll } from "@/lib/sources/sentiment";
 import { ensureFreshPlenario } from "@/lib/sources/plenario";
-import { ensureFreshTrends, ensureFreshTrendsAll } from "@/lib/sources/trends";
+import { ensureFreshTrends } from "@/lib/sources/trends";
+import { ensureFreshWikiMencoesAll } from "@/lib/sources/wikipedia-mentions";
 import { ensureFreshFacebook } from "@/lib/sources/facebook";
 import { ensureFreshInstagram } from "@/lib/sources/instagram";
 import { ensureFreshLinkedin } from "@/lib/sources/linkedin";
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
       ensureFreshNews(watchlist.termos);
       ensureFreshNewsAll(termosCandidatos);
       ensureFreshSentimentoAll(termosCandidatos);
-      ensureFreshTrendsAll(termosCandidatos);
+      ensureFreshWikiMencoesAll(termosCandidatos);
       ensureFreshCamara();
       ensureFreshYoutubeVideos();
       ensureFreshYoutubeProfiles(youtubeChannelsFromWatchlist(watchlist));
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
         ensureFreshNews(watchlist.termos);
         ensureFreshNewsAll(termosCandidatos); // imprensa por candidato
         ensureFreshSentimentoAll(termosCandidatos); // sentimento por candidato
-        ensureFreshTrendsAll(termosCandidatos); // menções por candidato (fila)
+        ensureFreshWikiMencoesAll(termosCandidatos); // menções por candidato (Wikipedia)
         ensureFreshCamara();
         ensureFreshSentimento(); // pontua as manchetes do Google News no sidecar
         ensureFreshYoutube(); // inscritos do YouTube (yt-dlp via sidecar)

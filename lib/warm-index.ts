@@ -12,12 +12,12 @@
 
 import { ensureFreshNewsAll } from "@/lib/sources/google-news";
 import { ensureFreshSentimentoAll } from "@/lib/sources/sentiment";
-import { ensureFreshTrendsAll } from "@/lib/sources/trends";
+import { ensureFreshWikiMencoesAll } from "@/lib/sources/wikipedia-mentions";
 import type { Watchlist } from "@/lib/watchlist";
 
 export function warmIndexSources(w: Watchlist): void {
   const termos = [w.principal.nome, ...w.concorrentes_rj.map((c) => c.nome)];
   ensureFreshNewsAll(termos); // imprensa + manchetes por candidato (Node, sem sidecar)
   ensureFreshSentimentoAll(termos); // sentimento por candidato (sidecar pysentimiento)
-  ensureFreshTrendsAll(termos); // menções por candidato (sidecar pytrends, fila espaçada)
+  ensureFreshWikiMencoesAll(termos); // menções por candidato (Wikipedia pageviews, Node)
 }

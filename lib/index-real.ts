@@ -19,7 +19,9 @@
 import { getNewsImprensaFor } from "@/lib/sources/google-news";
 import { recordScore, scoreAt } from "@/lib/sources/index-history";
 import { getSentimentoRealFor } from "@/lib/sources/sentiment";
-import { getMencoesRealFor } from "@/lib/sources/trends";
+// Menções = atenção pública via Wikipedia pageviews (open-source, por candidato).
+// Substitui o Google Trends, que devolve vazio para nomes pouco buscados.
+import { getWikiMencoesFor } from "@/lib/sources/wikipedia-mentions";
 import { seguidoresReaisTotais } from "@/lib/live-mock-v2";
 import type { Watchlist } from "@/lib/watchlist";
 
@@ -66,7 +68,7 @@ function round1(v: number): number {
 function valorReal(w: Watchlist, simbolo: string, nome: string, ing: Ingrediente): number | null {
   switch (ing) {
     case "mencoes":
-      return getMencoesRealFor(nome);
+      return getWikiMencoesFor(nome);
     case "sentimento":
       return getSentimentoRealFor(nome);
     case "imprensa":
