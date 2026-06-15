@@ -7,18 +7,10 @@
 // de outubro/2026. Índice e meta no mesmo card.
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import {
-  candlestickOption,
-  closeLineOption,
-} from "@/components/mobile/m-chart-options";
-import {
-  ChartModeToggle,
-  type ChartMode,
-} from "@/components/mobile/ui/chart-mode-toggle";
+import { Bars3D, Gauge3D, SparkDepth } from "@/components/mobile/ui/fx3d";
 import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
@@ -259,32 +251,33 @@ function MetaPills({ alcancado }: { alcancado: number }) {
   );
 }
 
-/* ── COMPACTO — layout main.jpeg: header + número + candlestick ao lado ── */
-function idxChartOption(idx: IdxSnapshot, mode: ChartMode, compact: boolean) {
-  const candles = [...idx.candles30d, idx.candleVivo];
-  const cor = "#16C784";
-  return mode === "candle"
-    ? candlestickOption({ candles, compact })
-    : closeLineOption({ candles, compact, cor });
+/* ── dados para as mini-visualizações 3D (fx3d) ── */
+const PILAR_COR: Record<keyof IdxSnapshot["breakdown"], string> = {
+  mencoes: "#3b82f6",
+  sentimento: "#22c55e",
+  imprensa: "#f0c030",
+  seguidores: "#a855f7",
+};
+function barsFromIdx(idx: IdxSnapshot) {
+  return PARTES.map((p) => ({
+    label: p.label,
+    nota: idx.ingredientes?.[p.key]?.nota ?? null,
+    cor: PILAR_COR[p.key],
+  }));
+}
+function closesFromIdx(idx: IdxSnapshot): number[] {
+  return [...idx.candles30d, idx.candleVivo].map((c) => c.c);
 }
 
 function IdxCompact({
   idx,
   watchlist,
   equipe,
-  chartMode,
-  onChartMode,
 }: {
   idx: IdxSnapshot;
   watchlist: Watchlist | null;
   equipe: EquipeSnapshot | null;
-  chartMode: ChartMode;
-  onChartMode: (mode: ChartMode) => void;
 }) {
-  const option = useMemo(
-    () => idxChartOption(idx, chartMode, true),
-    [idx, chartMode],
-  );
   const cadastrados = equipe?.geral.cadastrados ?? 0;
 
   return (
@@ -313,11 +306,9 @@ function IdxCompact({
           className="m-compact-chart"
           data-no-swipe
           onClick={(e) => e.stopPropagation()}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          <div className="m-chart-toolbar">
-            <ChartModeToggle mode={chartMode} onChange={onChartMode} />
-          </div>
-          <EChart option={option} height={72} />
+          <Gauge3D valor={idx.reputacao ?? null} label="reputação" cor={corReputacao(idx.reputacao ?? null)} size={94} />
         </div>
       </div>
     </FlashCard>
@@ -330,20 +321,12 @@ function IdxFront({
   watchlist,
   equipe,
   agora,
-  chartMode,
-  onChartMode,
 }: {
   idx: IdxSnapshot;
   watchlist: Watchlist | null;
   equipe: EquipeSnapshot | null;
   agora: number;
-  chartMode: ChartMode;
-  onChartMode: (mode: ChartMode) => void;
 }) {
-  const option = useMemo(
-    () => idxChartOption(idx, chartMode, false),
-    [idx, chartMode],
-  );
   const cadastrados = equipe?.geral.cadastrados ?? 0;
   // "no ritmo" = cadastros de hoje >= onde a curva linear até out/2026 manda estar.
   const noRitmo =
@@ -404,11 +387,19 @@ function IdxFront({
         })}
       </div>
 
-      <div data-no-swipe onClick={(e) => e.stopPropagation()}>
-        <div className="m-chart-toolbar">
-          <ChartModeToggle mode={chartMode} onChange={onChartMode} />
+      <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ marginTop: 4 }}>
+        <div className="m-muted-c" style={{ fontSize: 10, marginBottom: 2 }}>
+          pilares · nota 0–100 (z-score vs. páreo)
         </div>
-        <EChart option={option} height={172} />
+        <Bars3D notas={barsFromIdx(idx)} height={150} />
+        <div className="m-muted-c" style={{ fontSize: 10, margin: "8px 0 2px" }}>
+          trajetória do índice · 30 dias
+        </div>
+        <SparkDepth
+          valores={closesFromIdx(idx)}
+          cor={idx.variacaoDia >= 0 ? "#16C784" : "#EA3943"}
+          height={110}
+        />
       </div>
       <div className="m-flip-hint">↻ toque para entender o índice e a meta</div>
     </FlashCard>
@@ -441,51 +432,7 @@ function IdxBack({
     const pts = Array.from({ length: 9 }, (_, i) =>
       Math.round(g.cadastrados + ritmoDia * diasAteEleicao * (i / 8)),
     );
-    const option = {
-      backgroundColor: "transparent",
-      grid: { left: 4, right: 10, top: 14, bottom: 16, containLabel: true },
-      xAxis: {
-        type: "category",
-        data: pts.map((_, i) => (i === 0 ? "hoje" : i === 8 ? "out" : "")),
-        axisTick: { show: false },
-        axisLine: { lineStyle: { color: "#2a3346" } },
-        axisLabel: { color: "#8a93a8", fontSize: 9 },
-      },
-      yAxis: {
-        type: "value",
-        splitLine: { lineStyle: { color: "rgba(255,255,255,0.05)" } },
-        axisLabel: {
-          color: "#8a93a8",
-          fontSize: 9,
-          formatter: (v: number) => `${Math.round(v / 1000)}k`,
-        },
-      },
-      series: [
-        {
-          type: "line",
-          data: pts,
-          smooth: true,
-          symbol: "none",
-          lineStyle: { color: dentro ? "#16C784" : "#EA3943", width: 2 },
-          areaStyle: {
-            color: dentro ? "rgba(22,199,132,0.12)" : "rgba(234,57,67,0.10)",
-          },
-          markLine: {
-            silent: true,
-            symbol: "none",
-            data: [{ yAxis: g.meta }],
-            lineStyle: { color: "#F5A623", type: "dashed" },
-            label: {
-              formatter: "meta",
-              color: "#F5A623",
-              fontSize: 9,
-              position: "insideEndTop",
-            },
-          },
-        },
-      ],
-    };
-    return { faltam, pctMeta, ritmoDia, dentro, diasParaMeta, option };
+    return { faltam, pctMeta, ritmoDia, dentro, diasParaMeta, pts };
   }, [g, agora]);
 
   return (
@@ -590,7 +537,11 @@ function IdxBack({
             >
               chegada realista de cadastros até outubro
             </div>
-            <EChart option={calc.option} height={120} />
+            <SparkDepth
+              valores={calc.pts}
+              cor={calc.dentro ? "#16C784" : "#EA3943"}
+              height={120}
+            />
           </div>
 
           <SectionLeitura>
@@ -630,7 +581,6 @@ export function SostIdxCard() {
   const idx = useLiveChannel<IdxSnapshot>("idx.sost").data;
   const watchlist = useLiveChannel<Watchlist>("watchlist").data;
   const equipe = useLiveChannel<EquipeSnapshot>("equipe");
-  const [chartMode, setChartMode] = useState<ChartMode>("candle");
 
   if (!idx) {
     return (
@@ -646,13 +596,7 @@ export function SostIdxCard() {
     <ExpandFlipCard
       glow={glow}
       compact={
-        <IdxCompact
-          idx={idx}
-          watchlist={watchlist}
-          equipe={equipe.data}
-          chartMode={chartMode}
-          onChartMode={setChartMode}
-        />
+        <IdxCompact idx={idx} watchlist={watchlist} equipe={equipe.data} />
       }
       front={
         <IdxFront
@@ -660,8 +604,6 @@ export function SostIdxCard() {
           watchlist={watchlist}
           equipe={equipe.data}
           agora={equipe.lastAt}
-          chartMode={chartMode}
-          onChartMode={setChartMode}
         />
       }
       back={<IdxBack equipe={equipe.data} agora={equipe.lastAt} />}

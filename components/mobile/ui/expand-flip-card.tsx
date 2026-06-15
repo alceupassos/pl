@@ -34,7 +34,11 @@ export function ExpandFlipCard({
     <div className={`m-spin-wrap ${glowClass}`.trim()}>
       <div className="m-spin-inner">
         <div className="m-flip-wrap">
-          <div className={`m-flip${virado ? " virado" : ""}`} data-no-swipe>
+          <div
+            className={`m-flip${virado ? " virado" : ""}`}
+            data-phase={phase}
+            data-no-swipe
+          >
             <div className="m-flip-inner">
               <div
                 className="m-flip-face m-flip-front"

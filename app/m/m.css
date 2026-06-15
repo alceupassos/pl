@@ -10,7 +10,7 @@
 html:has(.m-app:not(.m-embed)),
 body:has(.m-app:not(.m-embed)) {
   height: auto !important;
-  overflow-x: hidden !important;
+  overflow-x: clip !important; /* clip (não hidden) — não cria stacking context que bloqueia carrosséis iOS */
   overflow-y: auto !important;
   background: #0b0e14 !important;
   overscroll-behavior-y: contain;
@@ -22,10 +22,10 @@ body:has(.m-app:not(.m-embed)) {
   --m-card: #121724;
   --m-card-2: #0e1320;
   --m-border: #1e2638;
-  --m-up: #16c784;
-  --m-down: #ea3943;
-  --m-warn: #f5a623;
-  --m-accent: #1a4fa0; /* azul PL do projeto */
+  --m-up: #0ecb81;
+  --m-down: #cf3d45;
+  --m-warn: #9b7a2e;
+  --m-accent: #2a5fbd;
   --m-text: #e8ecf4;
   --m-muted: #8a93a8;
   --m-tab-h: 58px;
@@ -51,7 +51,9 @@ body:has(.m-app:not(.m-embed)) {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   /* reserva tabbar + rodapé do aviso legal (--m-legal-h) acima dela */
-  padding-bottom: calc(var(--m-tab-h) + var(--m-legal-h) + env(safe-area-inset-bottom));
+  padding-bottom: calc(
+    var(--m-tab-h) + var(--m-legal-h) + env(safe-area-inset-bottom)
+  );
 }
 .m-app *,
 .m-app *::before,
@@ -96,10 +98,18 @@ body:has(.m-app:not(.m-embed)) {
   font-family: var(--m-font-mono);
   font-variant-numeric: tabular-nums;
 }
-.m-up-c { color: var(--m-up); }
-.m-down-c { color: var(--m-down); }
-.m-warn-c { color: var(--m-warn); }
-.m-muted-c { color: var(--m-muted); }
+.m-up-c {
+  color: var(--m-up);
+}
+.m-down-c {
+  color: var(--m-down);
+}
+.m-warn-c {
+  color: var(--m-warn);
+}
+.m-muted-c {
+  color: var(--m-muted);
+}
 
 /* ── cards ── */
 .m-card {
@@ -109,7 +119,9 @@ body:has(.m-app:not(.m-embed)) {
   padding: 14px;
   position: relative;
 }
-.m-card + .m-card { margin-top: 10px; }
+.m-card + .m-card {
+  margin-top: 10px;
+}
 .m-card-head {
   display: flex;
   align-items: center;
@@ -127,20 +139,45 @@ body:has(.m-app:not(.m-embed)) {
 
 /* flash de borda 300ms na direção do dado novo (padrão trading app) */
 @keyframes m-flash-up {
-  0% { border-color: var(--m-up); box-shadow: 0 0 0 1px var(--m-up), 0 0 18px -6px var(--m-up); }
-  100% { border-color: var(--m-border); box-shadow: none; }
+  0% {
+    border-color: var(--m-up);
+    box-shadow:
+      0 0 0 1px var(--m-up),
+      0 0 18px -6px var(--m-up);
+  }
+  100% {
+    border-color: var(--m-border);
+    box-shadow: none;
+  }
 }
 @keyframes m-flash-down {
-  0% { border-color: var(--m-down); box-shadow: 0 0 0 1px var(--m-down), 0 0 18px -6px var(--m-down); }
-  100% { border-color: var(--m-border); box-shadow: none; }
+  0% {
+    border-color: var(--m-down);
+    box-shadow:
+      0 0 0 1px var(--m-down),
+      0 0 18px -6px var(--m-down);
+  }
+  100% {
+    border-color: var(--m-border);
+    box-shadow: none;
+  }
 }
-.m-flash-up { animation: m-flash-up 0.3s ease-out; }
-.m-flash-down { animation: m-flash-down 0.3s ease-out; }
+.m-flash-up {
+  animation: m-flash-up 0.3s ease-out;
+}
+.m-flash-down {
+  animation: m-flash-down 0.3s ease-out;
+}
 
 /* ── AO VIVO / stale ── */
 @keyframes m-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
 }
 .m-live {
   display: inline-flex;
@@ -162,7 +199,7 @@ body:has(.m-app:not(.m-embed)) {
   flex-shrink: 0;
 }
 .m-live.stale i {
-  background: var(--m-warn);
+  background: var(--m-muted);
   animation: none;
 }
 
@@ -194,8 +231,12 @@ body:has(.m-app:not(.m-embed)) {
   white-space: nowrap;
 }
 @keyframes m-tape-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 .m-tape-track > span {
   display: inline-block;
@@ -203,8 +244,12 @@ body:has(.m-app:not(.m-embed)) {
   font-size: 12px;
   will-change: transform;
 }
-.m-tape-track:active > span { animation-play-state: paused; }
-.m-tape-item { padding-right: 28px; }
+.m-tape-track:active > span {
+  animation-play-state: paused;
+}
+.m-tape-item {
+  padding-right: 28px;
+}
 .m-tape-item .selo {
   font-family: var(--m-font-mono);
   font-size: 10px;
@@ -227,12 +272,41 @@ body:has(.m-app:not(.m-embed)) {
   color: var(--m-muted);
   white-space: nowrap;
 }
-.m-pill.interno { color: var(--m-accent); border-color: rgba(59, 130, 246, 0.45); background: rgba(59, 130, 246, 0.08); color: #7fb0ff; }
-.m-pill.externo { color: var(--m-warn); border-color: rgba(245, 166, 35, 0.4); background: rgba(245, 166, 35, 0.07); }
-.m-pill.up { color: var(--m-up); border-color: rgba(22, 199, 132, 0.4); background: rgba(22, 199, 132, 0.08); }
-.m-pill.down { color: var(--m-down); border-color: rgba(234, 57, 67, 0.4); background: rgba(234, 57, 67, 0.08); }
-.m-pill.vermelho { color: #ff8d94; border-color: rgba(234, 57, 67, 0.5); background: rgba(234, 57, 67, 0.12); }
-.m-pill.amarelo { color: var(--m-warn); border-color: rgba(245, 166, 35, 0.5); background: rgba(245, 166, 35, 0.1); }
+.m-pill.interno {
+  color: #7fb0ff;
+  border-color: rgba(42, 95, 189, 0.35);
+  background: rgba(42, 95, 189, 0.08);
+}
+.m-pill.externo {
+  color: var(--m-muted);
+  border-color: var(--m-border);
+  background: rgba(58, 66, 87, 0.35);
+}
+.m-pill.up {
+  color: var(--m-up);
+  border-color: rgba(14, 203, 129, 0.35);
+  background: rgba(14, 203, 129, 0.07);
+}
+.m-pill.down {
+  color: var(--m-down);
+  border-color: rgba(207, 61, 69, 0.35);
+  background: rgba(207, 61, 69, 0.07);
+}
+.m-pill.vermelho {
+  color: var(--m-down);
+  border-color: rgba(207, 61, 69, 0.35);
+  background: rgba(207, 61, 69, 0.07);
+}
+.m-pill.amarelo {
+  color: var(--m-muted);
+  border-color: var(--m-border);
+  background: rgba(58, 66, 87, 0.35);
+}
+.m-pill.neutro {
+  color: var(--m-muted);
+  border-color: var(--m-border);
+  background: rgba(58, 66, 87, 0.35);
+}
 
 /* ── tooltip explicativo (hover no desktop, tap no mobile) ── */
 .m-tip {
@@ -241,7 +315,9 @@ body:has(.m-app:not(.m-embed)) {
   cursor: help;
 }
 /* dica visual de que há explicação: sublinhado pontilhado sutil */
-.m-tip > .m-pill { border-bottom-style: dashed; }
+.m-tip > .m-pill {
+  border-bottom-style: dashed;
+}
 .m-tip-pop {
   visibility: hidden;
   opacity: 0;
@@ -301,6 +377,26 @@ body:has(.m-app:not(.m-embed)) {
 .m-flip-front {
   position: relative;
   cursor: pointer;
+}
+/* morfose 3D ao expandir (compacto → expandido): entra com leve giro/zoom */
+.m-flip[data-phase="expanded"] .m-flip-front {
+  animation: m-morph-in 380ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-origin: center top;
+}
+@keyframes m-morph-in {
+  0% {
+    opacity: 0.45;
+    transform: perspective(1200px) rotateX(10deg) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1200px) rotateX(0deg) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .m-flip[data-phase="expanded"] .m-flip-front {
+    animation: none;
+  }
 }
 .m-flip-back {
   position: absolute;
@@ -438,7 +534,11 @@ body:has(.m-app:not(.m-embed)) {
   flex-shrink: 0;
   border-radius: 8px;
   border: 1px solid rgba(196, 181, 253, 0.45);
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.12));
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.22),
+    rgba(59, 130, 246, 0.12)
+  );
   color: #e9d5ff;
   cursor: pointer;
   padding: 0;
@@ -451,12 +551,17 @@ body:has(.m-app:not(.m-embed)) {
   transform: scale(0.94);
 }
 @keyframes m-ia-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.5), 0 0 10px rgba(168, 85, 247, 0.25);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(168, 85, 247, 0.5),
+      0 0 10px rgba(168, 85, 247, 0.25);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 0 7px rgba(168, 85, 247, 0), 0 0 16px rgba(168, 85, 247, 0.55);
+    box-shadow:
+      0 0 0 7px rgba(168, 85, 247, 0),
+      0 0 16px rgba(168, 85, 247, 0.55);
     transform: scale(1.09);
   }
 }
@@ -654,8 +759,20 @@ body:has(.m-app:not(.m-embed)) {
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
 }
 .m-tabbar::-webkit-scrollbar {
   display: none;
@@ -676,10 +793,17 @@ body:has(.m-app:not(.m-embed)) {
   position: relative;
   transition: color 0.15s;
 }
-.m-tab svg { width: 19px; height: 19px; }
+.m-tab svg {
+  width: 19px;
+  height: 19px;
+}
 .m-tab.active {
   color: var(--m-up);
-  background: radial-gradient(120% 100% at 50% 0%, rgba(22, 199, 132, 0.14), transparent 70%);
+  background: radial-gradient(
+    120% 100% at 50% 0%,
+    rgba(22, 199, 132, 0.14),
+    transparent 70%
+  );
   position: relative;
 }
 .m-tab.active::before {
@@ -692,7 +816,9 @@ body:has(.m-app:not(.m-embed)) {
   border-radius: 0 0 3px 3px;
   background: var(--m-up);
 }
-.m-tab:active { transform: scale(0.94); }
+.m-tab:active {
+  transform: scale(0.94);
+}
 .m-tab-badge {
   position: absolute;
   top: 2px;
@@ -731,7 +857,7 @@ body:has(.m-app:not(.m-embed)) {
   flex-shrink: 0;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  overflow-y: auto;
+  overflow-y: scroll; /* scroll (não auto) força contexto de scroll vertical no iOS */
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   padding: 12px 12px 24px;
@@ -774,12 +900,20 @@ body:has(.m-app:not(.m-embed)) {
   margin: 0 -2px;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  -webkit-transform: translateZ(
+    0
+  ); /* GPU layer no Safari — resolve scroll nested */
+  will-change: transform;
   scrollbar-width: none;
 }
-.m-carousel::-webkit-scrollbar { display: none; }
+.m-carousel::-webkit-scrollbar {
+  display: none;
+}
 .m-quote-card {
   scroll-snap-align: start;
   flex: 0 0 244px;
+  min-width: 244px; /* garante largura no iOS quando flexbox colapsa */
   background: var(--m-card);
   border: 1px solid var(--m-border);
   border-radius: 14px;
@@ -821,13 +955,21 @@ body:has(.m-app:not(.m-embed)) {
   padding: 9px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.045);
 }
-.m-row:last-child { border-bottom: none; }
+.m-row:last-child {
+  border-bottom: none;
+}
 .m-feed-item {
   padding: 11px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.045);
 }
-.m-feed-item:last-child { border-bottom: none; }
-.m-feed-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.m-feed-item:last-child {
+  border-bottom: none;
+}
+.m-feed-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
 .m-feed-meta {
   display: flex;
   align-items: center;
@@ -880,15 +1022,22 @@ body:has(.m-app:not(.m-embed)) {
   border: 1px solid var(--m-border);
   background: var(--m-card);
   color: var(--m-text);
-  transition: border-color 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
 }
-.m-btn:active { transform: scale(0.97); }
+.m-btn:active {
+  transform: scale(0.97);
+}
 .m-btn.primary {
   background: rgba(22, 199, 132, 0.12);
   border-color: rgba(22, 199, 132, 0.45);
   color: var(--m-up);
 }
-.m-btn svg { width: 15px; height: 15px; }
+.m-btn svg {
+  width: 15px;
+  height: 15px;
+}
 
 /* ── pull-to-refresh ── */
 .m-ptr {
@@ -963,8 +1112,12 @@ body:has(.m-app:not(.m-embed)) {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .m-live i { animation: none; }
-  .m-tape-track > span { animation: none; }
+  .m-live i {
+    animation: none;
+  }
+  .m-tape-track > span {
+    animation: none;
+  }
 }
 
 /* ── aviso legal: rodapé discreto fixo acima da tabbar + corpo do modal ── */
@@ -1006,11 +1159,15 @@ body:has(.m-app:not(.m-embed)) {
   text-underline-offset: 2px;
   cursor: pointer;
 }
-.m-legal-link:active { opacity: 0.7; }
+.m-legal-link:active {
+  opacity: 0.7;
+}
 .m-legal-body p {
   margin: 0 0 10px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--m-text);
 }
-.m-legal-body p:last-child { margin-bottom: 0; }
+.m-legal-body p:last-child {
+  margin-bottom: 0;
+}
