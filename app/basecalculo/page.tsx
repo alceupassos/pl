@@ -81,8 +81,6 @@ export default async function BaseCalculoPage() {
   // eslint-disable-next-line react-hooks/purity
   const tabela = computeIndexTable(watchlist, Date.now());
   const series = readScoreSeries();
-  // eslint-disable-next-line react-hooks/purity
-  const agora = Date.now();
 
   return (
     <main className="log-page">
@@ -115,7 +113,6 @@ export default async function BaseCalculoPage() {
           pesos={tabela.pesos}
           mediaScore={tabela.mediaScore}
           series={series}
-          now={agora}
         />
       </section>
 
