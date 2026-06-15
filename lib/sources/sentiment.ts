@@ -14,7 +14,11 @@ import {
 
 const SIDECAR_URL = process.env.SENTIMENT_URL ?? "http://127.0.0.1:8088/sentiment";
 const TTL_MS = 15 * 60 * 1000;
-const FETCH_TIMEOUT_MS = 8_000;
+// O sidecar pysentimiento carrega o modelo BERT-PT (~16-20s) na 1ª chamada após
+// boot; um timeout curto abortava o load antes de terminar e o sentimento nunca
+// preenchia. 60s cobre o cold load — depois o modelo fica em memória e responde
+// rápido. O fetch é fire-and-forget (não bloqueia o tick do SSE).
+const FETCH_TIMEOUT_MS = 60_000;
 const MIN_TEXTOS = 5;
 const CACHE_FILE = join(process.cwd(), "data", "sentiment-cache.json");
 
