@@ -31,32 +31,81 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { TAB_IDS, type TabId } from "@/components/mobile/tabs";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
+import { OnboardingModal } from "@/components/mobile/ui/onboarding-modal";
 import { logClientAccess } from "@/lib/log-client-access";
 import type { PlenarioState } from "@/lib/live-schemas";
 
 const ghost = () => <div className="m-ghost">carregando módulo…</div>;
 
-const TickerTab = dynamic(() => import("@/components/mobile/tabs/ticker"), { ssr: false, loading: ghost });
-const PlenarioTab = dynamic(() => import("@/components/mobile/tabs/plenario"), { ssr: false, loading: ghost });
-const RioTab = dynamic(() => import("@/components/mobile/tabs/rio"), { ssr: false, loading: ghost });
-const RadarTab = dynamic(() => import("@/components/mobile/tabs/radar"), { ssr: false, loading: ghost });
-const RedesTab = dynamic(() => import("@/components/mobile/tabs/redes"), { ssr: false, loading: ghost });
-const C2026Tab = dynamic(() => import("@/components/mobile/tabs/c2026"), { ssr: false, loading: ghost });
-const EquipeTab = dynamic(() => import("@/components/mobile/tabs/equipe"), { ssr: false, loading: ghost });
-const OportunidadesTab = dynamic(() => import("@/components/mobile/tabs/oportunidades"), { ssr: false, loading: ghost });
-const PesquisasTab = dynamic(() => import("@/components/mobile/tabs/pesquisas"), { ssr: false, loading: ghost });
-const GastosTab = dynamic(() => import("@/components/mobile/tabs/gastos"), { ssr: false, loading: ghost });
-const VozTab = dynamic(() => import("@/components/mobile/tabs/voz"), { ssr: false, loading: ghost });
+const TickerTab = dynamic(() => import("@/components/mobile/tabs/ticker"), {
+  ssr: false,
+  loading: ghost,
+});
+const PlenarioTab = dynamic(() => import("@/components/mobile/tabs/plenario"), {
+  ssr: false,
+  loading: ghost,
+});
+const RioTab = dynamic(() => import("@/components/mobile/tabs/rio"), {
+  ssr: false,
+  loading: ghost,
+});
+const RadarTab = dynamic(() => import("@/components/mobile/tabs/radar"), {
+  ssr: false,
+  loading: ghost,
+});
+const RedesTab = dynamic(() => import("@/components/mobile/tabs/redes"), {
+  ssr: false,
+  loading: ghost,
+});
+const C2026Tab = dynamic(() => import("@/components/mobile/tabs/c2026"), {
+  ssr: false,
+  loading: ghost,
+});
+const EquipeTab = dynamic(() => import("@/components/mobile/tabs/equipe"), {
+  ssr: false,
+  loading: ghost,
+});
+const OportunidadesTab = dynamic(
+  () => import("@/components/mobile/tabs/oportunidades"),
+  { ssr: false, loading: ghost },
+);
+const PesquisasTab = dynamic(
+  () => import("@/components/mobile/tabs/pesquisas"),
+  { ssr: false, loading: ghost },
+);
+const GastosTab = dynamic(() => import("@/components/mobile/tabs/gastos"), {
+  ssr: false,
+  loading: ghost,
+});
+const VozTab = dynamic(() => import("@/components/mobile/tabs/voz"), {
+  ssr: false,
+  loading: ghost,
+});
 
-const TABS: { id: TabId; label: string; Icon: typeof Activity; Component: React.ComponentType }[] = [
+const TABS: {
+  id: TabId;
+  label: string;
+  Icon: typeof Activity;
+  Component: React.ComponentType;
+}[] = [
   { id: "ticker", label: "Ticker", Icon: Activity, Component: TickerTab },
   { id: "redes", label: "Redes", Icon: RadioTower, Component: RedesTab },
   { id: "plenario", label: "Plenário", Icon: Landmark, Component: PlenarioTab },
   { id: "rio", label: "Rio", Icon: MapIcon, Component: RioTab },
   { id: "radar", label: "Radar", Icon: Radar, Component: RadarTab },
   { id: "equipe", label: "Equipe", Icon: Users, Component: EquipeTab },
-  { id: "oportunidades", label: "Oportun.", Icon: Crosshair, Component: OportunidadesTab },
-  { id: "pesquisas", label: "Pesquisas", Icon: ClipboardList, Component: PesquisasTab },
+  {
+    id: "oportunidades",
+    label: "Oportun.",
+    Icon: Crosshair,
+    Component: OportunidadesTab,
+  },
+  {
+    id: "pesquisas",
+    label: "Pesquisas",
+    Icon: ClipboardList,
+    Component: PesquisasTab,
+  },
   { id: "gastos", label: "Gastos", Icon: Wallet, Component: GastosTab },
   { id: "c2026", label: "2026", Icon: CalendarDays, Component: C2026Tab },
   { id: "voz", label: "Voz", Icon: MessagesSquare, Component: VozTab },
@@ -65,7 +114,13 @@ const TABS: { id: TabId; label: string; Icon: typeof Activity; Component: React.
 export function MobileShell({ initialTab }: { initialTab: TabId }) {
   const initialIndex = Math.max(0, TAB_IDS.indexOf(initialTab));
   const [index, setIndex] = useState(initialIndex);
-  const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([initialIndex]));
+  const [visited, setVisited] = useState<ReadonlySet<number>>(
+    () => new Set([initialIndex]),
+  );
+  const [registered, setRegistered] = useState(
+    () =>
+      typeof window !== "undefined" && localStorage.getItem("scp_reg") === "1",
+  );
   // Incrementar ao tocar em Ticker remonta a aba — todos os cards voltam compactos.
   const [tickerKey, setTickerKey] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -84,11 +139,17 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
   }, []);
 
   useEffect(() => {
-    window.history.replaceState(null, "", `/m/${TABS[index].id}${window.location.search}`);
+    window.history.replaceState(
+      null,
+      "",
+      `/m/${TABS[index].id}${window.location.search}`,
+    );
     // centraliza a aba ativa na tab bar rolável
     tabbarRef.current
       ?.querySelectorAll<HTMLButtonElement>(".m-tab")
-      [index]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+      [
+        index
+      ]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [index]);
 
   const prevTabIndex = useRef(index);
@@ -96,7 +157,11 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
     if (prevTabIndex.current === index) return;
     prevTabIndex.current = index;
     const tab = TABS[index];
-    logClientAccess("mobile_tab_view", `/m/${tab.id}`, { tab: tab.id });
+    const uid =
+      typeof window !== "undefined"
+        ? (localStorage.getItem("scp_uid") ?? undefined)
+        : undefined;
+    logClientAccess("mobile_tab_view", `/m/${tab.id}`, { tab: tab.id, uid });
   }, [index]);
 
   const setActive = useCallback((i: number) => {
@@ -121,7 +186,10 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
     setTickerKey((k) => k + 1);
     requestAnimationFrame(() => {
       const tickerIndex = TAB_IDS.indexOf("ticker");
-      const panel = viewportRef.current?.querySelectorAll<HTMLElement>(".m-panel")[tickerIndex];
+      const panel =
+        viewportRef.current?.querySelectorAll<HTMLElement>(".m-panel")[
+          tickerIndex
+        ];
       panel?.scrollTo({ top: 0, behavior: "auto" });
     });
   }, []);
@@ -131,8 +199,13 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       const el = viewportRef.current;
       const next = Math.max(0, Math.min(TABS.length - 1, i));
       setActive(next);
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      el?.scrollTo({ left: next * el.clientWidth, behavior: reduced ? "auto" : "smooth" });
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      el?.scrollTo({
+        left: next * el.clientWidth,
+        behavior: reduced ? "auto" : "smooth",
+      });
     },
     [setActive],
   );
@@ -147,12 +220,17 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
 
   return (
     <>
+      {!registered && (
+        <OnboardingModal onComplete={() => setRegistered(true)} />
+      )}
       <header className="m-header">
         <div className="m-header-brand">
           COCKPIT <span style={{ color: "var(--m-up)" }}>SOST</span>
           {/* carimbo de versão visível — diagnóstico de cache no aparelho.
               O minor sobe sozinho a cada build (ver next.config.ts). */}
-          <small>O CANDIDATO · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}</small>
+          <small>
+            O CANDIDATO · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
+          </small>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LiveBadge ch="idx.sost" cadenceMs={2000} showLabel />
@@ -196,7 +274,9 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
             aria-current={i === index ? "page" : undefined}
             onClick={() => onTabClick(i)}
           >
-            {tab.id === "plenario" && votacaoAtiva ? <span className="m-tab-badge" aria-label="Votação em andamento" /> : null}
+            {tab.id === "plenario" && votacaoAtiva ? (
+              <span className="m-tab-badge" aria-label="Votação em andamento" />
+            ) : null}
             <tab.Icon aria-hidden />
             <span>{tab.label}</span>
           </button>

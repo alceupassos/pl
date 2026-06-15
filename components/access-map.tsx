@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 
 type MapPoint = {
+  key: string;
+  kind: "access" | "cadastro";
   accessCount: number;
   actor: string;
   city: string;
@@ -18,6 +20,7 @@ type MapPoint = {
   online: boolean;
   region: string;
   userAgentShort: string;
+  note?: string;
   x?: number;
   y?: number;
 };
@@ -29,7 +32,15 @@ type AccessMapProps = {
   onlineCount: number;
 };
 
-type FilterId = "all" | "online" | "stale" | "login" | "leads" | "cockpit" | "mobile";
+type FilterId =
+  | "all"
+  | "online"
+  | "stale"
+  | "login"
+  | "leads"
+  | "cadastros"
+  | "cockpit"
+  | "mobile";
 
 type SortId =
   | "access_desc"
@@ -45,6 +56,7 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: "stale", label: "Antigos" },
   { id: "login", label: "Login" },
   { id: "leads", label: "Leads" },
+  { id: "cadastros", label: "Cadastros" },
   { id: "cockpit", label: "Web" },
   { id: "mobile", label: "Mobile /m" },
 ];
@@ -77,6 +89,7 @@ function markerSize(accessCount: number, maxAccessCount: number) {
 
 function matchesFilter(point: MapPoint, filter: FilterId): boolean {
   if (filter === "all") return true;
+  if (filter === "cadastros") return point.kind === "cadastro";
   if (filter === "online") return point.online;
   if (filter === "stale") return !point.online;
   if (filter === "login") return point.lastEvent.startsWith("login");
@@ -162,7 +175,7 @@ export function AccessMap({
   );
 
   const hoveredPoint =
-    points.find((point) => `${point.city}-${point.ip}` === hoveredPointKey) || null;
+    points.find((point) => point.key === hoveredPointKey) || null;
 
   const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
   const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
@@ -174,8 +187,8 @@ export function AccessMap({
           <p className="mapa-kicker">Monitor de acesso em tempo real</p>
           <h1>Mapa do Brasil — verde online, vermelho antigo</h1>
           <p>
-            Verde: último acesso nos últimos 5 minutos. Vermelho: acesso antigo. Inclui web,
-            mobile /m, login e leads.
+            Verde: último acesso nos últimos 5 minutos. Vermelho: acesso antigo.
+            Azul: cadastros do onboarding /m. Inclui web, mobile /m, login e leads.
           </p>
         </div>
         <div className="mapa-stat-grid">
@@ -243,12 +256,18 @@ export function AccessMap({
 
                 {points.map((point) => {
                   const size = markerSize(point.accessCount, maxAccessCount);
-                  const key = `${point.city}-${point.ip}`;
+                  const key = point.key;
+                  const markerKind =
+                    point.kind === "cadastro"
+                      ? "mapa-marker--cadastro"
+                      : point.online
+                        ? "mapa-marker--online"
+                        : "mapa-marker--stale";
 
                   return (
                     <button
                       key={key}
-                      className={`mapa-marker ${point.online ? "mapa-marker--online" : "mapa-marker--stale"} ${hoveredPointKey === key ? "active" : ""}`}
+                      className={`mapa-marker ${markerKind} ${hoveredPointKey === key ? "active" : ""}`}
                       type="button"
                       style={{
                         left: `${point.x}%`,
@@ -276,7 +295,12 @@ export function AccessMap({
                     }}
                   >
                     <strong>
-                      {hoveredPoint.city} · {hoveredPoint.online ? "ONLINE" : "ANTIGO"}
+                      {hoveredPoint.city} ·{" "}
+                      {hoveredPoint.kind === "cadastro"
+                        ? "CADASTRO"
+                        : hoveredPoint.online
+                          ? "ONLINE"
+                          : "ANTIGO"}
                     </strong>
                     <span>IP: {hoveredPoint.ip}</span>
                     <span>Data: {formatDate(hoveredPoint.lastAccess)}</span>
@@ -286,8 +310,16 @@ export function AccessMap({
                     <span>
                       Local: {hoveredPoint.localPorIp} · {hoveredPoint.country}
                     </span>
-                    <span>UA: {hoveredPoint.userAgentShort}</span>
-                    <span>Acessos: {hoveredPoint.accessCount}</span>
+                    <span>
+                      {hoveredPoint.kind === "cadastro" ? "Contato" : "UA"}:{" "}
+                      {hoveredPoint.userAgentShort}
+                    </span>
+                    {hoveredPoint.note ? (
+                      <span>Pergunta: {hoveredPoint.note}</span>
+                    ) : null}
+                    {hoveredPoint.kind === "cadastro" ? null : (
+                      <span>Acessos: {hoveredPoint.accessCount}</span>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -316,19 +348,39 @@ export function AccessMap({
           <div className="mapa-side-list">
             {sortedEntries.map((point) => (
               <article
-                className={`mapa-side-item ${point.online ? "mapa-side-item--online" : "mapa-side-item--stale"}`}
-                key={`${point.city}-${point.ip}`}
+                className={`mapa-side-item ${point.kind === "cadastro" ? "mapa-side-item--cadastro" : point.online ? "mapa-side-item--online" : "mapa-side-item--stale"}`}
+                key={point.key}
               >
                 <div className="mapa-side-top">
                   <strong>{point.city}</strong>
-                  <span>{point.online ? "ONLINE" : "ANTIGO"}</span>
+                  <span>
+                    {point.kind === "cadastro"
+                      ? "CADASTRO"
+                      : point.online
+                        ? "ONLINE"
+                        : "ANTIGO"}
+                  </span>
                 </div>
                 <p>IP: {point.ip}</p>
                 <p>Ator: {point.actor}</p>
                 <p>Evento: {point.lastEvent}</p>
-                <p>Path: {point.lastPath}</p>
-                <p>Acessos: {point.accessCount}</p>
-                <p>Ultimo acesso: {formatDate(point.lastAccess)}</p>
+                <p>
+                  {point.kind === "cadastro" ? "Contato" : "Path"}:{" "}
+                  {point.kind === "cadastro"
+                    ? point.userAgentShort
+                    : point.lastPath}
+                </p>
+                {point.kind === "cadastro" ? (
+                  point.note ? (
+                    <p>Pergunta: {point.note}</p>
+                  ) : null
+                ) : (
+                  <p>Acessos: {point.accessCount}</p>
+                )}
+                <p>
+                  {point.kind === "cadastro" ? "Cadastrado em" : "Ultimo acesso"}:{" "}
+                  {formatDate(point.lastAccess)}
+                </p>
               </article>
             ))}
           </div>

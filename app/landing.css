@@ -1276,6 +1276,18 @@ body:has(.mapa-page) {
   background: #ffb4bc;
   box-shadow: 0 0 16px rgba(255, 120, 130, 0.85);
 }
+.mapa-marker--cadastro {
+  background: rgba(89, 169, 255, 0.16);
+  box-shadow:
+    0 0 0 1px rgba(140, 199, 255, 0.4),
+    0 0 18px rgba(89, 169, 255, 0.55),
+    0 0 36px rgba(89, 169, 255, 0.35);
+  animation: none;
+}
+.mapa-marker--cadastro .mapa-marker-core {
+  background: #bcdcff;
+  box-shadow: 0 0 16px rgba(120, 180, 255, 0.9);
+}
 .mapa-marker-core {
   width: 44%;
   height: 44%;
@@ -1394,6 +1406,12 @@ body:has(.mapa-page) {
 }
 .mapa-side-item--stale .mapa-side-top span {
   color: #ff9aa3;
+}
+.mapa-side-item--cadastro {
+  border-color: rgba(89, 169, 255, 0.3);
+}
+.mapa-side-item--cadastro .mapa-side-top span {
+  color: #8cc7ff;
 }
 @keyframes mapaPulse {
   0%, 100% { transform: translate(-50%, -50%) scale(1); }

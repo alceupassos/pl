@@ -6,6 +6,7 @@ import {
   isAccessOnline,
   summarizeAccessLogs,
 } from "@/lib/access-log";
+import { readOnboardingLog } from "@/lib/onboarding-log";
 
 type CityPosition = {
   lat: number;
@@ -278,6 +279,8 @@ export default async function MapaPage() {
         userAgent.length > 72 ? `${userAgent.slice(0, 72)}…` : userAgent;
 
       return {
+        key: `access-${entry.ip}-${entry.lastAccess}`,
+        kind: "access" as const,
         accessCount: entry.accessCount,
         actor: sourceLog ? actorFromRawLog(sourceLog) : actorFromEntry(entry),
         city: plottedCity,
@@ -299,9 +302,48 @@ export default async function MapaPage() {
 
   const onlineCount = entries.filter((entry) => entry.online).length;
 
+  const situacaoLabel: Record<string, string> = {
+    candidato: "Candidato(a)",
+    politica: "Trabalha com política",
+    outro: "Outro",
+  };
+
+  const cadastroEntries = (await readOnboardingLog()).map((c) => {
+    const cityPosition = resolveMapPosition({ city: c.cidade, state: c.uf });
+    const projected = cityPosition ? projectBrazilPoint(cityPosition) : null;
+    const finalPosition =
+      projected ?? fallbackPositionForIp(c.ip || c.uid || c.nome);
+    const contato = [c.whatsapp, c.email].filter(Boolean).join(" · ") || "—";
+    const localPorIp = [c.cidade, c.uf].filter(Boolean).join(" - ");
+
+    return {
+      key: `cadastro-${c.uid || c.at}`,
+      kind: "cadastro" as const,
+      accessCount: 1,
+      actor: `${c.nome}${c.situacao ? ` · ${situacaoLabel[c.situacao] ?? c.situacao}` : ""}`,
+      city: c.cidade || "Cadastro",
+      country: "Brasil",
+      ip: c.ip || "—",
+      lastAccess: c.at,
+      lastEvent: `onboarding:${c.situacao}`,
+      lastPath: "/m",
+      localCitado: localPorIp,
+      localPorIp,
+      mapped: Boolean(cityPosition),
+      online: isAccessOnline(c.at),
+      region: c.uf,
+      userAgentShort: contato,
+      note: c.pergunta || undefined,
+      x: finalPosition.x,
+      y: finalPosition.y,
+    };
+  });
+
+  const allEntries = [...entries, ...cadastroEntries];
+
   return (
     <AccessMap
-      entries={entries}
+      entries={allEntries}
       totalAccesses={summary.totalAccesses}
       uniqueIps={summary.uniqueIps}
       onlineCount={onlineCount}
