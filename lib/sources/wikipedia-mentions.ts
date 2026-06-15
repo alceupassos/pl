@@ -98,17 +98,28 @@ async function fetchJson(url: string): Promise<unknown | null> {
   }
 }
 
-/** Resolve o título do artigo na pt.wikipedia pelo nome do candidato. */
+/** Resolve o título do artigo na pt.wikipedia pelo nome do candidato.
+ * 1) opensearch (prefixo) — rápido; 2) fallback full-text (list=search) para
+ * nomes que diferem do título do artigo (ex.: "General Pazuello" → "Eduardo
+ * Pazuello", "Doutor Luizinho" etc.). */
 async function resolveTitulo(nome: string): Promise<string | null> {
-  const url = `https://pt.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
+  const opensearch = `https://pt.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
     nome,
   )}&limit=1&namespace=0&format=json`;
-  const json = await fetchJson(url);
+  const j1 = await fetchJson(opensearch);
   // formato: [busca, [titulos], [descricoes], [urls]]
-  if (Array.isArray(json) && Array.isArray(json[1]) && typeof json[1][0] === "string") {
-    return json[1][0] as string;
+  if (Array.isArray(j1) && Array.isArray(j1[1]) && typeof j1[1][0] === "string") {
+    return j1[1][0] as string;
   }
-  return null;
+
+  const search = `https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+    nome,
+  )}&srlimit=1&srnamespace=0&format=json`;
+  const j2 = (await fetchJson(search)) as
+    | { query?: { search?: { title?: string }[] } }
+    | null;
+  const titulo = j2?.query?.search?.[0]?.title;
+  return typeof titulo === "string" ? titulo : null;
 }
 
 function ymd(d: Date): string {
