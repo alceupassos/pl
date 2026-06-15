@@ -5,6 +5,20 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // Rede de segurança: as fontes reais (sidecar pysentimiento na :8088, Google
+  // News, Wikipédia, redes sociais) são disparadas fire-and-forget pelo SSE
+  // (app/api/stream) e pelo warm loop abaixo. Quando o sidecar tem um soluço
+  // (ECONNREFUSED/ECONNRESET) uma dessas promises rejeita sem dono → o Node
+  // mata o processo (unhandledRejection) → PM2 reinicia em loop → 502 no
+  // Cloudflare. Um fetch de fonte NUNCA deve derrubar o servidor web: logamos
+  // e seguimos no fallback (mesma filosofia de "app não quebra" das fontes).
+  process.on("unhandledRejection", (reason) => {
+    console.error("[unhandledRejection] suprimido (fonte/sidecar não derruba o servidor):", reason);
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("[uncaughtException] suprimido:", err);
+  });
+
   const [{ readWatchlist }, { warmIndexSources }] = await Promise.all([
     import("@/lib/watchlist"),
     import("@/lib/warm-index"),
