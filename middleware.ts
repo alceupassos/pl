@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith("/m")) {
+  if (!pathname.startsWith("/m") && !pathname.startsWith("/w")) {
     return NextResponse.next();
   }
 
@@ -13,5 +13,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/m", "/m/:path*"],
+  matcher: ["/m", "/m/:path*", "/w", "/w/:path*"],
 };

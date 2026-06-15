@@ -1,0 +1,45 @@
+/* /w herda TODA a infra visual do /m e sobrescreve apenas o accent color */
+@import "../m/m.css";
+
+:root {
+  --w-accent: #2563eb;
+  --w-accent-dim: rgba(37, 99, 235, 0.15);
+  --w-accent-border: rgba(37, 99, 235, 0.35);
+}
+
+/* Market card: borda esquerda azul */
+.w-market-card {
+  border-left: 3px solid var(--w-accent);
+}
+
+/* Barra de probabilidade */
+.w-prob-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  margin: 6px 0 4px;
+}
+.w-prob-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+/* Brand accent /w */
+.w-brand-accent {
+  color: var(--w-accent);
+}
+
+/* Cargo chip */
+.w-cargo-chip {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--w-accent-dim);
+  color: var(--w-accent);
+  border: 1px solid var(--w-accent-border);
+}
