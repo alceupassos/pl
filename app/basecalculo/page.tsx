@@ -1,7 +1,8 @@
 // /basecalculo — planilha auditável do Índice de Popularidade Digital.
 // Mostra, por candidato, CADA número real que entra na conta: valor bruto de
-// cada ingrediente, a nota 0–100 (z-score vs. o páreo), o Score ponderado, a
-// Reputação (sentimento), a Posição vs. adversários (100 = média) e a Tendência.
+// cada ingrediente, a nota 0–100 (z-score vs. o páreo), o Score ponderado, o IRE
+// (Índice de Reputação Eleitoral = sentimento), a PRA (Posição Relativa
+// Adversários, em %) e o TIRE (tendência do IRE em 7 dias).
 // "Não é caixa-preta": dá para conferir se o índice está sendo construído certo.
 // Incremental: engajamento/crescimento entram como novas colunas depois.
 
@@ -49,6 +50,11 @@ function fmtValor(ing: Ingrediente, v: number | null): string {
   return v.toFixed(1);
 }
 
+function fmtSigned(v: number, suffix = ""): string {
+  const sinal = v > 0 ? "+" : v < 0 ? "−" : "";
+  return `${sinal}${Math.abs(v).toFixed(1).replace(".", ",")}${suffix}`;
+}
+
 function CelulaCell({ ing, cel }: { ing: Ingrediente; cel: Celula }) {
   const real = cel.fonte === "real";
   return (
@@ -90,8 +96,10 @@ export default async function BaseCalculoPage() {
           <h1>Índice de Popularidade Digital — a conta, candidato por candidato</h1>
           <p>
             Cada número real que entra no índice: valor bruto, nota 0–100 (vs. a média do páreo),
-            Score ponderado, Reputação (sentimento), Posição vs. adversários (100 = média) e
-            Tendência. <span style={{ color: "#16C784" }}>●</span> = dado real,{" "}
+            Score ponderado, <strong>IRE</strong> (Índice de Reputação Eleitoral = sentimento),{" "}
+            <strong>PRA</strong> (Posição Relativa Adversários, em %; 0 = média do páreo) e{" "}
+            <strong>TIRE</strong> (tendência do IRE nos últimos 7 dias).{" "}
+            <span style={{ color: "#16C784" }}>●</span> = dado real,{" "}
             <span style={{ color: "#F5A623" }}>○</span> = sem fonte real ainda.
           </p>
         </div>
@@ -113,6 +121,9 @@ export default async function BaseCalculoPage() {
           pesos={tabela.pesos}
           mediaScore={tabela.mediaScore}
           series={series}
+          tendenciaAdversarios={tabela.tendenciaAdversarios}
+          tendenciaAdversariosDelta={tabela.tendenciaAdversariosDelta}
+          tendenciaAdversariosProvisoria={tabela.tendenciaAdversariosProvisoria}
         />
       </section>
 
@@ -131,11 +142,12 @@ export default async function BaseCalculoPage() {
             { t: "Menções", p: "35%", d: "Atenção pública medida pelas visitas diárias ao artigo do candidato na Wikipedia (pageviews). Índice ~100: ritmo recente vs. a média da janela. Open-source, sem chave." },
             { t: "Sentimento", p: "30%", d: "Tom das manchetes reais sobre o candidato, classificado por IA em português (pysentimiento/BERT-PT). Acima de 100 = clima favorável; abaixo = adverso. É a base da Reputação." },
             { t: "Imprensa", p: "15%", d: "Volume de cobertura jornalística (Google News RSS): ritmo de matérias dos últimos dias vs. o normal do candidato. Acima de 100 = em alta na imprensa." },
-            { t: "Seguidores", p: "20%", d: "Base real somando as redes (Instagram, TikTok, Facebook, X, YouTube) via BrightData/yt-dlp. Mede o tamanho da audiência própria." },
+            { t: "Seguidores", p: "20% · índice 7d", d: "Base real somando as redes (Instagram, TikTok, Facebook, X, YouTube) via BrightData/yt-dlp. No índice é mostrado como variação % dos últimos 7 dias (tendência da audiência própria)." },
             { t: "Score", p: "nota composta", d: "0–100 = soma das notas de cada pilar multiplicadas pelos pesos, renormalizada sobre os ingredientes com dado real." },
-            { t: "Reputação", p: "= sentimento", d: "É a nota de sentimento (0–100): responde 'falam bem ou mal de nós?'. 50 = na média do páreo." },
-            { t: "Posição", p: "100 = média", d: "Score ÷ média dos Scores × 100. Acima de 100 = à frente dos adversários; abaixo = atrás." },
-            { t: "Tendência", p: "24h", d: "Compara o Score de agora com o de ~24h atrás: ▲ subindo, ▬ estável, ▼ caindo." },
+            { t: "IRE", p: "= sentimento", d: "Índice de Reputação Eleitoral: é a nota de sentimento (0–100), responde 'falam bem ou mal de nós?'. 50 = na média do páreo." },
+            { t: "TIRE", p: "tendência · 7d", d: "Tendência do IRE: variação do IRE do candidato nos últimos 7 dias (▲ subindo, ▬ estável, ▼ caindo)." },
+            { t: "PRA", p: "% · 0 = média", d: "Posição Relativa Adversários = 100 − (Score ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente dos adversários; positivo = atrás." },
+            { t: "TPRA", p: "tendência · 7d", d: "Tendência do PRA: média das tendências (ΔIRE em 7 dias) dos concorrentes RJ — para onde o páreo adversário caminha." },
           ].map((item) => (
             <div
               key={item.t}
@@ -161,8 +173,9 @@ export default async function BaseCalculoPage() {
           <strong style={{ color: "#cfd6e4" }}>Como a conta é feita:</strong> 1) cada ingrediente
           vira nota <code>50 + 15 × (valor − média) ÷ desvio</code> (0–100, 50 = na média). 2){" "}
           <code>Score = Σ nota × peso</code> (pesos abaixo, renormalizados sobre os ingredientes com
-          dado real). 3) <code>Posição = Score ÷ média(Scores) × 100</code>. Reputação = nota de
-          sentimento. Tendência = Score agora vs. ~24h atrás.
+          dado real). 3) <code>PRA = 100 − (Score ÷ média × 100)</code>, em % (0 = na média do páreo).
+          IRE = nota de sentimento. TIRE = ΔIRE do candidato em 7 dias; TPRA = média do ΔIRE 7 dias
+          dos concorrentes.
         </p>
         <div className="log-table-wrap">
           <table className="log-table">
@@ -178,15 +191,17 @@ export default async function BaseCalculoPage() {
                   </th>
                 ))}
                 <th>Score</th>
-                <th>Reputação</th>
-                <th>Posição</th>
-                <th>Tendência</th>
+                <th>IRE</th>
+                <th style={{ whiteSpace: "nowrap" }}>PRA (%)</th>
+                <th style={{ whiteSpace: "nowrap" }}>TIRE (7d)</th>
               </tr>
             </thead>
             <tbody>
               {tabela.linhas.map((l) => {
                 const tend = TEND[l.tendencia];
-                const posCor = l.posicao == null ? "#8a93a8" : l.posicao >= 100 ? "#16C784" : "#EA3943";
+                // PRA = 100 − Score÷média×100: negativo = à frente (verde); positivo = atrás (vermelho).
+                const posCor =
+                  l.posicao == null ? "#8a93a8" : l.posicao < -0.05 ? "#16C784" : l.posicao > 0.05 ? "#EA3943" : "#8a93a8";
                 return (
                   <tr key={l.simbolo}>
                     <td style={{ whiteSpace: "nowrap" }}>
@@ -205,11 +220,17 @@ export default async function BaseCalculoPage() {
                     </td>
                     <td>
                       <strong style={{ color: posCor }}>
-                        {l.posicao == null ? "—" : Math.round(l.posicao)}
+                        {l.posicao == null ? "—" : fmtSigned(l.posicao, "%")}
                       </strong>
                     </td>
                     <td style={{ color: tend.cor, whiteSpace: "nowrap" }}>
                       {tend.sym} {tend.label}
+                      {l.tendenciaDelta != null ? (
+                        <span style={{ color: "#8a93a8", fontWeight: 400 }}> {fmtSigned(l.tendenciaDelta)}</span>
+                      ) : null}
+                      {l.tendenciaProvisoria ? (
+                        <span style={{ color: "#5b6478", fontSize: "0.8em" }}> · acumulando</span>
+                      ) : null}
                     </td>
                   </tr>
                 );

@@ -9,7 +9,9 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
+import { candlestickOption } from "@/components/mobile/m-chart-options";
 import { Bars3D, Gauge3D, SparkDepth } from "@/components/mobile/ui/fx3d";
 import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
@@ -132,9 +134,9 @@ const PARTES: {
   {
     key: "seguidores",
     label: "seguidores",
-    curto: "tamanho da base online",
+    curto: "base online · índice 7 dias",
     explica: (v, p) =>
-      `Crescimento de inscritos no YouTube do candidato (peso ${p}%), real via yt-dlp. Valor ${v}; acima de 100 = base crescendo. Outras redes (X/IG) exigem credencial.`,
+      `Tamanho da base somada das redes (peso ${p}% do índice), real via Bright Data/yt-dlp. No card os seguidores aparecem como ÍNDICE dos últimos 7 dias (variação %, tendência). Nota atual ${v}; acima de 100 = base crescendo.`,
   },
   {
     key: "imprensa",
@@ -150,12 +152,21 @@ function idxTemReal(idx: IdxSnapshot): boolean {
   return Object.values(idx.fontes).some((f) => f === "real");
 }
 
-/* ── Os 3 valores do índice (Reputação · Posição · Tendência) ── */
+/* ── Métricas do índice: IRE · TIRE · PRA · TPRA ── */
 function corReputacao(v: number | null): string {
   if (v == null) return "var(--m-muted)";
   if (v >= 60) return "#16C784";
   if (v >= 45) return "#F5A623";
   return "#EA3943";
+}
+
+// PRA = 100 − (Score ÷ média × 100), em %. 0 = na média do páreo; negativo = à
+// frente dos adversários (verde); positivo = atrás (vermelho).
+function corPra(v: number | null): string {
+  if (v == null) return "var(--m-muted)";
+  if (v < -0.05) return "#16C784";
+  if (v > 0.05) return "#EA3943";
+  return "#8a93a8";
 }
 
 const TEND = {
@@ -164,76 +175,120 @@ const TEND = {
   down: { sym: "▼", cor: "#EA3943", label: "caindo" },
 } as const;
 
-function ValorBloco({
-  label,
-  children,
-  hint,
+function fmtSigned(v: number, suffix = ""): string {
+  const sinal = v > 0 ? "+" : v < 0 ? "−" : "";
+  return `${sinal}${Math.abs(v).toFixed(1).replace(".", ",")}${suffix}`;
+}
+
+// Tendência inline (seta + Δ + janela). `provisorio` ⇒ ainda acumulando 7 dias.
+function TrendInline({
+  dir,
+  delta,
+  provisorio,
+}: {
+  dir: "up" | "flat" | "down";
+  delta: number | null;
+  provisorio?: boolean;
+}) {
+  const t = TEND[dir];
+  return (
+    <span
+      className="m-mono"
+      style={{ color: t.cor, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}
+    >
+      {t.sym} {delta == null ? "—" : fmtSigned(delta)}
+      <span style={{ color: "var(--m-muted)", fontWeight: 600 }}>
+        {" "}
+        · {provisorio ? "acumulando" : "7d"}
+      </span>
+    </span>
+  );
+}
+
+// Uma linha "tipo cotação": sigla + valor grande + tendência (Δ 7 dias).
+function MetricLine({
+  sigla,
+  tituloTend,
+  valor,
+  valorCor,
+  trend,
   compact,
 }: {
-  label: string;
-  children: React.ReactNode;
-  hint?: string;
+  sigla: string;
+  tituloTend: string;
+  valor: React.ReactNode;
+  valorCor: string;
+  trend: React.ReactNode;
   compact?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap", minWidth: 0 }}>
+      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)", width: 34 }}>
+        {sigla}
+      </span>
       <span
         className="m-mono"
-        style={{
-          fontSize: compact ? 24 : 30,
-          fontWeight: 800,
-          lineHeight: 1,
-          whiteSpace: "nowrap",
-        }}
+        style={{ fontSize: compact ? 22 : 28, fontWeight: 800, lineHeight: 1, color: valorCor }}
       >
-        {children}
+        {valor}
       </span>
-      <span
-        style={{
-          fontSize: 8.5,
-          fontWeight: 700,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--m-muted)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {label}
-        {hint ? <span style={{ opacity: 0.7 }}> · {hint}</span> : null}
-      </span>
+      <span title={tituloTend}>{trend}</span>
     </div>
   );
 }
 
-function TresValores({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
-  const rep = idx.reputacao ?? null;
-  const pos = idx.posicao ?? null;
-  const posCor = pos == null ? "var(--m-muted)" : pos >= 100 ? "#16C784" : "#EA3943";
-  const tend = TEND[idx.tendencia ?? "flat"];
+// As 4 métricas em duas linhas: IRE+TIRE e PRA+TPRA (estilo cotação de bolsa).
+function Metricas4({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
+  const ire = idx.reputacao ?? null;
+  const pra = idx.posicao ?? null;
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: compact ? 14 : 22,
-        flexWrap: "wrap",
-      }}
-    >
-      <ValorBloco label="reputação" compact={compact}>
-        <span style={{ color: corReputacao(rep) }}>
-          {rep == null ? "—" : <Odometer value={rep} decimals={0} />}
-        </span>
-      </ValorBloco>
-      <ValorBloco label="vs adversários" hint="100 = média" compact={compact}>
-        <span style={{ color: posCor }}>
-          {pos == null ? "—" : <Odometer value={pos} decimals={0} />}
-        </span>
-      </ValorBloco>
-      <ValorBloco label="tendência" compact={compact}>
-        <span style={{ color: tend.cor, fontSize: compact ? 18 : 22 }}>
-          {tend.sym} {tend.label}
-        </span>
-      </ValorBloco>
+    <div style={{ display: "flex", flexDirection: "column", gap: compact ? 7 : 10, minWidth: 0 }}>
+      <MetricLine
+        sigla="IRE"
+        tituloTend="TIRE · tendência do IRE do candidato em 7 dias"
+        valorCor={corReputacao(ire)}
+        valor={ire == null ? "—" : <Odometer value={ire} decimals={0} />}
+        trend={
+          <TrendInline
+            dir={idx.tendencia ?? "flat"}
+            delta={idx.tendenciaDelta ?? null}
+            provisorio={idx.tendenciaProvisoria}
+          />
+        }
+        compact={compact}
+      />
+      <MetricLine
+        sigla="PRA"
+        tituloTend="TPRA · média da tendência (ΔIRE 7 dias) dos adversários"
+        valorCor={corPra(pra)}
+        valor={pra == null ? "—" : fmtSigned(pra, "%")}
+        trend={
+          <TrendInline
+            dir={idx.tendenciaAdversarios ?? "flat"}
+            delta={idx.tendenciaAdversariosDelta ?? null}
+            provisorio={idx.tendenciaAdversariosProvisoria}
+          />
+        }
+        compact={compact}
+      />
+    </div>
+  );
+}
+
+// Mini-candle dos últimos 7 dias do índice (reusa os candles diários reais).
+function MiniCandle7d({ idx, height = 70 }: { idx: IdxSnapshot; height?: number }) {
+  const opt = useMemo(
+    () =>
+      candlestickOption({
+        candles: [...idx.candles30d.slice(-7), idx.candleVivo],
+        compact: true,
+        refLine: null,
+      }),
+    [idx],
+  );
+  return (
+    <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ width: "100%" }}>
+      <EChart option={opt} height={height} />
     </div>
   );
 }
@@ -300,7 +355,7 @@ function IdxCompact({
 
       <div className="m-compact-row">
         <div className="m-compact-main">
-          <TresValores idx={idx} compact />
+          <Metricas4 idx={idx} compact />
         </div>
         <div
           className="m-compact-chart"
@@ -308,7 +363,7 @@ function IdxCompact({
           onClick={(e) => e.stopPropagation()}
           style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          <Gauge3D valor={idx.reputacao ?? null} label="reputação" cor={corReputacao(idx.reputacao ?? null)} size={94} />
+          <MiniCandle7d idx={idx} height={72} />
         </div>
       </div>
     </FlashCard>
@@ -351,9 +406,34 @@ function IdxFront({
         />
       </div>
 
-      <div style={{ margin: "2px 0" }}>
-        <TresValores idx={idx} />
+      <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "2px 0" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Metricas4 idx={idx} />
+        </div>
+        <Gauge3D
+          valor={idx.reputacao ?? null}
+          label="IRE"
+          cor={corReputacao(idx.reputacao ?? null)}
+          size={84}
+        />
       </div>
+
+      <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ margin: "8px 0 2px" }}>
+        <div className="m-muted-c" style={{ fontSize: 10, marginBottom: 2 }}>
+          índice · últimos 7 dias (candle)
+        </div>
+        <MiniCandle7d idx={idx} height={120} />
+      </div>
+
+      {idx.seguidores7dPct != null ? (
+        <div className="m-muted-c" style={{ fontSize: 10.5, margin: "6px 0 0" }}>
+          seguidores · últimos 7 dias:{" "}
+          <strong style={{ color: idx.seguidores7dPct >= 0 ? "#16C784" : "#EA3943" }}>
+            {fmtSigned(idx.seguidores7dPct, "%")}
+          </strong>
+          {idx.seguidores7dProvisorio ? " · acumulando" : ""}
+        </div>
+      ) : null}
 
       <div
         style={{
@@ -464,6 +544,33 @@ function IdxBack({
         imprensa, sentimento, base online e buzz de busca — para qualquer
         campanha entender de relance se está ganhando ou perdendo terreno.
       </p>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          margin: "0 0 10px",
+        }}
+      >
+        {(
+          [
+            ["IRE", "Índice de Reputação Eleitoral — o tom das notícias sobre o candidato (0–100, base sentimento)."],
+            ["TIRE", "Tendência do IRE: como o IRE do candidato variou nos últimos 7 dias (▲ subindo · ▬ estável · ▼ caindo)."],
+            ["PRA", "Posição Relativa Adversários: 100 − (Score ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente; positivo = atrás."],
+            ["TPRA", "Tendência do PRA: média da tendência (ΔIRE em 7 dias) dos concorrentes RJ."],
+            ["Seguidores", "Exibidos como índice dos últimos 7 dias (variação % da base somada das redes)."],
+          ] as const
+        ).map(([k, d]) => (
+          <div key={k} style={{ fontSize: 11, color: "var(--m-muted)" }}>
+            <strong style={{ color: "#cfd6e4" }}>{k}</strong> — {d}
+          </div>
+        ))}
+      </div>
+
+      <div className="m-muted-c" style={{ fontSize: 10.5, marginBottom: 6 }}>
+        Ingredientes que compõem o índice:
+      </div>
       <div
         style={{
           display: "flex",

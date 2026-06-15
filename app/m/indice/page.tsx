@@ -48,8 +48,8 @@ const COMPONENTES: {
     key: "seguidores",
     nome: "Seguidores",
     oQueMede:
-      "Tamanho e crescimento da base online: inscritos do canal oficial do YouTube. Acima de 100 = base crescendo acima do normal.",
-    extracao: "yt-dlp via sidecar (sem API key)",
+      "Tamanho da base online (soma das redes). No card é mostrado como ÍNDICE dos últimos 7 dias — a variação % da base nesse período (tendência da audiência própria).",
+    extracao: "Bright Data + yt-dlp via sidecar (sem API key)",
     como: FONTE_COMO.seguidores,
   },
   {
@@ -129,10 +129,13 @@ export default function MobileIndicePage() {
           isso o gráfico de velas no card principal.
         </p>
         <p style={{ fontSize: 11.5, lineHeight: 1.5, margin: "8px 0 0", color: "var(--m-muted)" }}>
-          O card agora resume tudo em <strong>3 leituras</strong>: <strong>Reputação</strong> (falam
-          bem ou mal — sentimento 0–100), <strong>Posição vs. adversários</strong> (100 = média do
-          páreo) e <strong>Tendência</strong> (▲ ▬ ▼ vs. as últimas 24h). Esses números são reais por
-          candidato.
+          O card agora resume tudo em <strong>4 leituras</strong>: <strong>IRE</strong> (Índice de
+          Reputação Eleitoral — falam bem ou mal, sentimento 0–100), <strong>TIRE</strong> (tendência
+          do IRE do candidato nos últimos <strong>7 dias</strong>, ▲ ▬ ▼), <strong>PRA</strong>{" "}
+          (Posição Relativa Adversários = 100 − Score ÷ média × 100, em %; 0 = média do páreo,
+          negativo = à frente) e <strong>TPRA</strong> (média da tendência — ΔIRE de 7 dias — dos
+          adversários). Os seguidores também aparecem como índice dos últimos 7 dias. Esses números
+          são reais por candidato.
         </p>
         <Link
           href="/basecalculo"

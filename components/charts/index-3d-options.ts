@@ -94,7 +94,7 @@ export function posicionamento3D(linhas: Linha3D[]): Opt {
     tooltip: {
       ...tooltipDark,
       formatter: (p: { data: { name: string; value: number[] } }) =>
-        `<b>${p.data.name}</b><br/>Menções ${p.data.value[0]} · Sentimento ${p.data.value[1]}<br/>Imprensa ${p.data.value[2]} · Posição ${p.data.value[4]}`,
+        `<b>${p.data.name}</b><br/>Menções ${p.data.value[0]} · Sentimento ${p.data.value[1]}<br/>Imprensa ${p.data.value[2]} · PRA ${p.data.value[4]}%`,
     },
     visualMap: { show: true, min: 70, max: 130, dimension: 4, left: 0, bottom: 8, textStyle: { color: TXT }, inRange: { color: RAMP } },
     xAxis3D: { name: "Menções", type: "value", min: 0, max: 100, nameTextStyle: { color: TXT }, axisLabel: { color: TXT }, axisLine: { lineStyle: { color: GRID } } },
@@ -240,11 +240,11 @@ export function scoreVsPosicao(linhas: Linha3D[]): Opt {
     tooltip: {
       ...tooltipDark,
       formatter: (p: { data: { name: string; value: number[] } }) =>
-        `<b>${p.data.name}</b><br/>Score ${p.data.value[0]} → Posição ${p.data.value[1]}`,
+        `<b>${p.data.name}</b><br/>Score ${p.data.value[0]} → PRA ${p.data.value[1]}%`,
     },
     grid: { left: 44, right: 16, top: 16, bottom: 36 },
     xAxis: { name: "Score", type: "value", scale: true, nameTextStyle: { color: TXT }, axisLabel: { color: TXT }, splitLine: { lineStyle: { color: GRID } } },
-    yAxis: { name: "Posição", type: "value", scale: true, nameTextStyle: { color: TXT }, axisLabel: { color: TXT }, splitLine: { lineStyle: { color: GRID } } },
+    yAxis: { name: "PRA (%)", type: "value", scale: true, nameTextStyle: { color: TXT }, axisLabel: { color: TXT }, splitLine: { lineStyle: { color: GRID } } },
     series: [
       {
         type: "scatterGL",

@@ -4,7 +4,7 @@
 // então snapshot-then-delta na reconexão é barato e sempre coerente.
 // Server-only (lê a watchlist do disco via lib/watchlist).
 
-import { computeIndexTable, type LinhaIndice } from "@/lib/index-real";
+import { computeIndexTable, type LinhaIndice, type TabelaIndice } from "@/lib/index-real";
 import { getRaceTimeline } from "@/lib/mock/races";
 // Builders v2 (equipe/oportunidades/pesquisas/gastos/voz + redes ampliado).
 // Import dinâmico-circular seguro: só usamos as funções em tempo de chamada.
@@ -274,13 +274,22 @@ function concorrenteParams(simbolo: string, votos2022: number | null): SeriesPar
 
 export type MockOptions = { demoVotacao?: boolean };
 
-// Os 3 valores do índice (Reputação · Posição · Tendência) de uma linha da
+// Os valores do índice (IRE · PRA · TIRE · TPRA · seguidores 7d) de uma linha da
 // tabela real (lib/index-real.ts), prontos para anexar a IdxSnapshot/QuoteRj.
-function tresValoresDe(l: LinhaIndice | null) {
+// As métricas de adversário (TPRA) são nível-tabela (iguais para todos), então
+// vêm da `tabela` quando fornecida.
+function tresValoresDe(l: LinhaIndice | null, tabela: TabelaIndice | null = null) {
   return {
     reputacao: l?.reputacao ?? null,
     posicao: l?.posicao ?? null,
     tendencia: l?.tendencia ?? ("flat" as const),
+    tendenciaDelta: l?.tendenciaDelta ?? null,
+    tendenciaProvisoria: l?.tendenciaProvisoria ?? true,
+    tendenciaAdversarios: tabela?.tendenciaAdversarios ?? ("flat" as const),
+    tendenciaAdversariosDelta: tabela?.tendenciaAdversariosDelta ?? null,
+    tendenciaAdversariosProvisoria: tabela?.tendenciaAdversariosProvisoria ?? true,
+    seguidores7dPct: l?.seguidores7dPct ?? null,
+    seguidores7dProvisorio: l?.seguidores7dProvisorio ?? true,
     ingredientes: l?.ingredientes,
   };
 }
@@ -311,9 +320,10 @@ export function snapshotIdx(w: Watchlist, now: number): IdxSnapshot {
       };
     })(),
     fontes: idxFontes(),
-    ...tresValoresDe(
-      computeIndexTable(w, now).linhas.find((l) => l.voce) ?? null,
-    ),
+    ...(() => {
+      const tabela = computeIndexTable(w, now);
+      return tresValoresDe(tabela.linhas.find((l) => l.voce) ?? null, tabela);
+    })(),
   };
 }
 
@@ -328,6 +338,13 @@ export function deltaIdx(w: Watchlist, now: number): IdxDelta {
     reputacao: snap.reputacao,
     posicao: snap.posicao,
     tendencia: snap.tendencia,
+    tendenciaDelta: snap.tendenciaDelta,
+    tendenciaProvisoria: snap.tendenciaProvisoria,
+    tendenciaAdversarios: snap.tendenciaAdversarios,
+    tendenciaAdversariosDelta: snap.tendenciaAdversariosDelta,
+    tendenciaAdversariosProvisoria: snap.tendenciaAdversariosProvisoria,
+    seguidores7dPct: snap.seguidores7dPct,
+    seguidores7dProvisorio: snap.seguidores7dProvisorio,
     ingredientes: snap.ingredientes,
   };
 }
@@ -430,7 +447,7 @@ export function snapshotQuotesRj(w: Watchlist, now: number): QuotesRjSnapshot {
       ),
       seguidoresReais,
       fonteSeguidores: seguidoresReais != null ? "real" : "modelado",
-      ...tresValoresDe(linhaPor.get(c.simbolo) ?? null),
+      ...tresValoresDe(linhaPor.get(c.simbolo) ?? null, tabela),
     };
   });
   return { quotes };
@@ -451,7 +468,7 @@ export function deltaQuotesRj(w: Watchlist, now: number): QuotesRjDelta {
         sparkLast: round1(
           seriesValue(`seg:${c.simbolo}`, now, { base: 100, vol: 0.02, trend: 0.0018, seasonalWeight: 0.02 }),
         ),
-        ...tresValoresDe(linhaPor.get(c.simbolo) ?? null),
+        ...tresValoresDe(linhaPor.get(c.simbolo) ?? null, tabela),
       };
     }),
   };

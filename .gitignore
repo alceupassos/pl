@@ -42,6 +42,9 @@ out/
 /data/trends-cache.json
 /data/youtube-videos-cache.json
 /data/idx-history-cache.json
+# histórico por candidato do Score+IRE (tendência 7d) e dos seguidores — runtime
+/data/index-history-cache.json
+/data/seguidores-history.json
 /data/instagram-cache.json
 /data/facebook-cache.json
 /data/x-cache.json

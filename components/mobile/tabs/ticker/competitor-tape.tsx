@@ -72,6 +72,19 @@ function corRep(v: number | null): string {
   return "#EA3943";
 }
 
+// PRA = 100 − (Score ÷ média × 100), em %. negativo = à frente (verde).
+function corPra(v: number | null): string {
+  if (v == null) return "var(--m-muted)";
+  if (v < -0.05) return "#16C784";
+  if (v > 0.05) return "#EA3943";
+  return "#8a93a8";
+}
+
+function fmtSigned(v: number, suffix = ""): string {
+  const sinal = v > 0 ? "+" : v < 0 ? "−" : "";
+  return `${sinal}${Math.abs(v).toFixed(1).replace(".", ",")}${suffix}`;
+}
+
 function MiniValor({ label, value, cor }: { label: string; value: number | null; cor: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -90,12 +103,23 @@ function MiniValor({ label, value, cor }: { label: string; value: number | null;
 function QuoteTres({ quote }: { quote: QuoteRj }) {
   const rep = quote.reputacao ?? null;
   const pos = quote.posicao ?? null;
-  const posCor = pos == null ? "var(--m-muted)" : pos >= 100 ? "#16C784" : "#EA3943";
   const tend = TEND_C[quote.tendencia ?? "flat"];
   return (
     <div style={{ display: "flex", gap: 12, margin: "6px 0 2px", alignItems: "flex-end" }}>
-      <MiniValor label="reput." value={rep} cor={corRep(rep)} />
-      <MiniValor label="vs adv." value={pos} cor={posCor} />
+      <MiniValor label="IRE" value={rep} cor={corRep(rep)} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <span
+          className="m-mono"
+          style={{ fontSize: 18, fontWeight: 800, lineHeight: 1, color: corPra(pos) }}
+        >
+          {pos == null ? "—" : fmtSigned(pos, "%")}
+        </span>
+        <span
+          style={{ fontSize: 7.5, color: "var(--m-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}
+        >
+          PRA
+        </span>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <span className="m-mono" style={{ fontSize: 16, fontWeight: 800, lineHeight: 1, color: tend.cor }}>
           {tend.sym}
@@ -103,7 +127,7 @@ function QuoteTres({ quote }: { quote: QuoteRj }) {
         <span
           style={{ fontSize: 7.5, color: "var(--m-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}
         >
-          tend.
+          TIRE
         </span>
       </div>
     </div>
@@ -209,6 +233,13 @@ function CompetitorFront() {
         reputacao: idx.reputacao,
         posicao: idx.posicao,
         tendencia: idx.tendencia,
+        tendenciaDelta: idx.tendenciaDelta,
+        tendenciaProvisoria: idx.tendenciaProvisoria,
+        tendenciaAdversarios: idx.tendenciaAdversarios,
+        tendenciaAdversariosDelta: idx.tendenciaAdversariosDelta,
+        tendenciaAdversariosProvisoria: idx.tendenciaAdversariosProvisoria,
+        seguidores7dPct: idx.seguidores7dPct,
+        seguidores7dProvisorio: idx.seguidores7dProvisorio,
         ingredientes: idx.ingredientes,
       },
       voce: true,
