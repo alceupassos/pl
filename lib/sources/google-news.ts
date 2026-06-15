@@ -35,7 +35,8 @@ const TERMO_PADRAO = "Sóstenes Cavalcante";
 type TermoState = {
   at: number;
   imprensa: number | null;
-  alertas: Alert[]; // rolling, mais novo primeiro
+  manchetes: string[]; // últimos títulos do feed (insumo do sentimento), todo fetch
+  alertas: Alert[]; // rolling, mais novo primeiro (radar — com dedup)
   guidsVistos: Set<string>;
   inFlight: boolean;
 };
@@ -46,7 +47,7 @@ let principalTermo = TERMO_PADRAO;
 function st(termo: string): TermoState {
   let s = byTermo.get(termo);
   if (!s) {
-    s = { at: 0, imprensa: null, alertas: [], guidsVistos: new Set(), inFlight: false };
+    s = { at: 0, imprensa: null, manchetes: [], alertas: [], guidsVistos: new Set(), inFlight: false };
     byTermo.set(termo, s);
   }
   return s;
@@ -77,7 +78,7 @@ export function getNewsImprensaFor(termo: string): number | null {
 
 /** Textos das manchetes recentes do termo — insumo para o sidecar de sentimento. */
 export function getManchetesTextoFor(termo: string, max = 30): string[] {
-  return (byTermo.get(termo)?.alertas ?? []).slice(0, max).map((a) => a.titulo);
+  return (byTermo.get(termo)?.manchetes ?? []).slice(0, max);
 }
 
 /** Dispara refresh do termo se o cache venceu e não há busca em voo. Não bloqueia. */
@@ -163,6 +164,12 @@ async function refresh(termo: string): Promise<void> {
     if (!itens.length) return;
 
     const s = st(termo);
+    // Manchetes para o sentimento: SEMPRE os últimos títulos do feed (sem o
+    // dedup dos alertas), garantindo ≥5 textos quando há cobertura.
+    s.manchetes = itens
+      .map((it) => it.titulo)
+      .filter((t) => t.trim().length > 0)
+      .slice(0, 30);
     const idx = indiceDeVolume(itens);
     if (idx !== null) {
       s.at = Date.now();

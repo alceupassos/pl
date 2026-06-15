@@ -4,6 +4,9 @@
 // (lib/index-real.ts → Índice de Reputação). Tudo com fallback: sidecar fora do
 // ar / poucas manchetes → getSentimentoRealFor() = null.
 
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   getManchetesTextoFor,
   getPrincipalTermo,
@@ -13,6 +16,7 @@ const SIDECAR_URL = process.env.SENTIMENT_URL ?? "http://127.0.0.1:8088/sentimen
 const TTL_MS = 15 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8_000;
 const MIN_TEXTOS = 5;
+const CACHE_FILE = join(process.cwd(), "data", "sentiment-cache.json");
 
 type State = { at: number; value: number | null; inFlight: boolean };
 const byTermo = new Map<string, State>();
@@ -24,6 +28,31 @@ function st(termo: string): State {
     byTermo.set(termo, s);
   }
   return s;
+}
+
+// Warm-start: recupera o último sentimento real de cada candidato após
+// restart/deploy (at=0 força um refresh no 1º tick, mas o valor já aparece).
+(function loadDisk() {
+  try {
+    const raw = JSON.parse(readFileSync(CACHE_FILE, "utf8"));
+    if (raw && typeof raw.termos === "object" && raw.termos) {
+      for (const [termo, v] of Object.entries(raw.termos)) {
+        if (typeof v === "number" && Number.isFinite(v)) st(termo).value = v;
+      }
+    }
+  } catch {
+    /* primeira execução */
+  }
+})();
+
+function persist(): void {
+  try {
+    const termos: Record<string, number> = {};
+    for (const [termo, s] of byTermo) if (s.value !== null) termos[termo] = s.value;
+    writeFileSync(CACHE_FILE, `${JSON.stringify({ termos })}\n`);
+  } catch {
+    /* FS read-only */
+  }
 }
 
 /** Índice de sentimento real (~100; >100 = clima favorável) do candidato. */
@@ -76,6 +105,7 @@ async function pontuar(termo: string, textos: string[]): Promise<void> {
         const s = st(termo);
         s.at = Date.now();
         s.value = json.indice;
+        persist();
       }
     } finally {
       clearTimeout(timer);

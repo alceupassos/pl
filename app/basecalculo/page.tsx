@@ -16,6 +16,7 @@ import {
   type Celula,
   type Ingrediente,
 } from "@/lib/index-real";
+import { warmIndexSources } from "@/lib/warm-index";
 import { readWatchlist } from "@/lib/watchlist";
 
 export const runtime = "nodejs";
@@ -72,6 +73,8 @@ export default async function BaseCalculoPage() {
   });
 
   const watchlist = await readWatchlist();
+  // Abrir a auditoria também aquece as fontes reais (não-bloqueante).
+  warmIndexSources(watchlist);
   // Server Component (não é hook): a leitura do relógio é intencional.
   // eslint-disable-next-line react-hooks/purity
   const tabela = computeIndexTable(watchlist, Date.now());
