@@ -32,17 +32,30 @@ META_IG_USERNAME = os.environ.get("META_IG_USERNAME", "").lower()
 META_FB_PAGE_ID = os.environ.get("META_FB_PAGE_ID", "")
 X_COOKIES_RAW = os.environ.get("X_COOKIES", "")
 
+import threading
+
 _analyzer = None
+_analyzer_lock = threading.Lock()
 
 
 def _get_analyzer():
-    """Carrega BERTabaporu PT sob demanda (~1GB RAM). YouTube/Trends não precisam."""
+    """Carrega BERTabaporu PT (~1GB RAM), uma vez, com lock (evita corrida)."""
     global _analyzer
     if _analyzer is None:
-        from pysentimiento import create_analyzer
+        with _analyzer_lock:
+            if _analyzer is None:
+                from pysentimiento import create_analyzer
 
-        _analyzer = create_analyzer(task="sentiment", lang="pt")
+                _analyzer = create_analyzer(task="sentiment", lang="pt")
     return _analyzer
+
+
+@app.on_event("startup")
+def _warm_model():
+    """Pré-carrega o modelo no boot, em thread daemon, para o 1º /sentiment não
+    pagar o custo de load (que, sob contenção de CPU, era abortado e nunca
+    completava). Não bloqueia o startup do uvicorn."""
+    threading.Thread(target=_get_analyzer, daemon=True).start()
 
 
 class Req(BaseModel):
