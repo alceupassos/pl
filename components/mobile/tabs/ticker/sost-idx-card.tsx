@@ -420,9 +420,9 @@ function IdxFront({
 
       <div
         className="m-mono"
-        style={{ fontSize: 10.5, color: "#9fe7ff", textAlign: "center", margin: "0 0 4px" }}
+        style={{ fontSize: 10.5, color: "#9fe7ff", textAlign: "left", margin: "0 0 4px" }}
       >
-        IRE = 0,40·Sent + 0,25·Menç + 0,20·Impr + 0,15·Cresc
+        IRE = 40%·Sent + 25%·Menç + 20%·Impr + 15%·Cresc
       </div>
 
       <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ margin: "8px 0 2px" }}>
