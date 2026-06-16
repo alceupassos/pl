@@ -19,7 +19,7 @@ import {
 } from "@/lib/index-real";
 import { BriefingBoard } from "@/components/basecalculo/briefing-board";
 import { PerguntasIA } from "@/components/basecalculo/perguntas-ia";
-import { Showcase3D } from "@/components/basecalculo/showcase-3d";
+import { Showcase3DClient } from "@/components/basecalculo/showcase-3d-client";
 import { readScoreSeries } from "@/lib/sources/index-history";
 import { warmIndexSources } from "@/lib/warm-index";
 import { readWatchlist } from "@/lib/watchlist";
@@ -114,7 +114,7 @@ export default async function BaseCalculoPage() {
       </section>
 
       <section className="log-panel">
-        <Showcase3D
+        <Showcase3DClient
           linhas={tabela.linhas}
           pesos={tabela.pesos}
           mediaScore={tabela.mediaScore}

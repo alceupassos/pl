@@ -27,7 +27,7 @@ import {
 
 import { type Linha3D, type SeriesScore } from "@/components/charts/index-3d-options";
 
-type Props = {
+export type Showcase3DProps = {
   linhas: Linha3D[];
   pesos: Record<string, number>;
   mediaScore: number | null;
@@ -106,7 +106,7 @@ export function Showcase3D({
   tendenciaAdversarios = "flat",
   tendenciaAdversariosDelta = null,
   tendenciaAdversariosProvisoria = true,
-}: Props) {
+}: Showcase3DProps) {
   const voce = linhas.find((l) => l.voce) ?? linhas[0] ?? null;
 
   // dados por candidato
