@@ -34,6 +34,9 @@ curl -s -X POST 127.0.0.1:8088/sentiment -H 'content-type: application/json' \
 
 `.venv/` e o cache do modelo NÃO vão para o git (ver `.gitignore`).
 
+O sidecar **lê automaticamente** `/opt/candidato/.env` (ou `.env` na raiz do repo em dev).
+O PM2 do `sentiment` não injeta esse arquivo sozinho — o `load_env.py` faz isso no boot.
+
 ## Redes sociais — variáveis de ambiente
 
 Configure no PM2 do processo `sentiment` (nunca commitar tokens):

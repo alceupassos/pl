@@ -13,7 +13,9 @@ export function useOdometer(target: number, durationMs = 600): number {
   useEffect(() => {
     const from = fromRef.current;
     if (from === target) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (reduced) {
       fromRef.current = target;
       rafRef.current = requestAnimationFrame(() => setDisplay(target));
@@ -62,6 +64,7 @@ export function Odometer({
       {display.toLocaleString("pt-BR", {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
+        useGrouping: decimals > 0, // inteiros sem separador de milhar
       })}
       {suffix}
     </span>

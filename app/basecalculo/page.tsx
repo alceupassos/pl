@@ -242,6 +242,30 @@ export default async function BaseCalculoPage() {
       <PerguntasIA />
 
       <BriefingBoard />
+
+      <section className="log-panel" style={{ textAlign: "center" }}>
+        <a
+          href="/basecalculo/export"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 22px",
+            borderRadius: 10,
+            border: "1px solid rgba(125,255,176,0.45)",
+            background: "rgba(22,199,132,0.12)",
+            color: "#7dffb0",
+            fontSize: 14,
+            fontWeight: 800,
+            textDecoration: "none",
+          }}
+        >
+          ⬇ Baixar planilha (.xls) — todos os números dos índices
+        </a>
+        <p style={{ color: "#5b6478", fontSize: 12, margin: "10px 0 0" }}>
+          Exporta valor e nota de cada pilar, pesos, IRE/PRA/TIRE/TPRA e o histórico do índice.
+        </p>
+      </section>
     </main>
   );
 }
