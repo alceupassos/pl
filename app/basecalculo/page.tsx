@@ -17,6 +17,7 @@ import {
   type Celula,
   type Ingrediente,
 } from "@/lib/index-real";
+import { BriefingBoard } from "@/components/basecalculo/briefing-board";
 import { PerguntasIA } from "@/components/basecalculo/perguntas-ia";
 import { Showcase3D } from "@/components/basecalculo/showcase-3d";
 import { readScoreSeries } from "@/lib/sources/index-history";
@@ -239,6 +240,8 @@ export default async function BaseCalculoPage() {
       </section>
 
       <PerguntasIA />
+
+      <BriefingBoard />
     </main>
   );
 }

@@ -48,3 +48,6 @@ out/
 /data/instagram-cache.json
 /data/facebook-cache.json
 /data/x-cache.json
+
+# briefings colaborativos do /basecalculo — runtime, persiste no servidor
+/data/briefings.jsonl

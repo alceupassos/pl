@@ -1,4 +1,5 @@
-import { mkdir, readFile, appendFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, appendFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { getClientIp } from "@/lib/auth";
@@ -9,6 +10,7 @@ export const ACCESS_ONLINE_MS = 5 * 60 * 1000;
 const DATA_DIR = path.join(process.cwd(), "data");
 const ACCESS_LOG_FILE = path.join(DATA_DIR, "access-log.jsonl");
 const LEADS_LOG_FILE = path.join(DATA_DIR, "transparency-leads.jsonl");
+const BRIEFING_FILE = path.join(DATA_DIR, "briefings.jsonl");
 
 export type AccessLogEntry = {
   at: string;
@@ -31,6 +33,17 @@ export type IpLocation = {
   country: string;
   latitude?: number;
   longitude?: number;
+};
+
+export type BriefingEntry = {
+  id: string;
+  at: string;
+  ip: string;
+  city: string;
+  region: string;
+  country: string;
+  message: string;
+  ia?: string;
 };
 
 export function isAccessOnline(lastAccess: string, now = Date.now()): boolean {
@@ -141,6 +154,64 @@ export async function appendLeadLog(input: Record<string, unknown>) {
   };
   await appendFile(LEADS_LOG_FILE, `${JSON.stringify(entry)}\n`, "utf8");
   return entry;
+}
+
+// BRIEFING colaborativo (/basecalculo): pedidos/dúvidas de quem acessa, com a
+// leitura técnica da IA. Visível na página e apagável por qualquer um.
+export async function appendBriefingLog(
+  headers: Headers,
+  input: { message: string; ia?: string },
+): Promise<BriefingEntry> {
+  await ensureDataDir();
+  const ip = getClientIp(headers);
+  const location = await lookupIpLocation(ip);
+  const entry: BriefingEntry = {
+    id: randomUUID(),
+    at: new Date().toISOString(),
+    ip,
+    city: location.city,
+    region: location.region,
+    country: location.country,
+    message: input.message,
+    ia: input.ia,
+  };
+  await appendFile(BRIEFING_FILE, `${JSON.stringify(entry)}\n`, "utf8");
+  return entry;
+}
+
+export async function readBriefingLogs(): Promise<BriefingEntry[]> {
+  try {
+    const content = await readFile(BRIEFING_FILE, "utf8");
+    return content
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line) as BriefingEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((v): v is BriefingEntry => Boolean(v))
+      .sort((a, b) => b.at.localeCompare(a.at));
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteBriefingById(id: string): Promise<boolean> {
+  const all = await readBriefingLogs();
+  const kept = all.filter((b) => b.id !== id);
+  if (kept.length === all.length) return false;
+  await ensureDataDir();
+  // reescreve em ordem cronológica (append-only natural)
+  const ordered = [...kept].sort((a, b) => a.at.localeCompare(b.at));
+  await writeFile(
+    BRIEFING_FILE,
+    ordered.map((b) => JSON.stringify(b)).join("\n") + (ordered.length ? "\n" : ""),
+    "utf8",
+  );
+  return true;
 }
 
 export async function readAccessLogs() {
