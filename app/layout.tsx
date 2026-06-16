@@ -9,6 +9,7 @@ import "./globals.css";
 import "./landing.css";
 
 import { LegalNotice } from "@/components/legal-notice";
+import { PageTracker } from "@/components/page-tracker";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -62,6 +63,7 @@ export default function RootLayout({
     >
       <body>
         {children}
+        <PageTracker />
         <LegalNotice variant="page" />
       </body>
     </html>

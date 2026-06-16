@@ -4,9 +4,32 @@ import { AccessMap } from "@/components/access-map";
 import {
   appendAccessLog,
   isAccessOnline,
+  readLeadLogs,
   summarizeAccessLogs,
 } from "@/lib/access-log";
+import { readCadastros } from "@/lib/cadastros";
 import { readOnboardingLog } from "@/lib/onboarding-log";
+
+function fmtData(value?: string) {
+  if (!value) return "—";
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: "America/Sao_Paulo",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function fmtDur(ms?: number) {
+  if (!ms || ms < 0) return "—";
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m${(s % 60).toString().padStart(2, "0")}s`;
+}
 
 type CityPosition = {
   lat: number;
@@ -339,14 +362,177 @@ export default async function MapaPage() {
     };
   });
 
-  const allEntries = [...entries, ...cadastroEntries];
+  // Leads da landing como marcadores (azul, kind cadastro). Posição pela cidade/UF
+  // informada; fallback pela geo do IP.
+  const leadEntries = (await readLeadLogs()).map((l, i) => {
+    const cidade = (typeof l.cidade === "string" && l.cidade) || (l.city ?? "") || "";
+    const uf = (typeof l.estado === "string" && l.estado) || (l.region ?? "") || "";
+    const cityPosition = resolveMapPosition({ city: cidade, state: uf, region: uf });
+    const projected = cityPosition ? projectBrazilPoint(cityPosition) : null;
+    const finalPosition =
+      projected ?? fallbackPositionForIp(String(l.ip || l.email || l.at || `lead-${i}`));
+    const contato = [l.whatsapp, l.email].filter(Boolean).join(" · ") || "—";
+    const localPorIp = [cidade, uf].filter(Boolean).join(" - ");
+    const at = typeof l.at === "string" ? l.at : "";
+
+    return {
+      key: `lead-${at || i}`,
+      kind: "cadastro" as const,
+      accessCount: 1,
+      actor: `${(l.nomeCompleto as string) || "Lead"} · landing`,
+      city: cidade || "Lead",
+      country: (l.country as string) || "Brasil",
+      ip: (l.ip as string) || "—",
+      lastAccess: at,
+      lastEvent: "lead:landing",
+      lastPath: "/",
+      localCitado: localPorIp,
+      localPorIp,
+      mapped: Boolean(cityPosition),
+      online: at ? isAccessOnline(at) : false,
+      region: uf,
+      userAgentShort: contato,
+      x: finalPosition.x,
+      y: finalPosition.y,
+    };
+  });
+
+  const allEntries = [...entries, ...cadastroEntries, ...leadEntries];
+
+  // Dados dos painéis abaixo do mapa.
+  const cadastros = await readCadastros();
+  const recentes = summary.rawLogs.slice(0, 60);
+  const pageStats = summary.pageStats.slice(0, 40);
 
   return (
-    <AccessMap
-      entries={allEntries}
-      totalAccesses={summary.totalAccesses}
-      uniqueIps={summary.uniqueIps}
-      onlineCount={onlineCount}
-    />
+    <>
+      <AccessMap
+        entries={allEntries}
+        totalAccesses={summary.totalAccesses}
+        uniqueIps={summary.uniqueIps}
+        onlineCount={onlineCount}
+      />
+
+      <section className="mapa-page" style={{ minHeight: "auto", paddingTop: 0 }}>
+        <div className="mapa-stat-grid" style={{ marginBottom: 18 }}>
+          <div className="mapa-stat-card">
+            <span>Cadastros</span>
+            <strong>{cadastros.length}</strong>
+          </div>
+          <div className="mapa-stat-card">
+            <span>Tempo médio/página</span>
+            <strong>{fmtDur(summary.tempoMedioMs)}</strong>
+          </div>
+          <div className="mapa-stat-card">
+            <span>Acessos (total)</span>
+            <strong>{summary.totalAccesses}</strong>
+          </div>
+        </div>
+
+        <section className="log-panel" style={{ marginBottom: 18 }}>
+          <h2>Cadastros — ordem de nome ({cadastros.length})</h2>
+          <div className="log-table-wrap">
+            <table className="log-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Cidade</th>
+                  <th>UF</th>
+                  <th>WhatsApp</th>
+                  <th>Email</th>
+                  <th>Origem</th>
+                  <th>Quando</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cadastros.length === 0 ? (
+                  <tr>
+                    <td colSpan={7}>Nenhum cadastro ainda.</td>
+                  </tr>
+                ) : (
+                  cadastros.map((c, i) => (
+                    <tr key={`${c.email || c.whatsapp || c.nome}-${c.at}-${i}`}>
+                      <td>{c.nome}</td>
+                      <td>{c.cidade || "—"}</td>
+                      <td>{c.uf || "—"}</td>
+                      <td>{c.whatsapp || "—"}</td>
+                      <td>{c.email || "—"}</td>
+                      <td>{c.origem === "landing" ? "landing" : "onboarding"}</td>
+                      <td>{fmtData(c.at)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="log-panel" style={{ marginBottom: 18 }}>
+          <h2>Acessos mais recentes</h2>
+          <div className="log-table-wrap">
+            <table className="log-table">
+              <thead>
+                <tr>
+                  <th>Quando</th>
+                  <th>IP</th>
+                  <th>Cidade</th>
+                  <th>Evento</th>
+                  <th>Página</th>
+                  <th>Tempo</th>
+                  <th>Navegador</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentes.map((e, i) => (
+                  <tr key={`${e.at}-${e.ip}-${e.event}-${i}`}>
+                    <td>{fmtData(e.at)}</td>
+                    <td>{e.ip}</td>
+                    <td>{e.city}</td>
+                    <td>{e.event}</td>
+                    <td>{e.path}</td>
+                    <td>
+                      {e.event === "page_time" && typeof e.metadata?.ms === "number"
+                        ? fmtDur(e.metadata.ms as number)
+                        : "—"}
+                    </td>
+                    <td style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {e.userAgent}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="log-panel">
+          <h2>Tempo por página</h2>
+          <div className="log-table-wrap">
+            <table className="log-table">
+              <thead>
+                <tr>
+                  <th>Página</th>
+                  <th>Acessos</th>
+                  <th>Tempo médio</th>
+                  <th>Tempo total</th>
+                  <th>Último acesso</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageStats.map((p) => (
+                  <tr key={p.path}>
+                    <td>{p.path}</td>
+                    <td>{p.hits}</td>
+                    <td>{p.samples > 0 ? fmtDur(p.avgMs) : "—"}</td>
+                    <td>{p.samples > 0 ? fmtDur(p.totalMs) : "—"}</td>
+                    <td>{fmtData(p.lastAccess)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </>
   );
 }

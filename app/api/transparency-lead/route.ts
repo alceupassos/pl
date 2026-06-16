@@ -3,8 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { appendAccessLog, appendLeadLog } from "@/lib/access-log";
+import { appendAccessLog, appendLeadLog, lookupIpLocation } from "@/lib/access-log";
 import { getSession } from "@/lib/api-auth";
+import { getClientIp } from "@/lib/auth";
 
 const LEAD_EMAIL = "eleicao@angra.io";
 
@@ -131,7 +132,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const localEntry = await appendLeadLog(lead);
+  // IP + geolocalização para cruzar o lead com os dados de acesso (mesma chave IP).
+  const ip = getClientIp(request.headers);
+  const loc = await lookupIpLocation(ip);
+  const localEntry = await appendLeadLog({
+    ...lead,
+    ip,
+    city: loc.city,
+    region: loc.region,
+    country: loc.country,
+  });
   await appendAccessLog(request.headers, {
     event: "transparency_lead_submitted",
     path: "/api/transparency-lead",

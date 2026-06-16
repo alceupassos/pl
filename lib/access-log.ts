@@ -35,6 +35,22 @@ export type IpLocation = {
   longitude?: number;
 };
 
+export type LeadEntry = {
+  at?: string;
+  destinationEmail?: string;
+  nomeCompleto?: string;
+  email?: string;
+  whatsapp?: string;
+  cidade?: string;
+  estado?: string;
+  consentimentoLgpd?: boolean;
+  ip?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  [key: string]: unknown;
+};
+
 export type BriefingEntry = {
   id: string;
   at: string;
@@ -214,6 +230,26 @@ export async function deleteBriefingById(id: string): Promise<boolean> {
   return true;
 }
 
+export async function readLeadLogs(): Promise<LeadEntry[]> {
+  try {
+    const content = await readFile(LEADS_LOG_FILE, "utf8");
+    return content
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line) as LeadEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((v): v is LeadEntry => Boolean(v))
+      .sort((a, b) => String(b.at ?? "").localeCompare(String(a.at ?? "")));
+  } catch {
+    return [];
+  }
+}
+
 export async function readAccessLogs() {
   try {
     const content = await readFile(ACCESS_LOG_FILE, "utf8");
@@ -257,10 +293,43 @@ export async function summarizeAccessLogs() {
     }
   }
 
+  // Tempo por página: agrega hits por path e soma a permanência (eventos page_time).
+  const byPath = new Map<string, { path: string; hits: number; totalMs: number; samples: number; lastAccess: string }>();
+  for (const log of logs) {
+    const p = log.path || "(sem path)";
+    const cur = byPath.get(p) ?? { path: p, hits: 0, totalMs: 0, samples: 0, lastAccess: log.at };
+    cur.hits += 1;
+    const ms = typeof log.metadata?.ms === "number" ? (log.metadata.ms as number) : null;
+    if (log.event === "page_time" && ms != null && ms >= 0) {
+      cur.totalMs += ms;
+      cur.samples += 1;
+    }
+    if (log.at > cur.lastAccess) cur.lastAccess = log.at;
+    byPath.set(p, cur);
+  }
+  const pageStats = Array.from(byPath.values())
+    .map((s) => ({
+      path: s.path,
+      hits: s.hits,
+      totalMs: s.totalMs,
+      avgMs: s.samples > 0 ? Math.round(s.totalMs / s.samples) : 0,
+      samples: s.samples,
+      lastAccess: s.lastAccess,
+    }))
+    .sort((a, b) => b.hits - a.hits);
+
+  const tempoSamples = logs.filter(
+    (l) => l.event === "page_time" && typeof l.metadata?.ms === "number",
+  );
+  const tempoTotalMs = tempoSamples.reduce((acc, l) => acc + (l.metadata!.ms as number), 0);
+  const tempoMedioMs = tempoSamples.length ? Math.round(tempoTotalMs / tempoSamples.length) : 0;
+
   return {
     totalAccesses: logs.length,
     uniqueIps: byIp.size,
     entries: Array.from(byIp.values()).sort((a, b) => b.lastAccess.localeCompare(a.lastAccess)),
     rawLogs: logs,
+    pageStats,
+    tempoMedioMs,
   };
 }
