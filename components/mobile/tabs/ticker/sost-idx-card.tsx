@@ -129,14 +129,14 @@ const PARTES: {
     label: "sentimento",
     curto: "se falam bem ou mal",
     explica: (v, p) =>
-      `Tom das manchetes reais sobre o candidato, classificado por IA em português (pysentimiento), positivo vs negativo (peso ${p}%). Valor ${v}; acima de 100 = clima mais favorável.`,
+      `Tom das manchetes reais sobre o candidato, classificado por IA em português (pysentimiento), positivo vs negativo (maior peso do IRE, ${p}%). Valor ${v}; acima de 100 = clima mais favorável.`,
   },
   {
     key: "seguidores",
-    label: "seguidores",
-    curto: "base online · índice 7 dias",
+    label: "crescimento",
+    curto: "base crescendo · Δ7 dias",
     explica: (v, p) =>
-      `Tamanho da base somada das redes (peso ${p}% do índice), real via Bright Data/yt-dlp. No card os seguidores aparecem como ÍNDICE dos últimos 7 dias (variação %, tendência). Nota atual ${v}; acima de 100 = base crescendo.`,
+      `Crescimento da base: variação % dos seguidores somados das redes nos últimos 7 dias (peso ${p}% do IRE), real via Bright Data/yt-dlp. Nota atual ${v}; acima de 50 = base crescendo mais que o páreo. Sem 7 dias de histórico, fica "acumulando".`,
   },
   {
     key: "imprensa",
@@ -418,6 +418,13 @@ function IdxFront({
         />
       </div>
 
+      <div
+        className="m-mono"
+        style={{ fontSize: 10.5, color: "#9fe7ff", textAlign: "center", margin: "0 0 4px" }}
+      >
+        IRE = 0,40·Sent + 0,25·Menç + 0,20·Impr + 0,15·Cresc
+      </div>
+
       <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ margin: "8px 0 2px" }}>
         <div className="m-muted-c" style={{ fontSize: 10, marginBottom: 2 }}>
           índice · últimos 7 dias (candle)
@@ -555,11 +562,11 @@ function IdxBack({
       >
         {(
           [
-            ["IRE", "Índice de Reputação Eleitoral — o tom das notícias sobre o candidato (0–100, base sentimento)."],
+            ["IRE", "Índice de Reputação Eleitoral — nota composta 0–100: Sentimento 40% · Menções 25% · Imprensa 20% · Crescimento 15%."],
             ["TIRE", "Tendência do IRE: como o IRE do candidato variou nos últimos 7 dias (▲ subindo · ▬ estável · ▼ caindo)."],
-            ["PRA", "Posição Relativa Adversários: 100 − (Score ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente; positivo = atrás."],
+            ["PRA", "Posição Relativa Adversários: 100 − (IRE ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente; positivo = atrás."],
             ["TPRA", "Tendência do PRA: média da tendência (ΔIRE em 7 dias) dos concorrentes RJ."],
-            ["Seguidores", "Exibidos como índice dos últimos 7 dias (variação % da base somada das redes)."],
+            ["Crescimento", "Pilar do IRE: variação % da base de seguidores nos últimos 7 dias (base somada das redes)."],
           ] as const
         ).map(([k, d]) => (
           <div key={k} style={{ fontSize: 11, color: "var(--m-muted)" }}>

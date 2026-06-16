@@ -16,10 +16,10 @@
     "foto": "/sostenes1.png"
   },
   "pesosIndice": {
-    "mencoes": 0.35,
-    "sentimento": 0.3,
-    "seguidores": 0.2,
-    "imprensa": 0.15
+    "sentimento": 0.4,
+    "mencoes": 0.25,
+    "imprensa": 0.2,
+    "seguidores": 0.15
   },
   "concorrentes_rj": [
     {

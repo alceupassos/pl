@@ -67,11 +67,12 @@ export const IdxBreakdownSchema = z.object({
 const FonteDadoSchema = z.enum(["real", "modelado"]);
 
 /* Índice de Popularidade Digital — valores por candidato (lib/index-real.ts).
-   IRE (reputacao) = nota de sentimento (0–100); PRA (posicao) = 100 − Score ÷ média
-   × 100, em % (0 = média do páreo); TIRE (tendencia/tendenciaDelta) = ΔIRE do
-   candidato em 7 dias; TPRA (tendenciaAdversarios) = média das tendências (ΔIRE 7d)
-   dos concorrentes; seguidores7dPct = variação % de seguidores em 7 dias. Campos
-   OPCIONAIS para compatibilidade com snapshots antigos. */
+   IRE (reputacao) = nota composta ponderada 0–100 (Sentimento 40% · Menções 25% ·
+   Imprensa 20% · Crescimento 15%); PRA (posicao) = 100 − IRE ÷ média × 100, em %
+   (0 = média do páreo); TIRE (tendencia/tendenciaDelta) = ΔIRE do candidato em 7
+   dias; TPRA (tendenciaAdversarios) = média das tendências (ΔIRE 7d) dos
+   concorrentes; seguidores7dPct = variação % de seguidores em 7 dias (= o pilar
+   Crescimento). Campos OPCIONAIS para compatibilidade com snapshots antigos. */
 export const CelulaIndiceSchema = z.object({
   valor: z.number().nullable(),
   nota: z.number().nullable(),
@@ -88,7 +89,7 @@ export type Ingredientes = z.infer<typeof IngredientesSchema>;
 export const TendenciaSchema = z.enum(["up", "flat", "down"]);
 
 const tresValores = {
-  reputacao: z.number().nullable().optional(), // IRE
+  reputacao: z.number().nullable().optional(), // IRE (nota composta)
   posicao: z.number().nullable().optional(), // PRA (%)
   tendencia: TendenciaSchema.optional(), // TIRE (direção)
   tendenciaDelta: z.number().nullable().optional(), // TIRE (ΔIRE 7d numérico)

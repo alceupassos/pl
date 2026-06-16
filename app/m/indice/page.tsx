@@ -46,9 +46,9 @@ const COMPONENTES: {
   },
   {
     key: "seguidores",
-    nome: "Seguidores",
+    nome: "Crescimento da base",
     oQueMede:
-      "Tamanho da base online (soma das redes). No card é mostrado como ÍNDICE dos últimos 7 dias — a variação % da base nesse período (tendência da audiência própria).",
+      "Se a audiência própria está crescendo: a variação % da base de seguidores (soma das redes) nos últimos 7 dias. É o 4º pilar do IRE (15%).",
     extracao: "Bright Data + yt-dlp via sidecar (sem API key)",
     como: FONTE_COMO.seguidores,
   },
@@ -130,12 +130,13 @@ export default function MobileIndicePage() {
         </p>
         <p style={{ fontSize: 11.5, lineHeight: 1.5, margin: "8px 0 0", color: "var(--m-muted)" }}>
           O card agora resume tudo em <strong>4 leituras</strong>: <strong>IRE</strong> (Índice de
-          Reputação Eleitoral — falam bem ou mal, sentimento 0–100), <strong>TIRE</strong> (tendência
-          do IRE do candidato nos últimos <strong>7 dias</strong>, ▲ ▬ ▼), <strong>PRA</strong>{" "}
-          (Posição Relativa Adversários = 100 − Score ÷ média × 100, em %; 0 = média do páreo,
-          negativo = à frente) e <strong>TPRA</strong> (média da tendência — ΔIRE de 7 dias — dos
-          adversários). Os seguidores também aparecem como índice dos últimos 7 dias. Esses números
-          são reais por candidato.
+          Reputação Eleitoral — nota composta 0–100: Sentimento 40% · Menções 25% · Imprensa 20% ·
+          Crescimento 15%), <strong>TIRE</strong> (tendência do IRE do candidato nos últimos{" "}
+          <strong>7 dias</strong>, ▲ ▬ ▼), <strong>PRA</strong> (Posição Relativa Adversários =
+          100 − IRE ÷ média × 100, em %; 0 = média do páreo, negativo = à frente) e{" "}
+          <strong>TPRA</strong> (média da tendência — ΔIRE de 7 dias — dos adversários). O
+          crescimento da base entra como variação % dos seguidores em 7 dias. Esses números são
+          reais por candidato.
         </p>
         <Link
           href="/basecalculo"

@@ -42,12 +42,11 @@ function fmtSigned(v: number, suffix = ""): string {
   return `${sinal}${Math.abs(v).toFixed(1).replace(".", ",")}${suffix}`;
 }
 
-const ING = ["mencoes", "sentimento", "imprensa", "seguidores"] as const;
 const PILAR = [
   { key: "Menções", cor: "#3b82f6" },
   { key: "Sentimento", cor: "#22c55e" },
   { key: "Imprensa", cor: "#f0c030" },
-  { key: "Seguidores", cor: "#a855f7" },
+  { key: "Crescimento", cor: "#a855f7" },
 ];
 const AXIS = "rgba(255,255,255,0.18)";
 const GRID = "rgba(255,255,255,0.06)";
@@ -118,7 +117,7 @@ export function Showcase3D({
         Menções: l.ingredientes.mencoes?.nota ?? 0,
         Sentimento: l.ingredientes.sentimento?.nota ?? 0,
         Imprensa: l.ingredientes.imprensa?.nota ?? 0,
-        Seguidores: l.ingredientes.seguidores?.nota ?? 0,
+        Crescimento: l.ingredientes.seguidores?.nota ?? 0,
       })),
     [linhas],
   );
@@ -130,7 +129,7 @@ export function Showcase3D({
         Menções: Math.round((l.ingredientes.mencoes?.nota ?? 0) * (pesos.mencoes ?? 0) * 10) / 10,
         Sentimento: Math.round((l.ingredientes.sentimento?.nota ?? 0) * (pesos.sentimento ?? 0) * 10) / 10,
         Imprensa: Math.round((l.ingredientes.imprensa?.nota ?? 0) * (pesos.imprensa ?? 0) * 10) / 10,
-        Seguidores: Math.round((l.ingredientes.seguidores?.nota ?? 0) * (pesos.seguidores ?? 0) * 10) / 10,
+        Crescimento: Math.round((l.ingredientes.seguidores?.nota ?? 0) * (pesos.seguidores ?? 0) * 10) / 10,
       })),
     [linhas, pesos],
   );
@@ -183,14 +182,14 @@ export function Showcase3D({
       {/* PLACAR — IRE · TIRE · PRA · TPRA */}
       {voce ? (
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <PlacarNum n={1} rotulo="IRE" valor={voce.reputacao == null ? "—" : String(Math.round(voce.reputacao))} cor={corRep(voce.reputacao)} formula="Reputação Eleitoral · 0–100" />
+          <PlacarNum n={1} rotulo="IRE" valor={voce.reputacao == null ? "—" : String(Math.round(voce.reputacao))} cor={corRep(voce.reputacao)} formula="0,40·Sent + 0,25·Menç + 0,20·Impr + 0,15·Cresc" />
           <PlacarNum n={2} rotulo="TIRE · tendência 7d" valor={`${tend.sym} ${voce.tendenciaDelta == null ? tend.label : fmtSigned(voce.tendenciaDelta)}`} cor={tend.cor} formula={voce.tendenciaProvisoria ? "ΔIRE 7 dias · acumulando" : "ΔIRE nos últimos 7 dias"} />
-          <PlacarNum n={3} rotulo="PRA" valor={voce.posicao == null ? "—" : fmtSigned(voce.posicao, "%")} cor={posCor} formula="100 − Score ÷ média × 100" />
+          <PlacarNum n={3} rotulo="PRA" valor={voce.posicao == null ? "—" : fmtSigned(voce.posicao, "%")} cor={posCor} formula="100 − IRE ÷ média × 100" />
           <PlacarNum n={4} rotulo="TPRA · tendência 7d" valor={`${tendAdv.sym} ${tendenciaAdversariosDelta == null ? tendAdv.label : fmtSigned(tendenciaAdversariosDelta)}`} cor={tendAdv.cor} formula={tendenciaAdversariosProvisoria ? "média ΔIRE 7d adversários · acumulando" : "média do ΔIRE 7d dos adversários"} />
         </div>
       ) : null}
       <p style={{ fontSize: 11.5, color: "#5b6478", marginTop: 8, textAlign: "center" }}>
-        {voce?.nome ?? "—"} · média do páreo (Score) = {mediaScore == null ? "—" : mediaScore.toFixed(1)}
+        {voce?.nome ?? "—"} · média do páreo (IRE) = {mediaScore == null ? "—" : mediaScore.toFixed(1)}
       </p>
 
       {/* BLOCO 1 */}
@@ -210,7 +209,7 @@ export function Showcase3D({
             ))}
           </BarChart>
         </ChartCard>
-        <ChartCard titulo="Posicionamento · menções × sentimento (bolha = seguidores)">
+        <ChartCard titulo="Posicionamento · menções × sentimento (bolha = crescimento)">
           <ScatterChart margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
             <CartesianGrid stroke={GRID} />
             <XAxis type="number" dataKey="x" name="Menções" domain={[0, 100]} tick={TICK} stroke={AXIS} />
@@ -229,9 +228,9 @@ export function Showcase3D({
       {/* BLOCO 2 */}
       <Bloco
         titulo="A história confere com a tendência"
-        texto={<>O <strong>TIRE</strong> compara o <strong>IRE de agora com o de ~7 dias atrás</strong>, do histórico real gravado pelo sistema; o <strong>TPRA</strong> faz a média desse ΔIRE 7d dos adversários. As linhas mostram a trajetória do Score de cada candidato; a área, o relevo do páreo.</>}
+        texto={<>O <strong>TIRE</strong> compara o <strong>IRE de agora com o de ~7 dias atrás</strong>, do histórico real gravado pelo sistema; o <strong>TPRA</strong> faz a média desse ΔIRE 7d dos adversários. As linhas mostram a trajetória do IRE de cada candidato; a área, o relevo do páreo.</>}
       >
-        <ChartCard titulo="Trajetória do Score · tempo">
+        <ChartCard titulo="Trajetória do IRE · tempo">
           <LineChart data={trajData} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
             <CartesianGrid stroke={GRID} />
             <XAxis dataKey="t" tick={TICK} stroke={AXIS} />
@@ -242,7 +241,7 @@ export function Showcase3D({
             ))}
           </LineChart>
         </ChartCard>
-        <ChartCard titulo="Paisagem do Score (áreas sobrepostas)">
+        <ChartCard titulo="Paisagem do IRE (áreas sobrepostas)">
           <AreaChart data={trajData} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
             <CartesianGrid stroke={GRID} />
             <XAxis dataKey="t" tick={TICK} stroke={AXIS} />
@@ -258,9 +257,9 @@ export function Showcase3D({
       {/* BLOCO 3 */}
       <Bloco
         titulo="A conta fecha — sem caixa-preta"
-        texto={<>O <strong>Score</strong> é a soma das notas × pesos (35/30/15/20) e a <strong>PRA</strong> é <code>100 − Score ÷ média × 100</code>, em % (0 = na média do páreo). As barras empilhadas mostram cada pilar somando ao Score; a dispersão Score×PRA cai sobre a reta esperada (linha da média em 0%).</>}
+        texto={<>O <strong>IRE</strong> é a soma das notas × pesos (Menç 25 · Sent 40 · Impr 20 · Cresc 15) e a <strong>PRA</strong> é <code>100 − IRE ÷ média × 100</code>, em % (0 = na média do páreo). As barras empilhadas mostram cada pilar somando ao IRE; a dispersão IRE×PRA cai sobre a reta esperada (linha da média em 0%).</>}
       >
-        <ChartCard titulo="Anatomia do Score · contribuição nota×peso (empilhada)">
+        <ChartCard titulo="Anatomia do IRE · contribuição nota×peso (empilhada)">
           <BarChart data={contribData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid stroke={GRID} />
             <XAxis dataKey="simbolo" tick={TICK} stroke={AXIS} />
@@ -272,10 +271,10 @@ export function Showcase3D({
             ))}
           </BarChart>
         </ChartCard>
-        <ChartCard titulo="Score × PRA · relação linear">
+        <ChartCard titulo="IRE × PRA · relação linear">
           <ScatterChart margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
             <CartesianGrid stroke={GRID} />
-            <XAxis type="number" dataKey="x" name="Score" domain={["auto", "auto"]} tick={TICK} stroke={AXIS} />
+            <XAxis type="number" dataKey="x" name="IRE" domain={["auto", "auto"]} tick={TICK} stroke={AXIS} />
             <YAxis type="number" dataKey="y" name="PRA (%)" domain={["auto", "auto"]} tick={TICK} stroke={AXIS} />
             <Tooltip {...TOOLTIP} cursor={{ strokeDasharray: "3 3" }} />
             <ReferenceLine y={0} stroke="rgba(34,211,238,0.5)" strokeDasharray="4 4" label={{ value: "média (0%)", fill: "#67e8f9", fontSize: 10 }} />

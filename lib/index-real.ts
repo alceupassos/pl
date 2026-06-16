@@ -8,13 +8,16 @@
 // Metodologia (briefing):
 //   1. Cada ingrediente vira NOTA 0–100 centrada em 50 vs. a média do páreo:
 //      nota = clamp(50 + 15 × (valor − média) ÷ desvio_típico, 0, 100)
-//   2. Score = Σ (nota × peso), pesos de watchlist.pesosIndice, RENORMALIZADOS
-//      sobre os ingredientes com dado real do candidato.
-//   3. PRA (Posição Relativa Adversários) = 100 − (Score ÷ média × 100), em %
+//      Pilares: Sentimento, Menções, Imprensa e Crescimento da base (este último
+//      entra como a VARIAÇÃO % de seguidores nos últimos 7 dias — não a base total).
+//   2. IRE (Índice de Reputação Eleitoral) = Σ (nota × peso), pesos de
+//      watchlist.pesosIndice (Sentimento 40% · Menções 25% · Imprensa 20% ·
+//      Crescimento 15%), RENORMALIZADOS sobre os ingredientes com dado real. É o
+//      número-título: o "Score" e o IRE são o mesmo número.
+//   3. PRA (Posição Relativa Adversários) = 100 − (IRE ÷ média × 100), em %
 //      (0 = na média; positivo = atrás dos adversários; negativo = à frente).
-//   4. IRE (Índice de Reputação Eleitoral) = nota de sentimento.
-//      TIRE = tendência do IRE do candidato em 7 dias; TPRA = média das tendências
-//      (ΔIRE 7d) dos concorrentes. Seguidores = índice (variação %) dos últimos 7 dias.
+//   4. TIRE = tendência do IRE do candidato em 7 dias; TPRA = média das tendências
+//      (ΔIRE 7d) dos concorrentes.
 //
 // "100% real": só entra na conta o ingrediente com valor REAL do candidato; sem
 // fonte real, a célula fica { valor:null, fonte:"indisponivel" } e é excluída.
@@ -46,9 +49,9 @@ export type LinhaIndice = {
   cor: string;
   voce: boolean;
   ingredientes: Record<Ingrediente, Celula>;
-  score: number | null; // nota composta 0–100
-  reputacao: number | null; // IRE = nota de sentimento (0–100)
-  posicao: number | null; // PRA = score ÷ média(scores) × 100  (100 = média)
+  score: number | null; // nota composta 0–100 (= IRE; mantido por compat.)
+  reputacao: number | null; // IRE = nota composta ponderada (0–100)
+  posicao: number | null; // PRA = 100 − (IRE ÷ média(IRE) × 100), em %
   tendencia: Tendencia; // TIRE: tendência do IRE do candidato em 7 dias
   tendenciaDelta: number | null; // ΔIRE em 7 dias (numérico); null sem histórico
   tendenciaProvisoria: boolean; // true enquanto não há ~7d de histórico de IRE
@@ -94,6 +97,8 @@ function valorReal(w: Watchlist, simbolo: string, nome: string, ing: Ingrediente
     case "imprensa":
       return getNewsImprensaFor(nome);
     case "seguidores":
+      // Base total somada das redes; usada para gravar histórico e derivar o
+      // crescimento % de 7 dias (que é o que de fato entra no índice).
       return seguidoresReaisTotais(w, simbolo);
   }
 }
@@ -140,6 +145,30 @@ function buildIndexTable(w: Watchlist, now: number): TabelaIndice {
     return ing;
   });
 
+  // 1b) Crescimento da base: o pilar "seguidores" entra no índice como a VARIAÇÃO
+  // % dos seguidores nos últimos 7 dias (não a base total). Grava o total real no
+  // histórico e calcula o Δ7d ANTES das notas, para alimentar o z-score. Sem ~7d
+  // de histórico, o crescimento fica null → célula indisponível (excluída +
+  // renormalizada), e o índice roda sobre os outros pilares (cold-start honesto).
+  const seg7d = candidatos.map((c, i) => {
+    const total = brutos[i].seguidores;
+    if (total === null) return { pct: null as number | null, provisorio: true };
+    recordSeguidores(now, c.simbolo, total);
+    const sa = seguidoresAt(c.simbolo, now - IRE_TREND_WINDOW_MS);
+    if (sa !== null && sa.v > 0) {
+      return {
+        pct: round1(((total - sa.v) / sa.v) * 100),
+        provisorio: now - sa.t < IRE_TREND_WINDOW_MS,
+      };
+    }
+    return { pct: null as number | null, provisorio: true };
+  });
+  // o valor do pilar "seguidores" passa a ser o crescimento %; a base total só
+  // alimentou o histórico acima.
+  brutos.forEach((b, i) => {
+    b.seguidores = seg7d[i].pct;
+  });
+
   // 2) notas (z-score) por ingrediente, só sobre quem tem valor real
   const linhas: LinhaIndice[] = candidatos.map((c, i) => {
     const ingredientes = {} as Record<Ingrediente, Celula>;
@@ -171,13 +200,13 @@ function buildIndexTable(w: Watchlist, now: number): TabelaIndice {
       voce: c.voce,
       ingredientes,
       score,
-      reputacao: ingredientes.sentimento.nota,
+      reputacao: score, // IRE = nota composta (absorve o antigo Score)
       posicao: null as number | null, // preenchido abaixo
       tendencia: "flat" as Tendencia,
       tendenciaDelta: null as number | null,
       tendenciaProvisoria: true,
-      seguidores7dPct: null as number | null,
-      seguidores7dProvisorio: true,
+      seguidores7dPct: seg7d[i].pct,
+      seguidores7dProvisorio: seg7d[i].provisorio,
     };
   });
 
@@ -187,13 +216,13 @@ function buildIndexTable(w: Watchlist, now: number): TabelaIndice {
 
   for (const l of linhas) {
     if (l.score !== null && mediaScore && mediaScore > 0) {
-      // PRA = 100 − (Score ÷ média × 100), em % (0 = na média do páreo;
+      // PRA = 100 − (IRE ÷ média × 100), em % (0 = na média do páreo;
       // positivo = atrás dos adversários; negativo = à frente).
       l.posicao = round1(100 - (l.score / mediaScore) * 100);
       recordScore(now, l.simbolo, l.score);
     }
 
-    // TIRE — tendência do IRE (reputação) nos últimos 7 dias.
+    // TIRE — tendência do IRE (reputação = nota composta) nos últimos 7 dias.
     if (l.reputacao !== null) {
       recordIre(now, l.simbolo, l.reputacao);
       const ant = ireAt(l.simbolo, now - IRE_TREND_WINDOW_MS);
@@ -204,17 +233,8 @@ function buildIndexTable(w: Watchlist, now: number): TabelaIndice {
         l.tendenciaProvisoria = now - ant.t < IRE_TREND_WINDOW_MS;
       }
     }
-
-    // Seguidores como índice (variação %) dos últimos 7 dias.
-    const seg = l.ingredientes.seguidores.valor;
-    if (seg !== null) {
-      recordSeguidores(now, l.simbolo, seg);
-      const sa = seguidoresAt(l.simbolo, now - IRE_TREND_WINDOW_MS);
-      if (sa !== null && sa.v > 0) {
-        l.seguidores7dPct = round1(((seg - sa.v) / sa.v) * 100);
-        l.seguidores7dProvisorio = now - sa.t < IRE_TREND_WINDOW_MS;
-      }
-    }
+    // O crescimento da base (seguidores Δ7d) já foi calculado em `seg7d` e é o
+    // próprio valor do pilar "seguidores" que entrou no IRE.
   }
 
   // TPRA — média das tendências (ΔIRE 7d) dos concorrentes (não inclui o principal).

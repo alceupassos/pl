@@ -92,7 +92,7 @@ export const DEFAULT_WATCHLIST: Watchlist = {
       youtube: "https://www.youtube.com/channel/UCI2j76o7JyLVSmooEcSvLxA",
     },
   },
-  pesosIndice: { mencoes: 0.35, sentimento: 0.3, seguidores: 0.2, imprensa: 0.15 },
+  pesosIndice: { sentimento: 0.4, mencoes: 0.25, imprensa: 0.2, seguidores: 0.15 },
   concorrentes_rj: [
     { simbolo: "JRDY", nome: "Carlos Jordy", partido: "PL", interno: true, votos2022: null, cor: "#3B82F6",
       handles: { instagram: "carlosjordy", tiktok: "carlosjordydep", facebook: "carlosjordyoficial", x: "carlosjordy", youtube: "https://www.youtube.com/carlosjordy" } },
