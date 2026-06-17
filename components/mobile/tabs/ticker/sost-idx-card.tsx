@@ -230,7 +230,7 @@ function SubMetrica({
         </span>
         <span
           className="m-mono"
-          style={{ fontSize: compact ? 18 : 22, fontWeight: 800, lineHeight: 1, color: valorCor }}
+          style={{ fontSize: compact ? 24 : 32, fontWeight: 800, lineHeight: 1, color: valorCor }}
         >
           {valor}
         </span>
@@ -263,14 +263,23 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: expanded ? 8 : 6 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: expanded ? 16 : 10 }}>
-        {/* SENTIMENTO — número herói (o maior) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
-            SENTIMENTO
-          </span>
+        {/* SENTIMENTO — número herói (o maior). Badges pequenos ao lado do rótulo. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
+              SENTIMENTO
+            </span>
+            <LeituraIA
+              card="ticker-sost-idx"
+              contexto={`sentimento net ${net == null ? "—" : net.toFixed(1)}%; IRE ${ire ?? "—"}; PRA ${pra == null ? "—" : `${pra.toFixed(1)}%`}`}
+              titulo="Índice de Reputação Eleitoral"
+            />
+            <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
+            <LiveBadge ch="idx.sost" cadenceMs={2000} />
+          </div>
           <span
             className="m-mono"
-            style={{ fontSize: expanded ? 44 : 32, fontWeight: 900, lineHeight: 1, color: corSentNet(net) }}
+            style={{ fontSize: expanded ? 60 : 44, fontWeight: 900, lineHeight: 1, color: corSentNet(net) }}
           >
             {net == null ? "—" : fmtSigned(net, "%")}
           </span>
@@ -388,19 +397,10 @@ function IdxCompact({
   return (
     <FlashCard watch={idx.reputacao ?? idx.valor} className="m-card-compact">
       <div className="m-card-head m-card-head-ticker">
-        <span className="m-card-title">
-          {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
+        <span className="m-card-title" style={{ color: "#e8ecf4", fontWeight: 800 }}>
+          ÍNDICE DE REPUTAÇÃO ELEITORAL · {watchlist?.principal.simbolo ?? "SOST"}-IDX
         </span>
         <MetaPills alcancado={cadastrados} />
-        <div className="m-card-head-badges" style={{ width: "100%" }}>
-          <LeituraIA
-            card="ticker-sost-idx"
-            contexto={`valor ${idx.valor.toFixed(2)}; var dia ${idx.variacaoDia.toFixed(1)}%; cad ${cadastrados}/${META_ELEITORES}`}
-            titulo="SOST-IDX"
-          />
-          <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
-          <LiveBadge ch="idx.sost" cadenceMs={2000} />
-        </div>
       </div>
 
       <IdxResumo idx={idx} />
@@ -427,16 +427,9 @@ function IdxFront({
   return (
     <FlashCard watch={idx.valor}>
       <div className="m-card-head">
-        <span className="m-card-title">
-          {watchlist?.principal.simbolo ?? "SOST"}-IDX · índice do candidato
+        <span className="m-card-title" style={{ color: "#e8ecf4", fontWeight: 800 }}>
+          ÍNDICE DE REPUTAÇÃO ELEITORAL · {watchlist?.principal.simbolo ?? "SOST"}-IDX
         </span>
-        <LeituraIA
-          card="ticker-sost-idx"
-          contexto={`valor ${idx.valor.toFixed(2)}; var dia ${idx.variacaoDia.toFixed(1)}%; imp ${idx.breakdown.imprensa.toFixed(0)} sent ${idx.breakdown.sentimento.toFixed(0)} seg ${idx.breakdown.seguidores.toFixed(0)} men ${idx.breakdown.mencoes.toFixed(0)}; cad ${cadastrados}/${META_ELEITORES}`}
-          titulo="SOST-IDX"
-        />
-        <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
-        <LiveBadge ch="idx.sost" cadenceMs={2000} />
         <MetaRing
           alcancado={cadastrados}
           meta={META_ELEITORES}

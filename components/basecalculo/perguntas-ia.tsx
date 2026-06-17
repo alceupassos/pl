@@ -47,7 +47,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "O que significa a nota 0–100 (z-score)?",
-    a: "Cada pilar vira nota 50 + 15 × (valor − média) ÷ desvio, comparando o candidato com a média do páreo. 50 = exatamente na média; quanto maior, mais acima dos concorrentes.",
+    a: "Cada pilar vira nota 50 + 20 × (valor − média) ÷ desvio, comparando o candidato com a média do páreo. 50 = exatamente na média; quanto maior, mais acima dos concorrentes.",
   },
 ];
 

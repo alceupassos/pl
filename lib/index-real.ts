@@ -7,7 +7,7 @@
 //
 // Metodologia (briefing):
 //   1. Cada ingrediente vira NOTA 0–100 centrada em 50 vs. a média do páreo:
-//      nota = clamp(50 + 15 × (valor − média) ÷ desvio_típico, 0, 100)
+//      nota = clamp(50 + 20 × (valor − média) ÷ desvio_típico, 0, 100)
 //      Pilares: Sentimento, Menções, Imprensa e Crescimento da base (este último
 //      entra como a VARIAÇÃO % de seguidores nos últimos 7 dias — não a base total).
 //   2. IRE (Índice de Reputação Eleitoral) = Σ (nota × peso), pesos de
@@ -111,7 +111,7 @@ function notaZ(valor: number, valores: number[]): number {
   const variancia = valores.reduce((a, b) => a + (b - media) ** 2, 0) / n;
   const desvio = Math.sqrt(variancia);
   if (desvio === 0) return 50;
-  return clamp(50 + 15 * ((valor - media) / desvio), 0, 100);
+  return clamp(50 + 20 * ((valor - media) / desvio), 0, 100);
 }
 
 // Memo por instante: o stream constrói idx.sost e quotes.rj no mesmo `now` —

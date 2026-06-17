@@ -168,7 +168,7 @@ export default async function BaseCalculoPage() {
       <section className="log-panel">
         <p style={{ color: "#8a93a8", fontSize: 13, lineHeight: 1.6, margin: "0 0 12px" }}>
           <strong style={{ color: "#cfd6e4" }}>Como a conta é feita:</strong> 1) cada ingrediente
-          vira nota <code>50 + 15 × (valor − média) ÷ desvio</code> (0–100, 50 = na média). 2){" "}
+          vira nota <code>50 + 20 × (valor − média) ÷ desvio</code> (0–100, 50 = na média). 2){" "}
           <code>IRE = Σ nota × peso</code> (Sentimento 40% · Menções 25% · Imprensa 20% ·
           Crescimento 15%, renormalizados sobre os ingredientes com dado real). 3){" "}
           <code>PRA = (IRE ÷ média × 100) − 100</code>, em % (0 = na média do páreo).

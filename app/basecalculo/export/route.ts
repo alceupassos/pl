@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     ...ORDEM.map((ing) => row([strCell(LABEL[ing]), numCell(Math.round((tabela.pesos[ing] ?? 0) * 100))])),
     row([strCell(""), strCell("")]),
     row([strCell("Metodologia"), strCell("")]),
-    row([strCell("Nota de cada pilar"), strCell("50 + 15 × (valor − média) ÷ desvio (0–100; 50 = na média do páreo)")]),
+    row([strCell("Nota de cada pilar"), strCell("50 + 20 × (valor − média) ÷ desvio (0–100; 50 = na média do páreo)")]),
     row([strCell("IRE"), strCell("Σ (nota × peso), renormalizado sobre os pilares com dado real")]),
     row([strCell("PRA"), strCell("(IRE ÷ média × 100) − 100, em % (0 = média; positivo = à frente)")]),
     row([strCell("TIRE"), strCell("variação do IRE do candidato nos últimos 7 dias (ΔIRE 7d)")]),

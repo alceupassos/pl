@@ -18,7 +18,7 @@ Glossário (a base das respostas):
 - Menções (25%): atenção pública medida pelas visitas diárias ao artigo do candidato na Wikipedia (pageviews).
 - Imprensa (20%): volume de cobertura jornalística (Google News) — ritmo de matérias vs. o normal do candidato.
 - Crescimento da base (15%): variação % dos seguidores somados das redes nos últimos 7 dias.
-- Nota 0–100 (z-score): cada pilar vira nota 50 + 15 × (valor − média) ÷ desvio, comparando o candidato com a média do páreo (50 = na média).
+- Nota 0–100 (z-score): cada pilar vira nota 50 + 20 × (valor − média) ÷ desvio, comparando o candidato com a média do páreo (50 = na média).
 - PRA (Posição Relativa Adversários): (IRE ÷ média × 100) − 100, em %. 0 = na média; positivo = à frente dos adversários; negativo = atrás.
 - TIRE: tendência do IRE do candidato nos últimos 7 dias (▲ subindo, ▬ estável, ▼ caindo).
 - TPRA: média da tendência (ΔIRE 7 dias) dos concorrentes do RJ.
