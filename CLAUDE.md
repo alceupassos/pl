@@ -131,3 +131,44 @@ The box runs **PM2** with several unrelated apps — `sostenes`, `camara-angra`,
 
 - `data/access-log.jsonl` is **mutated at runtime** on the server (shows as locally modified). It isn't touched by app-code commits, so a fast-forward pull preserves the server's live copy — never overwrite it with the repo's older version.
 - The version stamp (`v4.x`) shows in the `/m` header for cache diagnosis on the device — see `scripts/bump-version.mjs` + `next.config.ts`.
+
+## Domínios públicos
+
+O app `candidato` (porta 3030) é servido por nginx em **`candidato.angra.io`** e **`presidente.angra.io`** (ambos `proxy_pass http://127.0.0.1:3030`). O **`whatsgate.angra.io`** é OUTRO app (whatsgate/OpenWA, porta 2785) — não é o candidato.
+
+## WhatsApp / whatsgate
+
+Envio: `lib/whatsapp-push.ts` → `sendWhatsappText(to, msg)` chama
+`{WHATSGATE_BASE_URL}/api/sessions/{WHATSGATE_SESSION_ID}/messages/send-text` com header
+`X-API-Key`. O token é lido de **`WHATSGATE_TOKEN` ou `WHATSGATE_API_KEY`** (aliases).
+`.env` do servidor: `WHATSGATE_BASE_URL=https://whatsgate.angra.io`,
+`WHATSGATE_SESSION_ID=51742fb1-228e-4913-adf2-e919a367ab9d` (número **5511916870066**, estado
+`ready`), `WHATSGATE_TOKEN=owa_k1_…` (a chave real do whatsgate fica em
+`/var/www/whatsgate/data/.api-key`). Sessões `alceu`/`alexandre` ficam qr_ready/disconnected.
+
+OTP de cadastro: `app/api/whatsapp-otp/{request,verify}` + `lib/otp-store.ts` + `lib/phone.ts`.
+
+### Webhook de ENTRADA (conversa 2 vias)
+Rota `app/api/whatsapp/inbound/route.ts` (no app candidato). Registrar no whatsgate (sessão
+51742fb1) como webhook de mensagens recebidas:
+
+```
+https://candidato.angra.io/api/whatsapp/inbound?token=<WHATSGATE_API_KEY>
+```
+
+Protegida pelo token = `WHATSGATE_WEBHOOK_TOKEN || WHATSGATE_API_KEY || WHATSGATE_TOKEN`
+(aceita via `?token=` ou header `X-API-Key`). Sem token → 401.
+
+## Rede de Campanha (CRM em Organizadores de Eleitores)
+
+Cadastro REAL da rede (gerentes/cabos/líderes religiosos/deputados) na seção **Organizadores**
+do cockpit desktop (`/` → menu "Campo" → "Organizadores", card "Cadastro da Rede" no fim).
+- Dados: `lib/organizadores.ts` (`data/organizadores.jsonl`), `lib/conversas.ts`
+  (`data/conversas.jsonl`), via `lib/store.ts`. UI: `components/sections/rede-cadastro.tsx`.
+- API: `/api/organizadores` (CRUD), `/api/conversas` (histórico).
+- Cobrança de metas por IA (`lib/cobranca.ts` → `aiChat` de `lib/ai/client.ts`, provider grok):
+  `/api/ai/cobranca` (preview), `/api/cobranca/send` (gera+envia+loga, botão "Cobrar"),
+  `/api/cobranca/run?token=<COBRANCA_CRON_TOKEN>` (AGENDADO via cron; cobra quem está <100% da
+  meta, anti-spam 6d). A conversa 2 vias responde pelo webhook acima.
+- **Pendências operacionais:** definir `COBRANCA_CRON_TOKEN` no `.env` + cron chamando
+  `/api/cobranca/run`; e registrar o webhook de entrada no whatsgate.
