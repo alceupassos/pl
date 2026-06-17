@@ -209,15 +209,15 @@ function SubMetrica({
       <div style={{ display: "flex", alignItems: "baseline", gap: 4, whiteSpace: "nowrap" }}>
         <span
           className="m-mono"
-          style={{ fontSize: compact ? 23 : 34, fontWeight: 800, lineHeight: 1, color: valorCor }}
+          style={{ fontSize: compact ? 30 : 44, fontWeight: 800, lineHeight: 1, color: valorCor }}
         >
           {valor}
         </span>
-        {/* tendência: só o símbolo (▲ ▬ ▼) — sem Δ e sem "7d" */}
+        {/* tendência 7 dias: só o símbolo (▲ verde · ▬ cinza · ▼ vermelho) */}
         {trendSym ? (
           <span
             className="m-mono"
-            style={{ fontSize: compact ? 16 : 20, fontWeight: 800, lineHeight: 1, color: trendCor }}
+            style={{ fontSize: compact ? 18 : 24, fontWeight: 800, lineHeight: 1, color: trendCor }}
           >
             {trendSym}
           </span>
@@ -269,17 +269,18 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
               }}
             >
               {net == null ? (
-                <span style={{ fontSize: expanded ? 68 : 46 }}>—</span>
+                <span style={{ fontSize: expanded ? 88 : 60 }}>—</span>
               ) : (
                 (() => {
-                  const full = fmtSigned(net, "%");
-                  const ci = full.indexOf(",");
-                  const intPart = ci >= 0 ? full.slice(0, ci) : full;
-                  const rest = ci >= 0 ? full.slice(ci) : "";
+                  const sinal = net > 0 ? "+" : net < 0 ? "−" : "";
+                  const intAbs = Math.trunc(Math.abs(net)); // sem vírgula/decimais
+                  const peq = expanded ? 36 : 26; // "+" e "%" menores
+                  const big = expanded ? 88 : 60; // número bem mais alto
                   return (
                     <>
-                      <span style={{ fontSize: expanded ? 68 : 46 }}>{intPart}</span>
-                      <span style={{ fontSize: expanded ? 30 : 20 }}>{rest}</span>
+                      {sinal ? <span style={{ fontSize: peq }}>{sinal}</span> : null}
+                      <span style={{ fontSize: big }}>{intAbs}</span>
+                      <span style={{ fontSize: peq }}>%</span>
                     </>
                   );
                 })()
@@ -318,8 +319,8 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
             valorCor={corReputacao(ire)}
             compact={compact}
             legenda={expanded ? "Índice de Reputação Eleitoral" : undefined}
-            trendSym={expanded ? TEND[idx.tendencia ?? "flat"].sym : undefined}
-            trendCor={expanded ? TEND[idx.tendencia ?? "flat"].cor : undefined}
+            trendSym={TEND[idx.tendencia ?? "flat"].sym}
+            trendCor={TEND[idx.tendencia ?? "flat"].cor}
           />
           <SubMetrica
             sigla="PRA"
@@ -327,21 +328,11 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
             valorCor={corPra(pra)}
             compact={compact}
             legenda={expanded ? "Percentual Relativo Adversário" : undefined}
-            trendSym={expanded ? TEND[idx.tendenciaAdversarios ?? "flat"].sym : undefined}
-            trendCor={expanded ? TEND[idx.tendenciaAdversarios ?? "flat"].cor : undefined}
+            trendSym={TEND[idx.tendenciaAdversarios ?? "flat"].sym}
+            trendCor={TEND[idx.tendenciaAdversarios ?? "flat"].cor}
           />
         </div>
 
-        {/* Gráfico de LINHA ao lado (card compacto) */}
-        {compact ? (
-          <div
-            data-no-swipe
-            onClick={(e) => e.stopPropagation()}
-            style={{ flex: 1, minWidth: 64, alignSelf: "stretch", display: "flex", alignItems: "center" }}
-          >
-            <EChart option={chartOpt} height={66} />
-          </div>
-        ) : null}
       </div>
 
       {/* Gráfico CANDLE abaixo (card expandido), com eixos X/Y + legenda */}
