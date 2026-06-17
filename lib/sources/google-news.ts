@@ -26,8 +26,6 @@ import type { Alert } from "@/lib/live-schemas";
 const TTL_MS = 15 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 20_000;
 const CACHE_FILE = join(process.cwd(), "data", "google-news-cache.json");
-const IDX_MIN = 40;
-const IDX_MAX = 220;
 const MAX_ALERTAS = 50;
 const DIA_MS = 24 * 60 * 60 * 1000;
 const TERMO_PADRAO = "Sóstenes Cavalcante";
@@ -214,20 +212,17 @@ function extrairItens(xml: string): Item[] {
 }
 
 /**
- * Volume → índice ~100: taxa diária dos últimos 3 dias vs média diária da
- * janela inteira. Suave (não pula a cada matéria) e ancorado em 100 = ritmo
- * normal de cobertura; >100 = candidato em alta na imprensa.
+ * Volume de cobertura COMPARÁVEL entre candidatos: nº de matérias nos últimos 7
+ * dias (relativo ao item mais novo do feed). Quem tem mais imprensa pontua mais;
+ * o z-score (lib/index-real.ts) normaliza vs. o páreo. (Antes era ritmo-recente ÷
+ * baseline-da-janela, que estourava o teto 220 para TODOS por causa do viés de
+ * recência do Google News RSS — não diferenciava ninguém.)
  */
 function indiceDeVolume(itens: Item[]): number | null {
   const datas = itens.map((i) => i.t).filter((t) => t > 0);
-  if (datas.length < 5) return null;
+  if (datas.length < 3) return null;
   const maxT = Math.max(...datas);
-  const minT = Math.min(...datas);
-  const spanDias = Math.max(1, (maxT - minT) / DIA_MS);
-  const baselinePorDia = datas.length / spanDias; // ritmo médio da janela
-  if (baselinePorDia <= 0) return null;
-  const recentePorDia = datas.filter((t) => maxT - t <= 3 * DIA_MS).length / 3;
-  return round1(clamp((recentePorDia / baselinePorDia) * 100, IDX_MIN, IDX_MAX));
+  return datas.filter((t) => maxT - t <= 7 * DIA_MS).length;
 }
 
 function ingerirAlertas(termo: string, itens: Item[]): void {
@@ -267,12 +262,6 @@ function persist(): void {
 }
 
 // ── utils ────────────────────────────────────────────────────────────────────
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, v));
-}
-function round1(v: number): number {
-  return Math.round(v * 10) / 10;
-}
 function truncar(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
