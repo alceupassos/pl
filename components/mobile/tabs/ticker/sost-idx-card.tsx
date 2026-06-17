@@ -250,47 +250,61 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: expanded ? 8 : 6 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: expanded ? 16 : 10 }}>
-        {/* SENTIMENTO — número herói (o maior). Badges pequenos ao lado do rótulo. */}
+        {/* SENTIMENTO — número herói. Badges (IA · REAL · há Ns) EMPILHADOS e
+            pequenos ao lado do número, pra dar mais espaço. */}
         <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
-              SENTIMENTO
-            </span>
-            <LeituraIA
-              card="ticker-sost-idx"
-              contexto={`sentimento net ${net == null ? "—" : net.toFixed(1)}%; IRE ${ire ?? "—"}; PRA ${pra == null ? "—" : `${pra.toFixed(1)}%`}`}
-              titulo="Índice de Reputação Eleitoral"
-            />
-            <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
-            <LiveBadge ch="idx.sost" cadenceMs={2000} />
-          </div>
-          <span
-            className="m-mono"
-            style={{
-              fontWeight: 900,
-              lineHeight: 1,
-              color: corSentNet(net),
-              display: "inline-flex",
-              alignItems: "baseline",
-            }}
-          >
-            {net == null ? (
-              <span style={{ fontSize: expanded ? 68 : 46 }}>—</span>
-            ) : (
-              (() => {
-                const full = fmtSigned(net, "%");
-                const ci = full.indexOf(",");
-                const intPart = ci >= 0 ? full.slice(0, ci) : full;
-                const rest = ci >= 0 ? full.slice(ci) : "";
-                return (
-                  <>
-                    <span style={{ fontSize: expanded ? 68 : 46 }}>{intPart}</span>
-                    <span style={{ fontSize: expanded ? 30 : 20 }}>{rest}</span>
-                  </>
-                );
-              })()
-            )}
+          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
+            SENTIMENTO
           </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span
+              className="m-mono"
+              style={{
+                fontWeight: 900,
+                lineHeight: 1,
+                color: corSentNet(net),
+                display: "inline-flex",
+                alignItems: "baseline",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {net == null ? (
+                <span style={{ fontSize: expanded ? 68 : 46 }}>—</span>
+              ) : (
+                (() => {
+                  const full = fmtSigned(net, "%");
+                  const ci = full.indexOf(",");
+                  const intPart = ci >= 0 ? full.slice(0, ci) : full;
+                  const rest = ci >= 0 ? full.slice(ci) : "";
+                  return (
+                    <>
+                      <span style={{ fontSize: expanded ? 68 : 46 }}>{intPart}</span>
+                      <span style={{ fontSize: expanded ? 30 : 20 }}>{rest}</span>
+                    </>
+                  );
+                })()
+              )}
+            </span>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 3,
+                alignItems: "flex-start",
+                flexShrink: 0,
+                transform: "scale(0.85)",
+                transformOrigin: "left center",
+              }}
+            >
+              <LeituraIA
+                card="ticker-sost-idx"
+                contexto={`sentimento net ${net == null ? "—" : net.toFixed(1)}%; IRE ${ire ?? "—"}; PRA ${pra == null ? "—" : `${pra.toFixed(1)}%`}`}
+                titulo="Índice de Reputação Eleitoral"
+              />
+              <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
+              <LiveBadge ch="idx.sost" cadenceMs={2000} />
+            </div>
+          </div>
           <span style={{ fontSize: expanded ? 9.5 : 8, color: "var(--m-muted)", lineHeight: 1.15 }}>
             (menções positivas − negativas) ÷ nº de menções
           </span>

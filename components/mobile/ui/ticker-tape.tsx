@@ -20,12 +20,26 @@ export function TickerTape() {
 
   const itens = tape?.[trilha] ?? [];
 
-  const conteudo = itens.map((m) => (
-    <span className="m-tape-item" key={m.id}>
-      <span className={`selo ${SELO[m.tom].className}`}>{SELO[m.tom].glyph}</span>
-      {m.texto}
-    </span>
-  ));
+  // A cada 2 manchetes, injeta o aviso "VERSÃO SOMENTE PARA TESTE" em vermelho.
+  const conteudo = itens.flatMap((m, i) => {
+    const item = (
+      <span className="m-tape-item" key={m.id}>
+        <span className={`selo ${SELO[m.tom].className}`}>{SELO[m.tom].glyph}</span>
+        {m.texto}
+      </span>
+    );
+    if ((i + 1) % 2 !== 0) return [item];
+    return [
+      item,
+      <span
+        className="m-tape-item"
+        key={`teste-${m.id}`}
+        style={{ color: "var(--m-down)", fontWeight: 800, letterSpacing: "0.04em" }}
+      >
+        VERSÃO SOMENTE PARA TESTE
+      </span>,
+    ];
+  });
 
   return (
     <div className="m-tape" data-no-swipe>

@@ -255,7 +255,6 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
             DEP. SÓSTENES CAVALCANTE - PL · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
           </small>
         </div>
-        <span className="m-header-testtag">VERSÃO DE TESTE</span>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LiveBadge ch="idx.sost" cadenceMs={2000} showLabel />
           <Link href="/m/config" aria-label="Configurações da watchlist">
