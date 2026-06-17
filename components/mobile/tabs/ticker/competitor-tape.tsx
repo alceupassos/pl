@@ -88,7 +88,7 @@ function fmtSigned(v: number, suffix = ""): string {
 function MiniValor({ label, value, cor }: { label: string; value: number | null; cor: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <span className="m-mono" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: cor }}>
+      <span className="m-mono" style={{ fontSize: 28, fontWeight: 800, lineHeight: 1, color: cor }}>
         {value == null ? "—" : Math.round(value)}
       </span>
       <span
@@ -110,7 +110,7 @@ function QuoteTres({ quote }: { quote: QuoteRj }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <span
           className="m-mono"
-          style={{ fontSize: 18, fontWeight: 800, lineHeight: 1, color: corPra(pos) }}
+          style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: corPra(pos) }}
         >
           {pos == null ? "—" : fmtSigned(pos, "%")}
         </span>
