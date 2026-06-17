@@ -251,8 +251,8 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
           COCKPIT <span style={{ color: "var(--m-up)" }}>ELEITORAL 2026</span>
           {/* carimbo de versão visível — diagnóstico de cache no aparelho.
               O minor sobe sozinho a cada build (ver next.config.ts). */}
-          <small>
-            SÓSTENES CAVALCANTE · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
+          <small style={{ fontSize: 7.5 }}>
+            SÓSTENES CAVALCANTE · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
           </small>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
