@@ -23,6 +23,7 @@ import {
   getTierSummary,
   type OrganizerLevel,
 } from "@/lib/mock/organizers";
+import { RedeCadastro } from "@/components/sections/rede-cadastro";
 import { getPresidentialByState } from "@/lib/mock/races";
 import { getRegion } from "@/lib/mock/rj-regions";
 import type { RegionId } from "@/lib/mock/types";
@@ -367,6 +368,9 @@ export function OrganizadoresSection({
           </table>
         </div>
       </div>
+
+      {/* Cadastro REAL da rede (persistido) + cobrança por IA via WhatsApp */}
+      <RedeCadastro />
     </div>
   );
 }

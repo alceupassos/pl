@@ -28,8 +28,13 @@ function whatsappChatId(phone: string): string {
 
 // Retorna true só quando o whatsgate aceita (HTTP ok). Assim quem chama sabe se
 // a mensagem realmente saiu (não basta o request ter sido feito).
+// Aceita o token do whatsgate sob WHATSGATE_TOKEN ou WHATSGATE_API_KEY.
+function whatsgateToken(): string | undefined {
+  return (process.env.WHATSGATE_TOKEN || process.env.WHATSGATE_API_KEY)?.trim() || undefined;
+}
+
 async function postWhatsgateText(message: string, to: string): Promise<boolean> {
-  const token = process.env.WHATSGATE_TOKEN?.trim();
+  const token = whatsgateToken();
   const sessionId = process.env.WHATSGATE_SESSION_ID?.trim();
   const base = (process.env.WHATSGATE_BASE_URL || "http://127.0.0.1:2785").replace(/\/$/, "");
 
@@ -59,7 +64,7 @@ async function postGenericWebhook(message: string, to: string): Promise<boolean>
   const url = process.env.WHATSGATE_URL?.trim();
   if (!url) return false;
 
-  const token = process.env.WHATSGATE_TOKEN?.trim();
+  const token = whatsgateToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -94,7 +99,7 @@ export async function sendWhatsappText(to: string, message: string): Promise<boo
   if (!digits) return false;
 
   try {
-    if (process.env.WHATSGATE_SESSION_ID?.trim() && process.env.WHATSGATE_TOKEN?.trim()) {
+    if (process.env.WHATSGATE_SESSION_ID?.trim() && whatsgateToken()) {
       return await postWhatsgateText(message, digits);
     }
     if (process.env.WHATSGATE_URL?.trim()) {

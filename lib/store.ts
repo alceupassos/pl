@@ -95,3 +95,18 @@ export async function updateRecord<T extends StoredRecord = StoredRecord>(
   );
   return updated;
 }
+
+/** Remove um registro por id (reescreve o arquivo). Retorna true se removeu. */
+export async function removeRecord(name: string, id: string): Promise<boolean> {
+  const records = await readRecords(name);
+  const kept = records.filter((r) => r.id !== id);
+  if (kept.length === records.length) return false;
+  const ordered = [...kept].sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  await ensureDataDir();
+  await writeFile(
+    fileFor(name),
+    ordered.length ? ordered.map((r) => JSON.stringify(r)).join("\n") + "\n" : "",
+    "utf8",
+  );
+  return true;
+}
