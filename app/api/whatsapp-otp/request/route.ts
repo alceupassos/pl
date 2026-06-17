@@ -30,10 +30,19 @@ export async function POST(request: NextRequest) {
     `Seu codigo de acesso ao cockpit: ${result.code}\n` +
     `Valido por 10 minutos. Nao compartilhe este codigo.`;
 
-  // Em dev sem Whatsgate configurado, loga o código para permitir testar localmente.
   const delivered = await sendWhatsappText(norm.phone, message);
-  if (!delivered && process.env.NODE_ENV !== "production") {
-    console.warn(`[otp] (dev) codigo para ${norm.phone}: ${result.code}`);
+
+  if (!delivered) {
+    // Em dev sem Whatsgate, loga o código e segue (permite testar localmente).
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[otp] (dev) codigo para ${norm.phone}: ${result.code}`);
+      return NextResponse.json({ sent: true, dev: true }, { headers: noStore });
+    }
+    // Em produção, ser honesto: o WhatsApp não saiu.
+    return NextResponse.json(
+      { sent: false, error: "send_failed" },
+      { status: 502, headers: noStore },
+    );
   }
 
   return NextResponse.json({ sent: true }, { headers: noStore });

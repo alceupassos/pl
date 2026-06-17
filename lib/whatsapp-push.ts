@@ -26,12 +26,14 @@ function whatsappChatId(phone: string): string {
   return digits.includes("@") ? digits : `${digits}@c.us`;
 }
 
-async function postWhatsgateText(message: string, to: string): Promise<void> {
+// Retorna true só quando o whatsgate aceita (HTTP ok). Assim quem chama sabe se
+// a mensagem realmente saiu (não basta o request ter sido feito).
+async function postWhatsgateText(message: string, to: string): Promise<boolean> {
   const token = process.env.WHATSGATE_TOKEN?.trim();
   const sessionId = process.env.WHATSGATE_SESSION_ID?.trim();
   const base = (process.env.WHATSGATE_BASE_URL || "http://127.0.0.1:2785").replace(/\/$/, "");
 
-  if (!token || !sessionId) return;
+  if (!token || !sessionId) return false;
 
   const url = `${base}/api/sessions/${encodeURIComponent(sessionId)}/messages/send-text`;
   const res = await fetch(url, {
@@ -50,11 +52,12 @@ async function postWhatsgateText(message: string, to: string): Promise<void> {
   if (!res.ok) {
     console.warn(`[whatsapp-push] whatsgate HTTP ${res.status}`);
   }
+  return res.ok;
 }
 
-async function postGenericWebhook(message: string, to: string): Promise<void> {
+async function postGenericWebhook(message: string, to: string): Promise<boolean> {
   const url = process.env.WHATSGATE_URL?.trim();
-  if (!url) return;
+  if (!url) return false;
 
   const token = process.env.WHATSGATE_TOKEN?.trim();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -80,22 +83,22 @@ async function postGenericWebhook(message: string, to: string): Promise<void> {
   if (!res.ok) {
     console.warn(`[whatsapp-push] webhook HTTP ${res.status}`);
   }
+  return res.ok;
 }
 
 // Envio reutilizável: escolhe Whatsgate (OpenWA) e cai para webhook genérico.
-// `to` pode ser qualquer número (só dígitos ou com máscara). Retorna se enviou.
+// `to` pode ser qualquer número (só dígitos ou com máscara). Retorna se a mensagem
+// foi de fato aceita pelo gateway (HTTP ok) — false se não há gateway ou falhou.
 export async function sendWhatsappText(to: string, message: string): Promise<boolean> {
   const digits = to.replace(/\D/g, "");
   if (!digits) return false;
 
   try {
     if (process.env.WHATSGATE_SESSION_ID?.trim() && process.env.WHATSGATE_TOKEN?.trim()) {
-      await postWhatsgateText(message, digits);
-      return true;
+      return await postWhatsgateText(message, digits);
     }
     if (process.env.WHATSGATE_URL?.trim()) {
-      await postGenericWebhook(message, digits);
-      return true;
+      return await postGenericWebhook(message, digits);
     }
     return false;
   } catch (error) {

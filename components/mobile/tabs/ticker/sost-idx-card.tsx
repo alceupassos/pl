@@ -279,11 +279,21 @@ function Metricas4({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
   );
 }
 
-// Destaque de Sentimento — em PRIMEIRO lugar, antes do IRE. Usa o score 0–100 de
-// sentimento (base: manchetes/notícias do Google News via pysentimiento). A fórmula
-// resumida embaixo explica a leitura: (positivos − negativos) ÷ total.
+// Cor do net de sentimento: positivo (mais elogio que crítica) = verde.
+function corSentNet(v: number | null): string {
+  if (v == null) return "var(--m-muted)";
+  if (v > 0.5) return "#16C784";
+  if (v < -0.5) return "#EA3943";
+  return "#8a93a8";
+}
+
+// Destaque de Sentimento — em PRIMEIRO lugar, antes do IRE. Mostra o valor LITERAL
+// (positivos − negativos) ÷ total das manchetes/notícias (Google News via
+// pysentimiento), em %. O sidecar classifica pos/neg/neu; o índice ~100 que já flui
+// é 100 + (pos−neg)/total × 100, então o net = índice − 100.
 function SentimentoDestaque({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
-  const sent = idx.breakdown?.sentimento ?? null;
+  const indice = idx.ingredientes?.sentimento?.valor ?? idx.breakdown?.sentimento ?? null;
+  const net = indice == null ? null : indice - 100;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: compact ? 6 : 8 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
@@ -292,9 +302,9 @@ function SentimentoDestaque({ idx, compact }: { idx: IdxSnapshot; compact?: bool
         </span>
         <span
           className="m-mono"
-          style={{ fontSize: compact ? 26 : 34, fontWeight: 900, lineHeight: 1, color: corReputacao(sent) }}
+          style={{ fontSize: compact ? 26 : 34, fontWeight: 900, lineHeight: 1, color: corSentNet(net) }}
         >
-          {sent == null ? "—" : Math.round(sent)}
+          {net == null ? "—" : fmtSigned(net, "%")}
         </span>
       </div>
       <span style={{ fontSize: compact ? 9 : 10, color: "var(--m-muted)" }}>
