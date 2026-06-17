@@ -68,7 +68,7 @@ function MetaCompact() {
   return (
     <FlashCard watch={calc?.cadastrados} className="m-card-compact">
       <div className="m-card-head m-card-head-ticker">
-        <span className="m-card-title">Eleitores ativos na plataforma · meta 79.000</span>
+        <span className="m-card-title" style={{ color: "#e8ecf4", fontWeight: 800 }}>Eleitores ativos na plataforma · meta 79.000</span>
         {calc ? (
           <div className="m-card-head-badges" style={{ width: "100%" }}>
             <LeituraIA
@@ -189,7 +189,7 @@ function MetaFront() {
   return (
     <FlashCard watch={calc?.cadastrados}>
       <div className="m-card-head">
-        <span className="m-card-title">Eleitores ativos na plataforma · meta 79.000</span>
+        <span className="m-card-title" style={{ color: "#e8ecf4", fontWeight: 800 }}>Eleitores ativos na plataforma · meta 79.000</span>
         {calc ? (
           <LeituraIA
             card="ticker-meta"
@@ -368,7 +368,7 @@ export function MetaEleitoresCard() {
     return (
       <FlashCard watch={undefined}>
         <div className="m-card-head">
-          <span className="m-card-title">Eleitores ativos na plataforma · meta 79.000</span>
+          <span className="m-card-title" style={{ color: "#e8ecf4", fontWeight: 800 }}>Eleitores ativos na plataforma · meta 79.000</span>
           <LiveBadge ch="equipe" cadenceMs={2000} />
         </div>
         <div className="m-ghost">sincronizando o placar…</div>

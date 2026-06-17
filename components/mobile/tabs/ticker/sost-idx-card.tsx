@@ -231,7 +231,7 @@ function SubMetrica({
               {trendSym}
             </span>
             {trendNeutro ? (
-              <span style={{ fontSize: 6, fontWeight: 700, lineHeight: 1, color: trendCor }}>neutro</span>
+              <span style={{ fontSize: 8, fontWeight: 700, lineHeight: 1, color: trendCor }}>neutro</span>
             ) : null}
           </span>
         ) : null}
@@ -312,13 +312,16 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
                 contexto={`sentimento net ${net == null ? "—" : net.toFixed(1)}%; IRE ${ire ?? "—"}; PRA ${pra == null ? "—" : `${pra.toFixed(1)}%`}`}
                 titulo="Índice de Reputação Eleitoral"
               />
-              <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
               <LiveBadge ch="idx.sost" cadenceMs={2000} />
             </div>
           </div>
           <span style={{ fontSize: expanded ? 9.5 : 8, color: "var(--m-muted)", lineHeight: 1.15 }}>
             (menções positivas − negativas) ÷ nº de menções
           </span>
+          {/* badge REAL abaixo da legenda, um pouco maior */}
+          <div style={{ transform: "scale(1.15)", transformOrigin: "left center", marginTop: 4, width: "fit-content" }}>
+            <FonteBadge real={idxTemReal(idx)} como={FONTE_COMO.idxComposto} />
+          </div>
         </div>
 
         {/* IRE e PRA — sub-maiores, empilhados, setinha colada */}
