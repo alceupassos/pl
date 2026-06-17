@@ -82,17 +82,29 @@ async function postGenericWebhook(message: string, to: string): Promise<void> {
   }
 }
 
-export async function notifyAccess(entry: AccessLogEntry): Promise<void> {
-  const to = (process.env.ACCESS_WHATSAPP_TO || DEFAULT_TO).replace(/\D/g, "");
-  const message = formatMessage(entry);
+// Envio reutilizável: escolhe Whatsgate (OpenWA) e cai para webhook genérico.
+// `to` pode ser qualquer número (só dígitos ou com máscara). Retorna se enviou.
+export async function sendWhatsappText(to: string, message: string): Promise<boolean> {
+  const digits = to.replace(/\D/g, "");
+  if (!digits) return false;
 
   try {
     if (process.env.WHATSGATE_SESSION_ID?.trim() && process.env.WHATSGATE_TOKEN?.trim()) {
-      await postWhatsgateText(message, to);
-      return;
+      await postWhatsgateText(message, digits);
+      return true;
     }
-    await postGenericWebhook(message, to);
+    if (process.env.WHATSGATE_URL?.trim()) {
+      await postGenericWebhook(message, digits);
+      return true;
+    }
+    return false;
   } catch (error) {
     console.warn("[whatsapp-push] falha ao enviar:", error instanceof Error ? error.message : "erro");
+    return false;
   }
+}
+
+export async function notifyAccess(entry: AccessLogEntry): Promise<void> {
+  const to = (process.env.ACCESS_WHATSAPP_TO || DEFAULT_TO).replace(/\D/g, "");
+  await sendWhatsappText(to, formatMessage(entry));
 }

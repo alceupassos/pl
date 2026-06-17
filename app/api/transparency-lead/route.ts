@@ -6,6 +6,7 @@ import path from "node:path";
 import { appendAccessLog, appendLeadLog, lookupIpLocation } from "@/lib/access-log";
 import { getSession } from "@/lib/api-auth";
 import { getClientIp } from "@/lib/auth";
+import { verifyPhoneToken } from "@/lib/phone";
 
 const LEAD_EMAIL = "eleicao@angra.io";
 
@@ -110,14 +111,7 @@ export async function POST(request: NextRequest) {
     destinationEmail: LEAD_EMAIL,
   };
 
-  if (
-    !lead.nomeCompleto ||
-    !lead.email ||
-    !lead.whatsapp ||
-    !lead.cidade ||
-    !lead.estado ||
-    !lead.consentimentoLgpd
-  ) {
+  if (!lead.nomeCompleto || !lead.email || !lead.whatsapp) {
     return NextResponse.json(
       {
         saved: false,
@@ -129,6 +123,14 @@ export async function POST(request: NextRequest) {
           "Cache-Control": "no-store",
         },
       },
+    );
+  }
+
+  // Só salva após o número ter sido confirmado por código no WhatsApp.
+  if (!verifyPhoneToken(body?.verifyToken, lead.whatsapp)) {
+    return NextResponse.json(
+      { saved: false, error: "unverified" },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
     );
   }
 

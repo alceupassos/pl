@@ -382,12 +382,23 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
   const [showTransparencyModal, setShowTransparencyModal] = useState(false);
   const [transparencyFormStatus, setTransparencyFormStatus] = useState<"idle" | "sending" | "saved" | "error">("idle");
   const [transparencyError, setTransparencyError] = useState("");
+  const [transparencyStep, setTransparencyStep] = useState<"form" | "code">("form");
+  const [transparencyNome, setTransparencyNome] = useState("");
+  const [transparencyEmail, setTransparencyEmail] = useState("");
+  const [transparencyWhatsapp, setTransparencyWhatsapp] = useState("");
+  const [transparencyCode, setTransparencyCode] = useState("");
   const [requestAccessExpanded, setRequestAccessExpanded] = useState(false);
   const [requestAccessWhatsapp, setRequestAccessWhatsapp] = useState("");
   const [requestAccessError, setRequestAccessError] = useState("");
   const [volunteerSaved, setVolunteerSaved] = useState(false);
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowEntryModal(false), 5000);
+    // Cadastro só no primeiro acesso: se já registrou neste dispositivo, não pede de novo.
+    const alreadyRegistered =
+      typeof window !== "undefined" && localStorage.getItem("scp_reg") === "1";
+    const timer = window.setTimeout(() => {
+      setShowEntryModal(false);
+      if (!alreadyRegistered) setShowTransparencyModal(true);
+    }, 5000);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -406,39 +417,131 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
     window.setTimeout(() => loginRef.current?.focus(), 80);
   };
 
-  const submitTransparencyForm = async (event: FormEvent<HTMLFormElement>) => {
+  const formatTransparencyWpp = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 2) return d;
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  };
+
+  // Passo 1: valida nome/e-mail/WhatsApp e dispara o código no WhatsApp.
+  const requestTransparencyCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
     setTransparencyError("");
-    setTransparencyFormStatus("sending");
 
+    if (!transparencyNome.trim() || !transparencyEmail.trim() || !transparencyWhatsapp.trim()) {
+      setTransparencyError("Preencha nome, e-mail e WhatsApp.");
+      return;
+    }
+    if (transparencyWhatsapp.replace(/\D/g, "").length < 10) {
+      setTransparencyError("Informe um WhatsApp válido com DDD.");
+      return;
+    }
+
+    setTransparencyFormStatus("sending");
     try {
+      const res = await fetch("/api/whatsapp-otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: transparencyWhatsapp }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (data?.error === "invalid_phone") setTransparencyError("Número de WhatsApp inválido.");
+        else if (data?.error === "rate_limited")
+          setTransparencyError("Aguarde alguns segundos antes de pedir um novo código.");
+        else setTransparencyError("Não foi possível enviar o código. Tente novamente.");
+        setTransparencyFormStatus("error");
+        return;
+      }
+
+      setTransparencyCode("");
+      setTransparencyStep("code");
+      setTransparencyFormStatus("idle");
+    } catch {
+      setTransparencyError("Não foi possível enviar o código. Tente novamente.");
+      setTransparencyFormStatus("error");
+    }
+  };
+
+  // Passo 2: confere o código e salva o lead.
+  const verifyTransparencyAndSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setTransparencyError("");
+
+    if (transparencyCode.replace(/\D/g, "").length !== 4) {
+      setTransparencyError("Digite o código de 4 dígitos.");
+      return;
+    }
+
+    setTransparencyFormStatus("sending");
+    try {
+      const verifyRes = await fetch("/api/whatsapp-otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: transparencyWhatsapp, code: transparencyCode }),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || !verifyData?.token) {
+        if (verifyData?.error === "too_many") setTransparencyError("Muitas tentativas. Peça um novo código.");
+        else if (verifyData?.error === "expired") setTransparencyError("Código expirado. Peça um novo código.");
+        else setTransparencyError("Código incorreto. Confira e tente de novo.");
+        setTransparencyFormStatus("error");
+        return;
+      }
+
       const response = await fetch("/api/transparency-lead", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nomeCompleto: String(formData.get("nomeCompleto") || ""),
-          email: String(formData.get("email") || ""),
-          whatsapp: String(formData.get("whatsapp") || ""),
-          cidade: String(formData.get("cidade") || ""),
-          estado: String(formData.get("estado") || ""),
-          consentimentoLgpd: formData.get("consentimentoLgpd") === "on",
+          nomeCompleto: transparencyNome,
+          email: transparencyEmail,
+          whatsapp: transparencyWhatsapp,
+          verifyToken: verifyData.token,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("lead_submit_failed");
+      if (!response.ok) throw new Error("lead_submit_failed");
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("scp_reg", "1");
+        if (!localStorage.getItem("scp_uid")) {
+          localStorage.setItem(
+            "scp_uid",
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+          );
+        }
       }
 
       setTransparencyFormStatus("saved");
       window.setTimeout(() => setShowTransparencyModal(false), 650);
     } catch {
-      setTransparencyError("Não foi possível enviar agora. Revise os campos e tente novamente.");
+      setTransparencyError("Não foi possível concluir agora. Tente novamente.");
       setTransparencyFormStatus("error");
+    }
+  };
+
+  const resendTransparencyCode = async () => {
+    setTransparencyError("");
+    try {
+      const res = await fetch("/api/whatsapp-otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: transparencyWhatsapp }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data?.error === "rate_limited")
+          setTransparencyError("Aguarde alguns segundos antes de pedir um novo código.");
+        else setTransparencyError("Não foi possível reenviar o código.");
+      }
+    } catch {
+      setTransparencyError("Não foi possível reenviar o código.");
     }
   };
 
@@ -579,6 +682,26 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
       {showTransparencyModal ? (
         <div className="transparency-modal" role="dialog" aria-modal="true" aria-labelledby="transparency-title">
           <div className="transparency-card">
+            <button
+              type="button"
+              aria-label="Fechar"
+              onClick={() => setShowTransparencyModal(false)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 12,
+                zIndex: 2,
+                background: "none",
+                border: "none",
+                color: "#8a93a8",
+                fontSize: 26,
+                lineHeight: 1,
+                cursor: "pointer",
+                padding: 4,
+              }}
+            >
+              <X size={22} />
+            </button>
             <div className="transparency-copy">
               <span className="transparency-eyebrow">Versão mais curta para caber melhor no modal</span>
               <h2 id="transparency-title">Aviso de Transparência e Conformidade Legal</h2>
@@ -615,44 +738,93 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
               <div className="transparency-url">https://wa.me/5511972322293</div>
             </div>
 
-            <form className="transparency-form" onSubmit={submitTransparencyForm}>
-              <label>
-                Nome completo
-                <input name="nomeCompleto" required type="text" />
-              </label>
-              <label>
-                E-mail
-                <input name="email" required type="email" />
-              </label>
-              <label>
-                WhatsApp
-                <input name="whatsapp" required type="tel" />
-              </label>
-              <div className="transparency-form-grid">
+            {transparencyStep === "form" ? (
+              <form className="transparency-form" onSubmit={requestTransparencyCode}>
                 <label>
-                  Cidade
-                  <input name="cidade" required type="text" />
+                  Nome completo
+                  <input
+                    name="nomeCompleto"
+                    type="text"
+                    autoComplete="name"
+                    value={transparencyNome}
+                    onChange={(e) => setTransparencyNome(e.target.value)}
+                  />
                 </label>
                 <label>
-                  Estado
-                  <input name="estado" maxLength={2} required type="text" placeholder="UF" />
+                  E-mail
+                  <input
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={transparencyEmail}
+                    onChange={(e) => setTransparencyEmail(e.target.value)}
+                  />
                 </label>
-              </div>
-              <label className="transparency-consent">
-                <input name="consentimentoLgpd" required type="checkbox" />
-                <span>
-                  Declaro que li e compreendi o aviso acima e autorizo o uso dos dados informados neste formulário para
-                  contato comercial e envio de informações sobre a plataforma, conforme a Lei nº 13.709/2018 — LGPD.
-                </span>
-              </label>
-              {transparencyError ? <div className="transparency-error">{transparencyError}</div> : null}
-              {transparencyFormStatus === "saved" ? (
-                <div className="transparency-success">Informações enviadas. Obrigado.</div>
-              ) : null}
-              <button className="transparency-submit" type="submit" disabled={transparencyFormStatus === "sending"}>
-                {transparencyFormStatus === "sending" ? "Enviando..." : "Enviar informações"}
-              </button>
-            </form>
+                <label>
+                  WhatsApp
+                  <input
+                    name="whatsapp"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="(11) 99999-9999"
+                    value={transparencyWhatsapp}
+                    onChange={(e) => setTransparencyWhatsapp(formatTransparencyWpp(e.target.value))}
+                  />
+                </label>
+                {transparencyError ? <div className="transparency-error">{transparencyError}</div> : null}
+                <button className="transparency-submit" type="submit" disabled={transparencyFormStatus === "sending"}>
+                  {transparencyFormStatus === "sending" ? "Enviando..." : "Receber código no WhatsApp"}
+                </button>
+              </form>
+            ) : (
+              <form className="transparency-form" onSubmit={verifyTransparencyAndSave}>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+                  Enviamos um código de 4 dígitos para o WhatsApp <strong>{transparencyWhatsapp}</strong>. Digite-o abaixo
+                  para confirmar.
+                </p>
+                <label>
+                  Código de 4 dígitos
+                  <input
+                    name="code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={4}
+                    placeholder="0000"
+                    value={transparencyCode}
+                    onChange={(e) => setTransparencyCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    style={{ letterSpacing: "0.5em", textAlign: "center", fontSize: 20, fontWeight: 700 }}
+                  />
+                </label>
+                {transparencyError ? <div className="transparency-error">{transparencyError}</div> : null}
+                {transparencyFormStatus === "saved" ? (
+                  <div className="transparency-success">Acesso confirmado. Obrigado.</div>
+                ) : null}
+                <button className="transparency-submit" type="submit" disabled={transparencyFormStatus === "sending"}>
+                  {transparencyFormStatus === "sending" ? "Confirmando..." : "Confirmar"}
+                </button>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTransparencyStep("form");
+                      setTransparencyError("");
+                    }}
+                    style={{ background: "none", border: "none", color: "#8a93a8", cursor: "pointer", padding: 0 }}
+                  >
+                    ← Corrigir dados
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resendTransparencyCode}
+                    style={{ background: "none", border: "none", color: "#7fb0ff", cursor: "pointer", padding: 0 }}
+                  >
+                    Reenviar código
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       ) : null}

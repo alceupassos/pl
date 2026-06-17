@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { appendOnboardingLog } from "@/lib/onboarding-log";
+import { verifyPhoneToken } from "@/lib/phone";
+import { sendWhatsappText } from "@/lib/whatsapp-push";
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -33,6 +35,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Só salva após o número ter sido confirmado por código no WhatsApp.
+  if (!verifyPhoneToken(body?.verifyToken, whatsapp)) {
+    return NextResponse.json(
+      { saved: false, error: "unverified" },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const ip = getClientIp(request);
   await appendOnboardingLog(
     { uid, nome, cidade, uf, situacao, whatsapp, email, pergunta },
@@ -58,10 +68,6 @@ async function notifyOnboarding(data: {
   whatsapp: string;
   email: string;
 }): Promise<void> {
-  const token = process.env.WHATSGATE_TOKEN?.trim();
-  const sessionId = process.env.WHATSGATE_SESSION_ID?.trim();
-  if (!token || !sessionId) return;
-
   const to = (process.env.ACCESS_WHATSAPP_TO || "5511972322293").replace(
     /\D/g,
     "",
@@ -76,7 +82,7 @@ async function notifyOnboarding(data: {
   const message = [
     "📋 Novo cadastro no Cockpit /m",
     `Nome: ${data.nome}`,
-    `Local: ${data.cidade} · ${data.uf}`,
+    data.cidade || data.uf ? `Local: ${data.cidade} · ${data.uf}` : null,
     `Perfil: ${situacaoLabel}`,
     `WhatsApp: ${data.whatsapp}`,
     data.email ? `Email: ${data.email}` : null,
@@ -84,16 +90,5 @@ async function notifyOnboarding(data: {
     .filter(Boolean)
     .join("\n");
 
-  const base = (
-    process.env.WHATSGATE_BASE_URL || "http://127.0.0.1:2785"
-  ).replace(/\/$/, "");
-  await fetch(
-    `${base}/api/sessions/${encodeURIComponent(sessionId)}/messages/send-text`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": token },
-      body: JSON.stringify({ chatId: `${to}@c.us`, text: message }),
-      signal: AbortSignal.timeout(8000),
-    },
-  ).catch(() => undefined);
+  await sendWhatsappText(to, message);
 }

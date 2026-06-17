@@ -2,73 +2,99 @@
 
 import { useState } from "react";
 
-const UF_LIST = [
-  "AC",
-  "AL",
-  "AM",
-  "AP",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MG",
-  "MS",
-  "MT",
-  "PA",
-  "PB",
-  "PE",
-  "PI",
-  "PR",
-  "RJ",
-  "RN",
-  "RO",
-  "RR",
-  "RS",
-  "SC",
-  "SE",
-  "SP",
-  "TO",
-];
-
-type Situacao = "candidato" | "politica" | "outro";
-
 function gerarUid(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID)
     return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+function formatWpp(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
+  const [step, setStep] = useState<"form" | "code">("form");
   const [nome, setNome] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [uf, setUf] = useState("");
-  const [situacao, setSituacao] = useState<Situacao | "">("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
-  const [pergunta, setPergunta] = useState("");
+  const [code, setCode] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
 
-  function formatWpp(v: string) {
-    const d = v.replace(/\D/g, "").slice(0, 11);
-    if (d.length <= 2) return d;
-    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  // Passo 1: valida campos e dispara o código no WhatsApp.
+  async function handleRequestCode(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
 
     if (!nome.trim() || !whatsapp.trim() || !email.trim()) {
-      setErro("Preencha os campos obrigatórios (*).");
+      setErro("Preencha nome, WhatsApp e e-mail.");
+      return;
+    }
+    if (whatsapp.replace(/\D/g, "").length < 10) {
+      setErro("Informe um WhatsApp válido com DDD.");
       return;
     }
 
     setEnviando(true);
     try {
+      const res = await fetch("/api/whatsapp-otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (data?.error === "invalid_phone")
+          setErro("Número de WhatsApp inválido.");
+        else if (data?.error === "rate_limited")
+          setErro("Aguarde alguns segundos antes de pedir um novo código.");
+        else setErro("Não foi possível enviar o código. Tente novamente.");
+        return;
+      }
+
+      setCode("");
+      setStep("code");
+    } catch {
+      setErro("Erro ao enviar. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // Passo 2: confere o código e salva o cadastro.
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setErro("");
+
+    if (code.replace(/\D/g, "").length !== 4) {
+      setErro("Digite o código de 4 dígitos.");
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      const verifyRes = await fetch("/api/whatsapp-otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp, code }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || !verifyData?.token) {
+        if (verifyData?.error === "too_many")
+          setErro("Muitas tentativas. Peça um novo código.");
+        else if (verifyData?.error === "expired")
+          setErro("Código expirado. Peça um novo código.");
+        else setErro("Código incorreto. Confira e tente de novo.");
+        return;
+      }
+
       const uid = gerarUid();
       const res = await fetch("/api/onboarding", {
         method: "POST",
@@ -76,12 +102,9 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
         body: JSON.stringify({
           uid,
           nome,
-          cidade,
-          uf,
-          situacao,
           whatsapp,
           email,
-          pergunta,
+          verifyToken: verifyData.token,
         }),
         signal: AbortSignal.timeout(12000),
       });
@@ -94,7 +117,30 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
       }
       onComplete();
     } catch {
-      setErro("Erro ao enviar. Tente novamente.");
+      setErro("Erro ao confirmar. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function handleResend() {
+    setErro("");
+    setEnviando(true);
+    try {
+      const res = await fetch("/api/whatsapp-otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data?.error === "rate_limited")
+          setErro("Aguarde alguns segundos antes de pedir um novo código.");
+        else setErro("Não foi possível reenviar o código.");
+      }
+    } catch {
+      setErro("Não foi possível reenviar o código.");
     } finally {
       setEnviando(false);
     }
@@ -203,156 +249,130 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
           </p>
         </div>
 
-        {/* Formulário */}
-        <form
-          onSubmit={handleSubmit}
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
-        >
-          <Field label="Nome completo *">
-            <input
-              type="text"
-              autoComplete="name"
-              placeholder="Seu nome e sobrenome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-          </Field>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 88px",
-              gap: 10,
-            }}
+        {/* Passo 1 — dados */}
+        {step === "form" ? (
+          <form
+            onSubmit={handleRequestCode}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
           >
-            <Field label="Cidade">
+            <Field label="Nome completo *">
               <input
                 type="text"
-                autoComplete="address-level2"
-                placeholder="Sua cidade"
-                value={cidade}
-                onChange={(e) => setCidade(e.target.value)}
+                autoComplete="name"
+                placeholder="Seu nome e sobrenome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
               />
             </Field>
-            <Field label="Estado">
-              <select value={uf} onChange={(e) => setUf(e.target.value)}>
-                <option value="">UF</option>
-                {UF_LIST.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
 
-          <Field label="Sua situação">
+            <Field label="WhatsApp *">
+              <input
+                type="tel"
+                autoComplete="tel"
+                placeholder="(11) 99999-9999"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(formatWpp(e.target.value))}
+                inputMode="tel"
+              />
+            </Field>
+
+            <Field label="E-mail *">
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+
+            {erro && <ErrorBox>{erro}</ErrorBox>}
+
+            <button
+              type="submit"
+              disabled={enviando}
+              style={primaryButtonStyle(enviando)}
+            >
+              {enviando ? "Enviando…" : "Receber código no WhatsApp →"}
+            </button>
+          </form>
+        ) : (
+          /* Passo 2 — código */
+          <form
+            onSubmit={handleVerify}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          >
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: "#c8d0e0",
+              }}
+            >
+              Enviamos um código de 4 dígitos para o WhatsApp{" "}
+              <strong style={{ color: "#e8ecf4" }}>{whatsapp}</strong>. Digite-o
+              abaixo para confirmar seu acesso.
+            </p>
+
+            <Field label="Código de 4 dígitos *">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="0000"
+                maxLength={4}
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                style={{
+                  letterSpacing: "0.5em",
+                  textAlign: "center",
+                  fontSize: 22,
+                  fontWeight: 800,
+                }}
+              />
+            </Field>
+
+            {erro && <ErrorBox>{erro}</ErrorBox>}
+
+            <button
+              type="submit"
+              disabled={enviando}
+              style={primaryButtonStyle(enviando)}
+            >
+              {enviando ? "Confirmando…" : "Confirmar e acessar →"}
+            </button>
+
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                paddingTop: 2,
-              }}
-            >
-              {(
-                [
-                  ["candidato", "Candidato(a)"],
-                  ["politica", "Trabalha com política"],
-                  ["outro", "Nenhuma das opções"],
-                ] as [Situacao, string][]
-              ).map(([val, label]) => (
-                <label
-                  key={val}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    cursor: "pointer",
-                    fontSize: 13.5,
-                    color: "#c8d0e0",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="situacao"
-                    value={val}
-                    checked={situacao === val}
-                    onChange={() => setSituacao(val)}
-                    style={{ accentColor: "#0ecb81", width: 16, height: 16 }}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </Field>
-
-          <Field label="WhatsApp *">
-            <input
-              type="tel"
-              autoComplete="tel"
-              placeholder="(11) 99999-9999"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(formatWpp(e.target.value))}
-              inputMode="tel"
-            />
-          </Field>
-
-          <Field label="E-mail *">
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
-
-          <Field label="Pergunta ou comentário">
-            <textarea
-              placeholder="O que você gostaria de saber? (opcional)"
-              value={pergunta}
-              onChange={(e) => setPergunta(e.target.value)}
-              rows={3}
-              style={{ resize: "none" }}
-            />
-          </Field>
-
-          {erro && (
-            <div
-              style={{
-                background: "rgba(207,61,69,0.1)",
-                border: "1px solid rgba(207,61,69,0.35)",
-                borderRadius: 8,
-                padding: "10px 14px",
+                justifyContent: "space-between",
                 fontSize: 12,
-                color: "#cf3d45",
               }}
             >
-              {erro}
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("form");
+                  setErro("");
+                }}
+                style={linkButtonStyle("#8a93a8")}
+              >
+                ← Corrigir dados
+              </button>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={enviando}
+                style={linkButtonStyle("#7fb0ff")}
+              >
+                Reenviar código
+              </button>
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={enviando}
-            style={{
-              background: enviando ? "#1e2638" : "#0ecb81",
-              color: enviando ? "#8a93a8" : "#0b0e14",
-              border: "none",
-              borderRadius: 12,
-              padding: "15px 24px",
-              fontSize: 14,
-              fontWeight: 800,
-              letterSpacing: "0.02em",
-              cursor: enviando ? "not-allowed" : "pointer",
-              transition: "background 0.15s",
-              marginTop: 4,
-            }}
-          >
-            {enviando ? "Enviando…" : "Acessar o Cockpit →"}
-          </button>
-        </form>
+          </form>
+        )}
 
         {/* Contato */}
         <div
@@ -404,12 +424,6 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
           -webkit-appearance: none;
           appearance: none;
         }
-        .scp-field select {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a93a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          padding-right: 32px;
-        }
         .scp-field input:focus,
         .scp-field select:focus,
         .scp-field textarea:focus {
@@ -420,6 +434,51 @@ export function OnboardingModal({ onComplete }: { onComplete: () => void }) {
           color: #3a4257;
         }
       `}</style>
+    </div>
+  );
+}
+
+function primaryButtonStyle(enviando: boolean): React.CSSProperties {
+  return {
+    background: enviando ? "#1e2638" : "#0ecb81",
+    color: enviando ? "#8a93a8" : "#0b0e14",
+    border: "none",
+    borderRadius: 12,
+    padding: "15px 24px",
+    fontSize: 14,
+    fontWeight: 800,
+    letterSpacing: "0.02em",
+    cursor: enviando ? "not-allowed" : "pointer",
+    transition: "background 0.15s",
+    marginTop: 4,
+  };
+}
+
+function linkButtonStyle(color: string): React.CSSProperties {
+  return {
+    background: "none",
+    border: "none",
+    color,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: 0,
+  };
+}
+
+function ErrorBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: "rgba(207,61,69,0.1)",
+        border: "1px solid rgba(207,61,69,0.35)",
+        borderRadius: 8,
+        padding: "10px 14px",
+        fontSize: 12,
+        color: "#cf3d45",
+      }}
+    >
+      {children}
     </div>
   );
 }

@@ -488,6 +488,7 @@
   backdrop-filter: blur(14px);
 }
 .transparency-card {
+  position: relative;
   width: min(1040px, 100%);
   max-height: calc(100dvh - 36px);
   overflow-y: auto;
