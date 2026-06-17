@@ -11,10 +11,22 @@ const OPTOUT = new Set(["PARAR", "SAIR", "STOP", "CANCELAR", "DESCADASTRAR"]);
 // Webhook de ENTRADA do whatsgate: recebe mensagens dos membros e a IA responde
 // (conversa 2 vias), cobrando a meta. Registrar a URL no whatsgate apontando aqui.
 export async function POST(request: NextRequest) {
-  // Token opcional (se WHATSGATE_WEBHOOK_TOKEN setado, exige bater).
-  const expected = process.env.WHATSGATE_WEBHOOK_TOKEN?.trim();
-  if (expected && request.nextUrl.searchParams.get("token") !== expected) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: noStore });
+  // Webhook protegido pela WHATSGATE_API_KEY (alias WHATSGATE_TOKEN/WEBHOOK_TOKEN).
+  // Aceita o token via ?token=, header X-API-Key ou Authorization: Bearer.
+  const expected = (
+    process.env.WHATSGATE_WEBHOOK_TOKEN ||
+    process.env.WHATSGATE_API_KEY ||
+    process.env.WHATSGATE_TOKEN
+  )?.trim();
+  if (expected) {
+    const provided =
+      request.nextUrl.searchParams.get("token") ||
+      request.headers.get("x-api-key") ||
+      request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+      "";
+    if (provided !== expected) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: noStore });
+    }
   }
 
   const body = await request.json().catch(() => ({}));
