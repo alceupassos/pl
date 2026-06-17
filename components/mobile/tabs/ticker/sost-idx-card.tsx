@@ -185,19 +185,21 @@ function TrendInline({
   dir,
   delta,
   provisorio,
+  compact,
 }: {
   dir: "up" | "flat" | "down";
   delta: number | null;
   provisorio?: boolean;
+  compact?: boolean;
 }) {
   const t = TEND[dir];
   return (
     <span
       className="m-mono"
-      style={{ color: t.cor, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}
+      style={{ color: t.cor, fontSize: compact ? 14 : 17, fontWeight: 800, whiteSpace: "nowrap" }}
     >
-      {t.sym} {delta == null ? "—" : fmtSigned(delta)}
-      <span style={{ color: "var(--m-muted)", fontWeight: 600 }}>
+      <span style={{ fontSize: compact ? 15 : 18 }}>{t.sym}</span> {delta == null ? "—" : fmtSigned(delta)}
+      <span style={{ color: "var(--m-muted)", fontWeight: 600, fontSize: compact ? 10 : 11 }}>
         {" "}
         · {provisorio ? "acumulando" : "7d"}
       </span>
@@ -253,6 +255,7 @@ function Metricas4({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
             dir={idx.tendencia ?? "flat"}
             delta={idx.tendenciaDelta ?? null}
             provisorio={idx.tendenciaProvisoria}
+            compact={compact}
           />
         }
         compact={compact}
@@ -267,10 +270,36 @@ function Metricas4({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
             dir={idx.tendenciaAdversarios ?? "flat"}
             delta={idx.tendenciaAdversariosDelta ?? null}
             provisorio={idx.tendenciaAdversariosProvisoria}
+            compact={compact}
           />
         }
         compact={compact}
       />
+    </div>
+  );
+}
+
+// Destaque de Sentimento — em PRIMEIRO lugar, antes do IRE. Usa o score 0–100 de
+// sentimento (base: manchetes/notícias do Google News via pysentimiento). A fórmula
+// resumida embaixo explica a leitura: (positivos − negativos) ÷ total.
+function SentimentoDestaque({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
+  const sent = idx.breakdown?.sentimento ?? null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: compact ? 6 : 8 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
+          SENTIMENTO · notícias
+        </span>
+        <span
+          className="m-mono"
+          style={{ fontSize: compact ? 26 : 34, fontWeight: 900, lineHeight: 1, color: corReputacao(sent) }}
+        >
+          {sent == null ? "—" : Math.round(sent)}
+        </span>
+      </div>
+      <span style={{ fontSize: compact ? 9 : 10, color: "var(--m-muted)" }}>
+        (coment. positivos − negativos) ÷ nº de comentários
+      </span>
     </div>
   );
 }
@@ -355,6 +384,7 @@ function IdxCompact({
 
       <div className="m-compact-row">
         <div className="m-compact-main">
+          <SentimentoDestaque idx={idx} compact />
           <Metricas4 idx={idx} compact />
         </div>
         <div
@@ -405,6 +435,8 @@ function IdxFront({
           noRitmo={noRitmo}
         />
       </div>
+
+      <SentimentoDestaque idx={idx} />
 
       <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "2px 0" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
