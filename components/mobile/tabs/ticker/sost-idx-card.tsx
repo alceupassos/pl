@@ -298,7 +298,7 @@ function SentimentoDestaque({ idx, compact }: { idx: IdxSnapshot; compact?: bool
     <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: compact ? 6 : 8 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
         <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
-          SENTIMENTO · notícias
+          SENTIMENTO
         </span>
         <span
           className="m-mono"
@@ -308,7 +308,7 @@ function SentimentoDestaque({ idx, compact }: { idx: IdxSnapshot; compact?: bool
         </span>
       </div>
       <span style={{ fontSize: compact ? 9 : 10, color: "var(--m-muted)" }}>
-        (coment. positivos − negativos) ÷ nº de comentários
+        (menções positivas − negativas) ÷ nº de menções
       </span>
     </div>
   );
