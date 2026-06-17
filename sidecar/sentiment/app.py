@@ -13,6 +13,8 @@ import asyncio
 import io
 import json
 import os
+import re
+import unicodedata
 
 import pandas as pd
 import requests
@@ -52,10 +54,10 @@ def _get_analyzer():
 
 @app.on_event("startup")
 def _warm_model():
-    """Pré-carrega o modelo no boot, em thread daemon, para o 1º /sentiment não
-    pagar o custo de load (que, sob contenção de CPU, era abortado e nunca
-    completava). Não bloqueia o startup do uvicorn."""
-    threading.Thread(target=_get_analyzer, daemon=True).start()
+    """Sentimento agora é por LÉXICO PT (leve) — ver /sentiment. NÃO carrega o
+    modelo BERT (pysentimiento ~6.7GB não cabe nesta VPS de 8GB: causava OOM e
+    travava o box). _get_analyzer fica disponível mas não é usado por padrão."""
+    return
 
 
 class Req(BaseModel):
@@ -67,19 +69,56 @@ def health():
     return {"ok": True}
 
 
+# ── Léxico PT leve para sentimento (substitui o BERT que não cabe na VPS) ──
+# Classifica cada texto por contagem de termos positivos vs negativos. Stems em
+# minúsculo e SEM acento (o texto é normalizado antes). Casamento por prefixo de
+# token, então "aprov" pega aprova/aprovado/aprovação, etc.
+_POS_STEMS = (
+    "elogi", "aprov", "sucesso", "vitori", "cresc", "avanc", "conquist",
+    "melhor", "benefic", "apoi", "favorav", "positiv", "destaqu", "premi",
+    "lider", "popular", "investiment", "inaugur", "fortalec", "otimis",
+    "parceria", "acordo", "recuper", "ganh", "entrega", "recorde",
+    "homenage", "celebr",
+)
+_NEG_STEMS = (
+    "critic", "escandal", "corrup", "denunc", "investig", "conden",
+    "derrot", "queda", "caiu", "fraud", "polemic", "rejeit", "crise",
+    "protest", "revolt", "fracass", "pessim", "acus", "ilegal",
+    "irregular", "suspeit", "afast", "cassa", "multa", "ataqu", "atac",
+    "demit", "renunc", "negativ", "problema", "repudi", "preso", "pris",
+)
+
+
+def _norm_txt(s: str) -> str:
+    s = unicodedata.normalize("NFKD", str(s).lower())
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+def _classify_lexico(text: str) -> str:
+    toks = re.findall(r"[a-z]+", _norm_txt(text))
+    p = sum(1 for t in toks if any(t.startswith(s) for s in _POS_STEMS))
+    n = sum(1 for t in toks if any(t.startswith(s) for s in _NEG_STEMS))
+    if p > n:
+        return "POS"
+    if n > p:
+        return "NEG"
+    return "NEU"
+
+
 @app.post("/sentiment")
 def sentiment(req: Req):
-    """Pontua uma lista de textos PT → contagem pos/neg/neu + índice ~100.
-    indice = 100 + (share_pos - share_neg) * 100  (>100 = clima favorável)."""
+    """Pontua textos PT por LÉXICO → contagem pos/neg/neu + índice ~100.
+    indice = 100 + (share_pos - share_neg) * 100  (>100 = clima favorável).
+    Léxico leve (sem BERT) para caber na RAM da VPS — não há OOM."""
     textos = [t for t in (req.textos or []) if t and t.strip()]
     if not textos:
         return {"pos": 0, "neg": 0, "neu": 0, "n": 0, "indice": None}
 
-    saidas = _get_analyzer().predict(textos)
-    pos = sum(1 for o in saidas if o.output == "POS")
-    neg = sum(1 for o in saidas if o.output == "NEG")
-    neu = sum(1 for o in saidas if o.output == "NEU")
-    n = len(saidas)
+    rotulos = [_classify_lexico(t) for t in textos]
+    pos = rotulos.count("POS")
+    neg = rotulos.count("NEG")
+    neu = rotulos.count("NEU")
+    n = len(rotulos)
     indice = round(100 + ((pos - neg) / n) * 100, 1) if n else None
     return {"pos": pos, "neg": neg, "neu": neu, "n": n, "indice": indice}
 
