@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getDashboardKpis } from "@/lib/mock/campaign-metrics";
 import { META_ELEITORES } from "@/lib/mock/campaign-goal";
@@ -17,8 +17,8 @@ const CARDS: {
 }[] = [
   {
     id: "idx",
-    title: "SOST-IDX",
-    subtitle: "Índice do candidato",
+    title: "SENTIMENTO",
+    subtitle: "Sentimento do candidato",
     accent: "#16C784",
     section: "noc",
   },
@@ -61,8 +61,25 @@ export function WebCommandOverview({
 }) {
   const kpis = useMemo(() => getDashboardKpis(region), [region]);
 
+  // Sentimento atual real do candidato (net = índice − 100, em %).
+  const [sentNet, setSentNet] = useState<number | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/sentimento", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (vivo && typeof d?.net === "number") setSentNet(d.net);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  const sentLabel =
+    sentNet == null ? "—" : `${sentNet > 0 ? "+" : sentNet < 0 ? "−" : ""}${Math.abs(sentNet)}%`;
+
   const values: Record<string, { value: string; hint: string }> = {
-    idx: { value: "152,48", hint: "termômetro da campanha" },
+    idx: { value: sentLabel, hint: "(menções pos − neg) ÷ total" },
     meta: {
       value: `${Math.round(META_ELEITORES * 0.76).toLocaleString("pt-BR")}`,
       hint: `meta ${META_ELEITORES.toLocaleString("pt-BR")}`,
