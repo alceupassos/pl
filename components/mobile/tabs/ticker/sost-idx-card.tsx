@@ -182,14 +182,14 @@ function fmtSigned(v: number, suffix = ""): string {
 
 
 // Métrica sub-maior (IRE / PRA): sigla + valor + setinha de tendência colada,
-// com legenda pequena opcional embaixo (card expandido).
+// com a descrição AO LADO da sigla (fonte menor).
 function SubMetrica({
   sigla,
   valor,
   valorCor,
   trendSym,
   trendCor,
-  legenda,
+  descricao,
   compact,
 }: {
   sigla: string;
@@ -197,19 +197,24 @@ function SubMetrica({
   valorCor: string;
   trendSym?: string;
   trendCor?: string;
-  legenda?: string;
+  descricao?: string;
   compact?: boolean;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-      {/* rótulo EM CIMA do número */}
-      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", color: "var(--m-muted)" }}>
-        {sigla}
-      </span>
+      {/* sigla EM CIMA do número, com a descrição AO LADO (fonte menor) */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", color: "var(--m-muted)" }}>
+          {sigla}
+        </span>
+        {descricao ? (
+          <span style={{ fontSize: 8, color: "var(--m-muted)", lineHeight: 1.05 }}>{descricao}</span>
+        ) : null}
+      </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 4, whiteSpace: "nowrap" }}>
         <span
           className="m-mono"
-          style={{ fontSize: compact ? 30 : 44, fontWeight: 800, lineHeight: 1, color: valorCor }}
+          style={{ fontSize: compact ? 36 : 52, fontWeight: 800, lineHeight: 1, color: valorCor }}
         >
           {valor}
         </span>
@@ -217,15 +222,12 @@ function SubMetrica({
         {trendSym ? (
           <span
             className="m-mono"
-            style={{ fontSize: compact ? 18 : 24, fontWeight: 800, lineHeight: 1, color: trendCor }}
+            style={{ fontSize: compact ? 20 : 28, fontWeight: 800, lineHeight: 1, color: trendCor }}
           >
             {trendSym}
           </span>
         ) : null}
       </div>
-      {legenda ? (
-        <span style={{ fontSize: 8.5, color: "var(--m-muted)", lineHeight: 1.1 }}>{legenda}</span>
-      ) : null}
     </div>
   );
 }
@@ -269,13 +271,13 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
               }}
             >
               {net == null ? (
-                <span style={{ fontSize: expanded ? 88 : 60 }}>—</span>
+                <span style={{ fontSize: expanded ? 104 : 72 }}>—</span>
               ) : (
                 (() => {
                   const sinal = net > 0 ? "+" : net < 0 ? "−" : "";
                   const intAbs = Math.trunc(Math.abs(net)); // sem vírgula/decimais
-                  const peq = expanded ? 36 : 26; // "+" e "%" menores
-                  const big = expanded ? 88 : 60; // número bem mais alto
+                  const peq = expanded ? 24 : 18; // "+" e "%" bem menores
+                  const big = expanded ? 104 : 72; // número bem mais alto
                   return (
                     <>
                       {sinal ? <span style={{ fontSize: peq }}>{sinal}</span> : null}
@@ -318,7 +320,7 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
             valor={ire == null ? "—" : <Odometer value={ire} decimals={0} />}
             valorCor={corReputacao(ire)}
             compact={compact}
-            legenda={expanded ? "Índice de Reputação Eleitoral" : undefined}
+            descricao={expanded ? "(Índice de Reputação Eleitoral)" : undefined}
             trendSym={TEND[idx.tendencia ?? "flat"].sym}
             trendCor={TEND[idx.tendencia ?? "flat"].cor}
           />
@@ -327,7 +329,7 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
             valor={pra == null ? "—" : fmtSigned(pra, "%")}
             valorCor={corPra(pra)}
             compact={compact}
-            legenda={expanded ? "Percentual Relativo Adversário" : undefined}
+            descricao={expanded ? "(Posição Relativa Adversários)" : undefined}
             trendSym={TEND[idx.tendenciaAdversarios ?? "flat"].sym}
             trendCor={TEND[idx.tendenciaAdversarios ?? "flat"].cor}
           />
@@ -356,18 +358,6 @@ function corSentNet(v: number | null): string {
   return "#8a93a8";
 }
 
-function MetaPills({ alcancado }: { alcancado: number }) {
-  return (
-    <div className="m-meta-pills">
-      <span className="m-pill meta-goal">
-        meta {fmtCompact(META_ELEITORES)}
-      </span>
-      <span className="m-pill meta-goal">
-        alcançado {fmtCompact(alcancado)}
-      </span>
-    </div>
-  );
-}
 
 /* ── dados para as mini-visualizações 3D (fx3d) ── */
 const PILAR_COR: Record<keyof IdxSnapshot["breakdown"], string> = {
@@ -387,21 +377,16 @@ function barsFromIdx(idx: IdxSnapshot) {
 function IdxCompact({
   idx,
   watchlist,
-  equipe,
 }: {
   idx: IdxSnapshot;
   watchlist: Watchlist | null;
-  equipe: EquipeSnapshot | null;
 }) {
-  const cadastrados = equipe?.geral.cadastrados ?? 0;
-
   return (
     <FlashCard watch={idx.reputacao ?? idx.valor} className="m-card-compact">
       <div className="m-card-head m-card-head-ticker">
         <span className="m-card-title" style={{ color: "#e8ecf4", fontWeight: 800 }}>
           ÍNDICE DE REPUTAÇÃO ELEITORAL · {watchlist?.principal.simbolo ?? "SOST"}-IDX
         </span>
-        <MetaPills alcancado={cadastrados} />
       </div>
 
       <IdxResumo idx={idx} />
@@ -716,7 +701,7 @@ export function SostIdxCard() {
     <ExpandFlipCard
       glow={glow}
       compact={
-        <IdxCompact idx={idx} watchlist={watchlist} equipe={equipe.data} />
+        <IdxCompact idx={idx} watchlist={watchlist} />
       }
       front={
         <IdxFront
