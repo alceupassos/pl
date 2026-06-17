@@ -187,7 +187,7 @@ export function Showcase3D({
       {/* PLACAR — SENTIMENTO · IRE · TIRE · PRA · TPRA */}
       {voce ? (
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <PlacarNum n={1} rotulo="SENTIMENTO · notícias" valor={sentNet == null ? "—" : fmtSigned(sentNet, "%")} cor={sentCor} formula="(menções positivas − negativas) ÷ nº de menções" />
+          <PlacarNum n={1} rotulo="SENTIMENTO" valor={sentNet == null ? "—" : fmtSigned(sentNet, "%")} cor={sentCor} formula="(menções positivas − negativas) ÷ nº de menções" />
           <PlacarNum n={2} rotulo="IRE" valor={voce.reputacao == null ? "—" : String(Math.round(voce.reputacao))} cor={corRep(voce.reputacao)} formula="0,40·Sent + 0,25·Menç + 0,20·Impr + 0,15·Cresc" />
           <PlacarNum n={3} rotulo="TIRE · tendência 7d" valor={`${tend.sym} ${voce.tendenciaDelta == null ? tend.label : fmtSigned(voce.tendenciaDelta)}`} cor={tend.cor} formula={voce.tendenciaProvisoria ? "ΔIRE 7 dias · acumulando" : "ΔIRE nos últimos 7 dias"} />
           <PlacarNum n={4} rotulo="PRA" valor={voce.posicao == null ? "—" : fmtSigned(voce.posicao, "%")} cor={posCor} formula="(IRE ÷ média × 100) − 100" />
