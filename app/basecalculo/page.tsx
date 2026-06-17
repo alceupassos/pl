@@ -143,7 +143,7 @@ export default async function BaseCalculoPage() {
             { t: "Crescimento da base", p: "15% · Δ7d", d: "Variação % dos seguidores nos últimos 7 dias (base somada das redes — Instagram, TikTok, Facebook, X, YouTube — via BrightData/yt-dlp). Mede se a audiência própria está crescendo. Enquanto não há 7 dias de histórico, fica 'acumulando' e o índice roda sobre os demais pilares." },
             { t: "IRE", p: "= índice composto", d: "Índice de Reputação Eleitoral: a nota composta 0–100 = soma das notas de cada pilar × pesos (40/25/20/15), renormalizada sobre os ingredientes com dado real. Responde 'como anda a reputação digital?'. 50 = na média do páreo." },
             { t: "TIRE", p: "tendência · 7d", d: "Tendência do IRE: variação do IRE do candidato nos últimos 7 dias (▲ subindo, ▬ estável, ▼ caindo)." },
-            { t: "PRA", p: "% · 0 = média", d: "Posição Relativa Adversários = 100 − (IRE ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente dos adversários; positivo = atrás." },
+            { t: "PRA", p: "% · 0 = média", d: "Posição Relativa Adversários = (IRE ÷ média × 100) − 100, em %. 0 = na média do páreo; positivo = à frente dos adversários; negativo = atrás." },
             { t: "TPRA", p: "tendência · 7d", d: "Tendência do PRA: média das tendências (ΔIRE em 7 dias) dos concorrentes RJ — para onde o páreo adversário caminha." },
           ].map((item) => (
             <div
@@ -171,7 +171,7 @@ export default async function BaseCalculoPage() {
           vira nota <code>50 + 15 × (valor − média) ÷ desvio</code> (0–100, 50 = na média). 2){" "}
           <code>IRE = Σ nota × peso</code> (Sentimento 40% · Menções 25% · Imprensa 20% ·
           Crescimento 15%, renormalizados sobre os ingredientes com dado real). 3){" "}
-          <code>PRA = 100 − (IRE ÷ média × 100)</code>, em % (0 = na média do páreo).
+          <code>PRA = (IRE ÷ média × 100) − 100</code>, em % (0 = na média do páreo).
           TIRE = ΔIRE do candidato em 7 dias; TPRA = média do ΔIRE 7 dias dos concorrentes.
         </p>
         <div className="log-table-wrap">
@@ -195,9 +195,9 @@ export default async function BaseCalculoPage() {
             <tbody>
               {tabela.linhas.map((l) => {
                 const tend = TEND[l.tendencia];
-                // PRA = 100 − Score÷média×100: negativo = à frente (verde); positivo = atrás (vermelho).
+                // PRA = Score÷média×100 − 100: positivo = à frente (verde); negativo = atrás (vermelho).
                 const posCor =
-                  l.posicao == null ? "#8a93a8" : l.posicao < -0.05 ? "#16C784" : l.posicao > 0.05 ? "#EA3943" : "#8a93a8";
+                  l.posicao == null ? "#8a93a8" : l.posicao > 0.05 ? "#16C784" : l.posicao < -0.05 ? "#EA3943" : "#8a93a8";
                 return (
                   <tr key={l.simbolo}>
                     <td style={{ whiteSpace: "nowrap" }}>

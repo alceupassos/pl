@@ -72,11 +72,11 @@ function corRep(v: number | null): string {
   return "#EA3943";
 }
 
-// PRA = 100 − (Score ÷ média × 100), em %. negativo = à frente (verde).
+// PRA = (Score ÷ média × 100) − 100, em %. positivo = à frente (verde).
 function corPra(v: number | null): string {
   if (v == null) return "var(--m-muted)";
-  if (v < -0.05) return "#16C784";
-  if (v > 0.05) return "#EA3943";
+  if (v > 0.05) return "#16C784";
+  if (v < -0.05) return "#EA3943";
   return "#8a93a8";
 }
 

@@ -14,8 +14,8 @@
 //      watchlist.pesosIndice (Sentimento 40% · Menções 25% · Imprensa 20% ·
 //      Crescimento 15%), RENORMALIZADOS sobre os ingredientes com dado real. É o
 //      número-título: o "Score" e o IRE são o mesmo número.
-//   3. PRA (Posição Relativa Adversários) = 100 − (IRE ÷ média × 100), em %
-//      (0 = na média; positivo = atrás dos adversários; negativo = à frente).
+//   3. PRA (Posição Relativa Adversários) = (IRE ÷ média × 100) − 100, em %
+//      (0 = na média; positivo = à frente dos adversários; negativo = atrás).
 //   4. TIRE = tendência do IRE do candidato em 7 dias; TPRA = média das tendências
 //      (ΔIRE 7d) dos concorrentes.
 //
@@ -51,7 +51,7 @@ export type LinhaIndice = {
   ingredientes: Record<Ingrediente, Celula>;
   score: number | null; // nota composta 0–100 (= IRE; mantido por compat.)
   reputacao: number | null; // IRE = nota composta ponderada (0–100)
-  posicao: number | null; // PRA = 100 − (IRE ÷ média(IRE) × 100), em %
+  posicao: number | null; // PRA = (IRE ÷ média(IRE) × 100) − 100, em %
   tendencia: Tendencia; // TIRE: tendência do IRE do candidato em 7 dias
   tendenciaDelta: number | null; // ΔIRE em 7 dias (numérico); null sem histórico
   tendenciaProvisoria: boolean; // true enquanto não há ~7d de histórico de IRE
@@ -216,9 +216,9 @@ function buildIndexTable(w: Watchlist, now: number): TabelaIndice {
 
   for (const l of linhas) {
     if (l.score !== null && mediaScore && mediaScore > 0) {
-      // PRA = 100 − (IRE ÷ média × 100), em % (0 = na média do páreo;
-      // positivo = atrás dos adversários; negativo = à frente).
-      l.posicao = round1(100 - (l.score / mediaScore) * 100);
+      // PRA = (IRE ÷ média × 100) − 100, em % (0 = na média do páreo;
+      // positivo = à frente dos adversários; negativo = atrás).
+      l.posicao = round1((l.score / mediaScore) * 100 - 100);
       recordScore(now, l.simbolo, l.score);
     }
 

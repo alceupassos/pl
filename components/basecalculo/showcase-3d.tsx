@@ -173,9 +173,9 @@ export function Showcase3D({
 
   const tend = TEND[voce?.tendencia ?? "flat"];
   const tendAdv = TEND[tendenciaAdversarios];
-  // PRA = 100 − Score÷média×100: negativo = à frente (verde); positivo = atrás (vermelho).
+  // PRA = Score÷média×100 − 100: positivo = à frente (verde); negativo = atrás (vermelho).
   const posCor =
-    voce?.posicao == null ? "#8a93a8" : voce.posicao < -0.05 ? "#16C784" : voce.posicao > 0.05 ? "#EA3943" : "#8a93a8";
+    voce?.posicao == null ? "#8a93a8" : voce.posicao > 0.05 ? "#16C784" : voce.posicao < -0.05 ? "#EA3943" : "#8a93a8";
 
   return (
     <div>
@@ -184,7 +184,7 @@ export function Showcase3D({
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
           <PlacarNum n={1} rotulo="IRE" valor={voce.reputacao == null ? "—" : String(Math.round(voce.reputacao))} cor={corRep(voce.reputacao)} formula="0,40·Sent + 0,25·Menç + 0,20·Impr + 0,15·Cresc" />
           <PlacarNum n={2} rotulo="TIRE · tendência 7d" valor={`${tend.sym} ${voce.tendenciaDelta == null ? tend.label : fmtSigned(voce.tendenciaDelta)}`} cor={tend.cor} formula={voce.tendenciaProvisoria ? "ΔIRE 7 dias · acumulando" : "ΔIRE nos últimos 7 dias"} />
-          <PlacarNum n={3} rotulo="PRA" valor={voce.posicao == null ? "—" : fmtSigned(voce.posicao, "%")} cor={posCor} formula="100 − IRE ÷ média × 100" />
+          <PlacarNum n={3} rotulo="PRA" valor={voce.posicao == null ? "—" : fmtSigned(voce.posicao, "%")} cor={posCor} formula="(IRE ÷ média × 100) − 100" />
           <PlacarNum n={4} rotulo="TPRA · tendência 7d" valor={`${tendAdv.sym} ${tendenciaAdversariosDelta == null ? tendAdv.label : fmtSigned(tendenciaAdversariosDelta)}`} cor={tendAdv.cor} formula={tendenciaAdversariosProvisoria ? "média ΔIRE 7d adversários · acumulando" : "média do ΔIRE 7d dos adversários"} />
         </div>
       ) : null}
@@ -257,7 +257,7 @@ export function Showcase3D({
       {/* BLOCO 3 */}
       <Bloco
         titulo="A conta fecha — sem caixa-preta"
-        texto={<>O <strong>IRE</strong> é a soma das notas × pesos (Menç 25 · Sent 40 · Impr 20 · Cresc 15) e a <strong>PRA</strong> é <code>100 − IRE ÷ média × 100</code>, em % (0 = na média do páreo). As barras empilhadas mostram cada pilar somando ao IRE; a dispersão IRE×PRA cai sobre a reta esperada (linha da média em 0%).</>}
+        texto={<>O <strong>IRE</strong> é a soma das notas × pesos (Menç 25 · Sent 40 · Impr 20 · Cresc 15) e a <strong>PRA</strong> é <code>(IRE ÷ média × 100) − 100</code>, em % (0 = na média do páreo). As barras empilhadas mostram cada pilar somando ao IRE; a dispersão IRE×PRA cai sobre a reta esperada (linha da média em 0%).</>}
       >
         <ChartCard titulo="Anatomia do IRE · contribuição nota×peso (empilhada)">
           <BarChart data={contribData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>

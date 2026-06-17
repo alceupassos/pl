@@ -35,7 +35,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "O que é PRA?",
-    a: "Posição Relativa Adversários = 100 − (IRE ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente dos adversários; positivo = atrás.",
+    a: "Posição Relativa Adversários = (IRE ÷ média × 100) − 100, em %. 0 = na média do páreo; positivo = à frente dos adversários; negativo = atrás.",
   },
   {
     q: "O que é TIRE?",

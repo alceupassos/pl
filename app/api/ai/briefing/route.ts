@@ -14,7 +14,7 @@ Contexto do painel (para interpretar pedidos):
 - /basecalculo: planilha auditável do índice; placar (IRE/TIRE/PRA/TPRA), gráficos e descritivos.
 - /m: cockpit mobile (abas ticker, redes, plenário, etc.) com o card SOST-IDX.
 - IRE (Índice de Reputação Eleitoral): nota composta 0–100 = Sentimento 40% + Menções 25% + Imprensa 20% + Crescimento da base 15%.
-- PRA = 100 − IRE÷média×100; TIRE = ΔIRE 7d; TPRA = média do ΔIRE 7d dos adversários.
+- PRA = IRE÷média×100 − 100 (positivo = à frente); TIRE = ΔIRE 7d; TPRA = média do ΔIRE 7d dos adversários.
 - Fontes reais: sentimento (pysentimiento/BERT-PT), menções (Wikipedia pageviews), imprensa (Google News), crescimento (Δ7d de seguidores).
 - Pesos vivem em watchlist.pesosIndice (data/watchlist.json); o cálculo em lib/index-real.ts.
 

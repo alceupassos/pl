@@ -133,7 +133,7 @@ export default function MobileIndicePage() {
           Reputação Eleitoral — nota composta 0–100: Sentimento 40% · Menções 25% · Imprensa 20% ·
           Crescimento 15%), <strong>TIRE</strong> (tendência do IRE do candidato nos últimos{" "}
           <strong>7 dias</strong>, ▲ ▬ ▼), <strong>PRA</strong> (Posição Relativa Adversários =
-          100 − IRE ÷ média × 100, em %; 0 = média do páreo, negativo = à frente) e{" "}
+          (IRE ÷ média × 100) − 100, em %; 0 = média do páreo, positivo = à frente) e{" "}
           <strong>TPRA</strong> (média da tendência — ΔIRE de 7 dias — dos adversários). O
           crescimento da base entra como variação % dos seguidores em 7 dias. Esses números são
           reais por candidato.

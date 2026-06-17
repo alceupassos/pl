@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     row([strCell("Metodologia"), strCell("")]),
     row([strCell("Nota de cada pilar"), strCell("50 + 15 × (valor − média) ÷ desvio (0–100; 50 = na média do páreo)")]),
     row([strCell("IRE"), strCell("Σ (nota × peso), renormalizado sobre os pilares com dado real")]),
-    row([strCell("PRA"), strCell("100 − (IRE ÷ média × 100), em % (0 = média; negativo = à frente)")]),
+    row([strCell("PRA"), strCell("(IRE ÷ média × 100) − 100, em % (0 = média; positivo = à frente)")]),
     row([strCell("TIRE"), strCell("variação do IRE do candidato nos últimos 7 dias (ΔIRE 7d)")]),
     row([strCell("TPRA"), strCell("média do ΔIRE 7d dos concorrentes")]),
     row([strCell("Crescimento Δ7d"), strCell("variação % da base de seguidores nos últimos 7 dias")]),

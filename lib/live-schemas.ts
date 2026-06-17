@@ -68,8 +68,8 @@ const FonteDadoSchema = z.enum(["real", "modelado"]);
 
 /* Índice de Popularidade Digital — valores por candidato (lib/index-real.ts).
    IRE (reputacao) = nota composta ponderada 0–100 (Sentimento 40% · Menções 25% ·
-   Imprensa 20% · Crescimento 15%); PRA (posicao) = 100 − IRE ÷ média × 100, em %
-   (0 = média do páreo); TIRE (tendencia/tendenciaDelta) = ΔIRE do candidato em 7
+   Imprensa 20% · Crescimento 15%); PRA (posicao) = (IRE ÷ média × 100) − 100, em %
+   (0 = média do páreo; positivo = à frente); TIRE (tendencia/tendenciaDelta) = ΔIRE do candidato em 7
    dias; TPRA (tendenciaAdversarios) = média das tendências (ΔIRE 7d) dos
    concorrentes; seguidores7dPct = variação % de seguidores em 7 dias (= o pilar
    Crescimento). Campos OPCIONAIS para compatibilidade com snapshots antigos. */

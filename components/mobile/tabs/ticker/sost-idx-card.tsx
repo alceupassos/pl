@@ -160,12 +160,12 @@ function corReputacao(v: number | null): string {
   return "#EA3943";
 }
 
-// PRA = 100 − (Score ÷ média × 100), em %. 0 = na média do páreo; negativo = à
-// frente dos adversários (verde); positivo = atrás (vermelho).
+// PRA = (Score ÷ média × 100) − 100, em %. 0 = na média do páreo; positivo = à
+// frente dos adversários (verde); negativo = atrás (vermelho).
 function corPra(v: number | null): string {
   if (v == null) return "var(--m-muted)";
-  if (v < -0.05) return "#16C784";
-  if (v > 0.05) return "#EA3943";
+  if (v > 0.05) return "#16C784";
+  if (v < -0.05) return "#EA3943";
   return "#8a93a8";
 }
 
@@ -564,7 +564,7 @@ function IdxBack({
           [
             ["IRE", "Índice de Reputação Eleitoral — nota composta 0–100: Sentimento 40% · Menções 25% · Imprensa 20% · Crescimento 15%."],
             ["TIRE", "Tendência do IRE: como o IRE do candidato variou nos últimos 7 dias (▲ subindo · ▬ estável · ▼ caindo)."],
-            ["PRA", "Posição Relativa Adversários: 100 − (IRE ÷ média × 100), em %. 0 = na média do páreo; negativo = à frente; positivo = atrás."],
+            ["PRA", "Posição Relativa Adversários: (IRE ÷ média × 100) − 100, em %. 0 = na média do páreo; positivo = à frente; negativo = atrás."],
             ["TPRA", "Tendência do PRA: média da tendência (ΔIRE em 7 dias) dos concorrentes RJ."],
             ["Crescimento", "Pilar do IRE: variação % da base de seguidores nos últimos 7 dias (base somada das redes)."],
           ] as const
