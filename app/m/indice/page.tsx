@@ -312,7 +312,7 @@ export default function MobileIndicePage() {
           }}
         >
           <li>
-            Componentes marcados <strong style={{ color: "#F5A623" }}>DEMO</strong> caem em
+            Componentes marcados <strong style={{ color: "#F5A623" }}>SIMULADO</strong> caem em
             série sintética quando a fonte real está indisponível (ex.: Google Trends bloqueado no
             servidor) — o badge de cada componente acima mostra o estado em tempo real.
           </li>

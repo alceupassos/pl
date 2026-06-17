@@ -1080,6 +1080,22 @@ body:has(.m-app:not(.m-embed)) {
   color: var(--m-muted);
 }
 
+/* "VERSÃO DE TESTE" centralizado no topo, em vermelho — absoluto p/ não mexer
+   no flex do brand (esq) e dos ícones (dir). */
+.m-header-testtag {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(10px + env(safe-area-inset-top));
+  font-family: var(--m-font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--m-down);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* ── gauge / barras utilitárias ── */
 .m-bar {
   height: 6px;

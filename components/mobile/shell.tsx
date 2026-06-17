@@ -126,6 +126,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const tabbarRef = useRef<HTMLElement>(null);
   const rafRef = useRef(0);
+  const lockedScrollRef = useRef(0);
 
   const plenario = useLiveChannel<PlenarioState>("plenario").data;
   const votacaoAtiva = plenario?.votacaoAtiva ?? false;
@@ -218,6 +219,28 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
     [goTo, resetTickerTab],
   );
 
+  // Swipe em carrosséis internos (.m-carousel) deve rolar o carrossel, não trocar
+  // de aba. Enquanto o dedo está dentro de um carrossel, travamos o scroll-x do
+  // viewport (pager) para o gesto horizontal ir ao carrossel. Salva/restaura o
+  // scrollLeft p/ não dar pulo ao alternar overflow.
+  const onViewportTouchStart = useCallback((e: React.TouchEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.(".m-carousel")) {
+      const el = viewportRef.current;
+      if (el) {
+        lockedScrollRef.current = el.scrollLeft;
+        el.style.overflowX = "hidden";
+      }
+    }
+  }, []);
+  const onViewportTouchEnd = useCallback(() => {
+    const el = viewportRef.current;
+    if (el && el.style.overflowX === "hidden") {
+      el.style.overflowX = "";
+      el.scrollLeft = lockedScrollRef.current;
+    }
+  }, []);
+
   return (
     <>
       {!registered && (
@@ -225,13 +248,14 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       )}
       <header className="m-header">
         <div className="m-header-brand">
-          COCKPIT <span style={{ color: "var(--m-up)" }}>SOST</span>
+          COCKPIT <span style={{ color: "var(--m-up)" }}>ELEITORAL 2026</span>
           {/* carimbo de versão visível — diagnóstico de cache no aparelho.
               O minor sobe sozinho a cada build (ver next.config.ts). */}
           <small>
             O CANDIDATO · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
           </small>
         </div>
+        <span className="m-header-testtag">VERSÃO DE TESTE</span>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LiveBadge ch="idx.sost" cadenceMs={2000} showLabel />
           <Link href="/m/config" aria-label="Configurações da watchlist">
@@ -240,7 +264,14 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
         </div>
       </header>
 
-      <div className="m-track-viewport" ref={viewportRef} onScroll={onScroll}>
+      <div
+        className="m-track-viewport"
+        ref={viewportRef}
+        onScroll={onScroll}
+        onTouchStart={onViewportTouchStart}
+        onTouchEnd={onViewportTouchEnd}
+        onTouchCancel={onViewportTouchEnd}
+      >
         <div className="m-track">
           {TABS.map((tab, i) => {
             const adjacent = Math.abs(i - index) <= 1;

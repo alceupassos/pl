@@ -11,8 +11,8 @@ import { useMemo } from "react";
 
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
-import { candlestickOption } from "@/components/mobile/m-chart-options";
-import { Bars3D, Gauge3D, SparkDepth } from "@/components/mobile/ui/fx3d";
+import { candlestickOption, closeLineOption } from "@/components/mobile/m-chart-options";
+import { Bars3D, SparkDepth } from "@/components/mobile/ui/fx3d";
 import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
@@ -136,7 +136,7 @@ const PARTES: {
     label: "crescimento",
     curto: "base crescendo · Δ7 dias",
     explica: (v, p) =>
-      `Crescimento da base: variação % dos seguidores somados das redes nos últimos 7 dias (peso ${p}% do IRE), real via Bright Data/yt-dlp. Nota atual ${v}; acima de 50 = base crescendo mais que o páreo. Sem 7 dias de histórico, fica "acumulando".`,
+      `Crescimento da base: variação % dos seguidores somados das redes nos últimos 7 dias (peso ${p}% do IRE), real via Bright Data/yt-dlp. Nota atual ${v}; acima de 50 = base crescendo mais que o páreo.`,
   },
   {
     key: "imprensa",
@@ -180,16 +180,14 @@ function fmtSigned(v: number, suffix = ""): string {
   return `${sinal}${Math.abs(v).toFixed(1).replace(".", ",")}${suffix}`;
 }
 
-// Tendência inline (seta + Δ + janela). `provisorio` ⇒ ainda acumulando 7 dias.
+// Tendência inline (seta + Δ + janela de 7 dias).
 function TrendInline({
   dir,
   delta,
-  provisorio,
   compact,
 }: {
   dir: "up" | "flat" | "down";
   delta: number | null;
-  provisorio?: boolean;
   compact?: boolean;
 }) {
   const t = TEND[dir];
@@ -201,80 +199,138 @@ function TrendInline({
       <span style={{ fontSize: compact ? 15 : 18 }}>{t.sym}</span> {delta == null ? "—" : fmtSigned(delta)}
       <span style={{ color: "var(--m-muted)", fontWeight: 600, fontSize: compact ? 10 : 11 }}>
         {" "}
-        · {provisorio ? "acumulando" : "7d"}
+        · 7d
       </span>
     </span>
   );
 }
 
-// Uma linha "tipo cotação": sigla + valor grande + tendência (Δ 7 dias).
-function MetricLine({
+// Métrica sub-maior (IRE / PRA): sigla + valor + setinha de tendência colada,
+// com legenda pequena opcional embaixo (card expandido).
+function SubMetrica({
   sigla,
-  tituloTend,
   valor,
   valorCor,
   trend,
+  legenda,
   compact,
 }: {
   sigla: string;
-  tituloTend: string;
   valor: React.ReactNode;
   valorCor: string;
   trend: React.ReactNode;
+  legenda?: string;
   compact?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap", minWidth: 0 }}>
-      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)", width: 34 }}>
-        {sigla}
-      </span>
-      <span
-        className="m-mono"
-        style={{ fontSize: compact ? 22 : 28, fontWeight: 800, lineHeight: 1, color: valorCor }}
-      >
-        {valor}
-      </span>
-      <span title={tituloTend}>{trend}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 5, whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", color: "var(--m-muted)" }}>
+          {sigla}
+        </span>
+        <span
+          className="m-mono"
+          style={{ fontSize: compact ? 18 : 22, fontWeight: 800, lineHeight: 1, color: valorCor }}
+        >
+          {valor}
+        </span>
+        {trend}
+      </div>
+      {legenda ? (
+        <span style={{ fontSize: 8.5, color: "var(--m-muted)", lineHeight: 1.1 }}>{legenda}</span>
+      ) : null}
     </div>
   );
 }
 
-// As 4 métricas em duas linhas: IRE+TIRE e PRA+TPRA (estilo cotação de bolsa).
-function Metricas4({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
+// Resumo do índice: SENTIMENTO (número herói) + IRE/PRA empilhados ao lado (com
+// setinha de tendência colada) + gráfico. Compacto = LINHA ao lado; expandido =
+// CANDLE abaixo, com eixos X/Y e legenda.
+function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) {
+  const compact = !expanded;
   const ire = idx.reputacao ?? null;
   const pra = idx.posicao ?? null;
+  const indice = idx.ingredientes?.sentimento?.valor ?? idx.breakdown?.sentimento ?? null;
+  const net = indice == null ? null : indice - 100;
+  const candles = useMemo(() => [...idx.candles30d.slice(-7), idx.candleVivo], [idx]);
+  const chartOpt = useMemo(
+    () =>
+      expanded
+        ? candlestickOption({ candles, compact: false, refLine: null })
+        : closeLineOption({ candles, compact: true, cor: corReputacao(ire), refLine: null }),
+    [candles, expanded, ire],
+  );
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: compact ? 7 : 10, minWidth: 0 }}>
-      <MetricLine
-        sigla="IRE"
-        tituloTend="TIRE · tendência do IRE do candidato em 7 dias"
-        valorCor={corReputacao(ire)}
-        valor={ire == null ? "—" : <Odometer value={ire} decimals={0} />}
-        trend={
-          <TrendInline
-            dir={idx.tendencia ?? "flat"}
-            delta={idx.tendenciaDelta ?? null}
-            provisorio={idx.tendenciaProvisoria}
+    <div style={{ display: "flex", flexDirection: "column", gap: expanded ? 8 : 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: expanded ? 16 : 10 }}>
+        {/* SENTIMENTO — número herói (o maior) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
+            SENTIMENTO
+          </span>
+          <span
+            className="m-mono"
+            style={{ fontSize: expanded ? 44 : 32, fontWeight: 900, lineHeight: 1, color: corSentNet(net) }}
+          >
+            {net == null ? "—" : fmtSigned(net, "%")}
+          </span>
+          <span style={{ fontSize: expanded ? 9.5 : 8, color: "var(--m-muted)", lineHeight: 1.15 }}>
+            (menções positivas − negativas) ÷ nº de menções
+          </span>
+        </div>
+
+        {/* IRE e PRA — sub-maiores, empilhados, setinha colada */}
+        <div style={{ display: "flex", flexDirection: "column", gap: expanded ? 8 : 6, flexShrink: 0 }}>
+          <SubMetrica
+            sigla="IRE"
+            valor={ire == null ? "—" : <Odometer value={ire} decimals={0} />}
+            valorCor={corReputacao(ire)}
             compact={compact}
+            legenda={expanded ? "Índice de Reputação Eleitoral" : undefined}
+            trend={
+              <TrendInline
+                dir={idx.tendencia ?? "flat"}
+                delta={idx.tendenciaDelta ?? null}
+                compact
+              />
+            }
           />
-        }
-        compact={compact}
-      />
-      <MetricLine
-        sigla="PRA"
-        tituloTend="TPRA · média da tendência (ΔIRE 7 dias) dos adversários"
-        valorCor={corPra(pra)}
-        valor={pra == null ? "—" : fmtSigned(pra, "%")}
-        trend={
-          <TrendInline
-            dir={idx.tendenciaAdversarios ?? "flat"}
-            delta={idx.tendenciaAdversariosDelta ?? null}
-            provisorio={idx.tendenciaAdversariosProvisoria}
+          <SubMetrica
+            sigla="PRA"
+            valor={pra == null ? "—" : fmtSigned(pra, "%")}
+            valorCor={corPra(pra)}
             compact={compact}
+            trend={
+              <TrendInline
+                dir={idx.tendenciaAdversarios ?? "flat"}
+                delta={idx.tendenciaAdversariosDelta ?? null}
+                compact
+              />
+            }
           />
-        }
-        compact={compact}
-      />
+        </div>
+
+        {/* Gráfico de LINHA ao lado (card compacto) */}
+        {compact ? (
+          <div
+            data-no-swipe
+            onClick={(e) => e.stopPropagation()}
+            style={{ flex: 1, minWidth: 64, alignSelf: "stretch", display: "flex", alignItems: "center" }}
+          >
+            <EChart option={chartOpt} height={66} />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Gráfico CANDLE abaixo (card expandido), com eixos X/Y + legenda */}
+      {expanded ? (
+        <div data-no-swipe onClick={(e) => e.stopPropagation()}>
+          <div className="m-muted-c" style={{ fontSize: 9.5, marginBottom: 2 }}>
+            índice · candles diários · eixo X: data · eixo Y: valor (dir.) · verde sobe / vermelho cai
+          </div>
+          <EChart option={chartOpt} height={140} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -285,51 +341,6 @@ function corSentNet(v: number | null): string {
   if (v > 0.5) return "#16C784";
   if (v < -0.5) return "#EA3943";
   return "#8a93a8";
-}
-
-// Destaque de Sentimento — em PRIMEIRO lugar, antes do IRE. Mostra o valor LITERAL
-// (positivos − negativos) ÷ total das manchetes/notícias (Google News via
-// pysentimiento), em %. O sidecar classifica pos/neg/neu; o índice ~100 que já flui
-// é 100 + (pos−neg)/total × 100, então o net = índice − 100.
-function SentimentoDestaque({ idx, compact }: { idx: IdxSnapshot; compact?: boolean }) {
-  const indice = idx.ingredientes?.sentimento?.valor ?? idx.breakdown?.sentimento ?? null;
-  const net = indice == null ? null : indice - 100;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: compact ? 6 : 8 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
-        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", color: "var(--m-muted)" }}>
-          SENTIMENTO
-        </span>
-        <span
-          className="m-mono"
-          style={{ fontSize: compact ? 26 : 34, fontWeight: 900, lineHeight: 1, color: corSentNet(net) }}
-        >
-          {net == null ? "—" : fmtSigned(net, "%")}
-        </span>
-      </div>
-      <span style={{ fontSize: compact ? 9 : 10, color: "var(--m-muted)" }}>
-        (menções positivas − negativas) ÷ nº de menções
-      </span>
-    </div>
-  );
-}
-
-// Mini-candle dos últimos 7 dias do índice (reusa os candles diários reais).
-function MiniCandle7d({ idx, height = 70 }: { idx: IdxSnapshot; height?: number }) {
-  const opt = useMemo(
-    () =>
-      candlestickOption({
-        candles: [...idx.candles30d.slice(-7), idx.candleVivo],
-        compact: true,
-        refLine: null,
-      }),
-    [idx],
-  );
-  return (
-    <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ width: "100%" }}>
-      <EChart option={opt} height={height} />
-    </div>
-  );
 }
 
 function MetaPills({ alcancado }: { alcancado: number }) {
@@ -392,20 +403,7 @@ function IdxCompact({
         </div>
       </div>
 
-      <div className="m-compact-row">
-        <div className="m-compact-main">
-          <SentimentoDestaque idx={idx} compact />
-          <Metricas4 idx={idx} compact />
-        </div>
-        <div
-          className="m-compact-chart"
-          data-no-swipe
-          onClick={(e) => e.stopPropagation()}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          <MiniCandle7d idx={idx} height={72} />
-        </div>
-      </div>
+      <IdxResumo idx={idx} />
     </FlashCard>
   );
 }
@@ -446,32 +444,13 @@ function IdxFront({
         />
       </div>
 
-      <SentimentoDestaque idx={idx} />
-
-      <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "2px 0" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Metricas4 idx={idx} />
-        </div>
-        <Gauge3D
-          valor={idx.reputacao ?? null}
-          label="IRE"
-          cor={corReputacao(idx.reputacao ?? null)}
-          size={84}
-        />
-      </div>
+      <IdxResumo idx={idx} expanded />
 
       <div
         className="m-mono"
-        style={{ fontSize: 10.5, color: "#9fe7ff", textAlign: "left", margin: "0 0 4px" }}
+        style={{ fontSize: 10.5, color: "#9fe7ff", textAlign: "left", margin: "6px 0 4px" }}
       >
         IRE = 40%·Sent + 25%·Menç + 20%·Impr + 15%·Cresc
-      </div>
-
-      <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ margin: "8px 0 2px" }}>
-        <div className="m-muted-c" style={{ fontSize: 10, marginBottom: 2 }}>
-          índice · últimos 7 dias (candle)
-        </div>
-        <MiniCandle7d idx={idx} height={120} />
       </div>
 
       {idx.seguidores7dPct != null ? (
@@ -480,7 +459,6 @@ function IdxFront({
           <strong style={{ color: idx.seguidores7dPct >= 0 ? "#16C784" : "#EA3943" }}>
             {fmtSigned(idx.seguidores7dPct, "%")}
           </strong>
-          {idx.seguidores7dProvisorio ? " · acumulando" : ""}
         </div>
       ) : null}
 
