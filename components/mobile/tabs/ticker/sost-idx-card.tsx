@@ -309,6 +309,7 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
             valor={pra == null ? "—" : fmtSigned(pra, "%")}
             valorCor={corPra(pra)}
             compact={compact}
+            legenda={expanded ? "Posição Relativa Adversários" : undefined}
             trend={
               <TrendInline
                 dir={idx.tendenciaAdversarios ?? "flat"}

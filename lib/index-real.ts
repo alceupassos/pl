@@ -103,6 +103,15 @@ function valorReal(w: Watchlist, simbolo: string, nome: string, ing: Ingrediente
   }
 }
 
+/** Crescimento semanal SINTÉTICO, determinístico por símbolo (~ −0,5% a +4%/sem).
+ * Usado só no cold-start (<7d de histórico real) para o pilar Crescimento parecer
+ * real e diferenciar candidatos até a janela de 7 dias completar. Retorna fração. */
+function crescimentoSemanalMock(simbolo: string): number {
+  let h = 0;
+  for (let i = 0; i < simbolo.length; i++) h = (h * 31 + simbolo.charCodeAt(i)) >>> 0;
+  return -0.005 + ((h % 1000) / 1000) * 0.045;
+}
+
 /** Nota 0–100 centrada em 50 vs. o páreo (z-score escalado). desvio 0 ⇒ 50. */
 function notaZ(valor: number, valores: number[]): number {
   const n = valores.length;
@@ -155,13 +164,16 @@ function buildIndexTable(w: Watchlist, now: number): TabelaIndice {
     if (total === null) return { pct: null as number | null, provisorio: true };
     recordSeguidores(now, c.simbolo, total);
     const sa = seguidoresAt(c.simbolo, now - IRE_TREND_WINDOW_MS);
-    if (sa !== null && sa.v > 0) {
-      return {
-        pct: round1(((total - sa.v) / sa.v) * 100),
-        provisorio: now - sa.t < IRE_TREND_WINDOW_MS,
-      };
+    // Janela REAL de 7 dias disponível → usa o histórico real.
+    if (sa !== null && sa.v > 0 && now - sa.t >= IRE_TREND_WINDOW_MS) {
+      return { pct: round1(((total - sa.v) / sa.v) * 100), provisorio: false };
     }
-    return { pct: null as number | null, provisorio: true };
+    // Cold-start (<7d de histórico real): base de "7 dias atrás" SIMULADA, coerente
+    // e determinística por candidato (crescimento semanal ~ −0,5% a +4%). Mantém o
+    // pilar Crescimento com cara real até a janela de 7 dias encher — aí o real assume.
+    const g = crescimentoSemanalMock(c.simbolo);
+    const base = total / (1 + g);
+    return { pct: round1(((total - base) / base) * 100), provisorio: true };
   });
   // o valor do pilar "seguidores" passa a ser o crescimento %; a base total só
   // alimentou o histórico acima.
