@@ -16,7 +16,10 @@ import { TickerTape } from "@/components/mobile/ui/ticker-tape";
 export default function TickerTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <TickerTape />
+      {/* ticker colado ao cabeçalho (anula o padding-top do painel) e ao 1º card */}
+      <div style={{ marginTop: -12, marginBottom: -8 }}>
+        <TickerTape />
+      </div>
       <SostIdxCard />
       <MetaEleitoresCard />
       <CompetitorTape />
