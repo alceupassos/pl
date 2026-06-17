@@ -279,9 +279,30 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
           </div>
           <span
             className="m-mono"
-            style={{ fontSize: expanded ? 60 : 44, fontWeight: 900, lineHeight: 1, color: corSentNet(net) }}
+            style={{
+              fontWeight: 900,
+              lineHeight: 1,
+              color: corSentNet(net),
+              display: "inline-flex",
+              alignItems: "baseline",
+            }}
           >
-            {net == null ? "—" : fmtSigned(net, "%")}
+            {net == null ? (
+              <span style={{ fontSize: expanded ? 60 : 44 }}>—</span>
+            ) : (
+              (() => {
+                const full = fmtSigned(net, "%");
+                const ci = full.indexOf(",");
+                const intPart = ci >= 0 ? full.slice(0, ci) : full;
+                const rest = ci >= 0 ? full.slice(ci) : "";
+                return (
+                  <>
+                    <span style={{ fontSize: expanded ? 60 : 44 }}>{intPart}</span>
+                    <span style={{ fontSize: expanded ? 26 : 20 }}>{rest}</span>
+                  </>
+                );
+              })()
+            )}
           </span>
           <span style={{ fontSize: expanded ? 9.5 : 8, color: "var(--m-muted)", lineHeight: 1.15 }}>
             (menções positivas − negativas) ÷ nº de menções
