@@ -252,7 +252,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
           {/* carimbo de versão visível — diagnóstico de cache no aparelho.
               O minor sobe sozinho a cada build (ver next.config.ts). */}
           <small>
-            DEP. SÓSTENES CAVALCANTE - PL · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
+            SÓSTENES CAVALCANTE · 2026 · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
           </small>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
