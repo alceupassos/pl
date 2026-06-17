@@ -189,6 +189,7 @@ function SubMetrica({
   valorCor,
   trendSym,
   trendCor,
+  trendNeutro,
   descricao,
   compact,
 }: {
@@ -197,6 +198,7 @@ function SubMetrica({
   valorCor: string;
   trendSym?: string;
   trendCor?: string;
+  trendNeutro?: boolean;
   descricao?: string;
   compact?: boolean;
 }) {
@@ -218,13 +220,19 @@ function SubMetrica({
         >
           {valor}
         </span>
-        {/* tendência 7 dias: só o símbolo (▲ verde · ▬ cinza · ▼ vermelho) */}
+        {/* tendência 7 dias: símbolo pequeno (▲ verde · ▬ cinza · ▼ vermelho);
+            no neutro, "neutro" minúsculo embaixo do símbolo */}
         {trendSym ? (
-          <span
-            className="m-mono"
-            style={{ fontSize: compact ? 20 : 28, fontWeight: 800, lineHeight: 1, color: trendCor }}
-          >
-            {trendSym}
+          <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
+            <span
+              className="m-mono"
+              style={{ fontSize: compact ? 13 : 16, fontWeight: 800, lineHeight: 1, color: trendCor }}
+            >
+              {trendSym}
+            </span>
+            {trendNeutro ? (
+              <span style={{ fontSize: 6, fontWeight: 700, lineHeight: 1, color: trendCor }}>neutro</span>
+            ) : null}
           </span>
         ) : null}
       </div>
@@ -320,18 +328,20 @@ function IdxResumo({ idx, expanded }: { idx: IdxSnapshot; expanded?: boolean }) 
             valor={ire == null ? "—" : <Odometer value={ire} decimals={0} />}
             valorCor={corReputacao(ire)}
             compact={compact}
-            descricao={expanded ? "(Índice de Reputação Eleitoral)" : undefined}
+            descricao="(Índice de Reputação Eleitoral)"
             trendSym={TEND[idx.tendencia ?? "flat"].sym}
             trendCor={TEND[idx.tendencia ?? "flat"].cor}
+            trendNeutro={(idx.tendencia ?? "flat") === "flat"}
           />
           <SubMetrica
             sigla="PRA"
-            valor={pra == null ? "—" : fmtSigned(pra, "%")}
+            valor={pra == null ? "—" : `${pra > 0 ? "+" : pra < 0 ? "−" : ""}${Math.trunc(Math.abs(pra))}%`}
             valorCor={corPra(pra)}
             compact={compact}
-            descricao={expanded ? "(Posição Relativa Adversários)" : undefined}
+            descricao="(Posição Relativa Adversários)"
             trendSym={TEND[idx.tendenciaAdversarios ?? "flat"].sym}
             trendCor={TEND[idx.tendenciaAdversarios ?? "flat"].cor}
+            trendNeutro={(idx.tendenciaAdversarios ?? "flat") === "flat"}
           />
         </div>
 
