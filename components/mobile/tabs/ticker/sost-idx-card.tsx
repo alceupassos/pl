@@ -12,7 +12,7 @@ import { useMemo } from "react";
 import { EChart } from "@/components/echart";
 import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { candlestickOption, closeLineOption } from "@/components/mobile/m-chart-options";
-import { Bars3D, SparkDepth } from "@/components/mobile/ui/fx3d";
+import { SparkDepth } from "@/components/mobile/ui/fx3d";
 import { ExpandFlipCard } from "@/components/mobile/ui/expand-flip-card";
 import { FlashCard } from "@/components/mobile/ui/flash-card";
 import { FonteBadge } from "@/components/mobile/ui/fonte-badge";
@@ -369,21 +369,6 @@ function corSentNet(v: number | null): string {
 }
 
 
-/* ── dados para as mini-visualizações 3D (fx3d) ── */
-const PILAR_COR: Record<keyof IdxSnapshot["breakdown"], string> = {
-  mencoes: "#3b82f6",
-  sentimento: "#22c55e",
-  imprensa: "#f0c030",
-  seguidores: "#a855f7",
-};
-function barsFromIdx(idx: IdxSnapshot) {
-  return PARTES.map((p) => ({
-    label: p.label,
-    nota: idx.ingredientes?.[p.key]?.nota ?? null,
-    cor: PILAR_COR[p.key],
-  }));
-}
-
 function IdxCompact({
   idx,
   watchlist,
@@ -483,12 +468,6 @@ function IdxFront({
         })}
       </div>
 
-      <div data-no-swipe onClick={(e) => e.stopPropagation()} style={{ marginTop: 4 }}>
-        <div className="m-muted-c" style={{ fontSize: 10, marginBottom: 2 }}>
-          pilares · nota 0–100 (z-score vs. páreo)
-        </div>
-        <Bars3D notas={barsFromIdx(idx)} height={150} />
-      </div>
       <div className="m-flip-hint">↻ toque para entender o índice e a meta</div>
     </FlashCard>
   );
