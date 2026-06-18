@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSession } from "@/lib/api-auth";
+import { countByCabo } from "@/lib/eleitores";
 import {
   addMembro,
   deleteMembro,
@@ -16,8 +17,8 @@ function unauth() {
 
 export async function GET(request: NextRequest) {
   if (!getSession(request)) return unauth();
-  const membros = await listMembros();
-  return NextResponse.json({ membros }, { headers: noStore });
+  const [membros, eleitoresPorCabo] = await Promise.all([listMembros(), countByCabo()]);
+  return NextResponse.json({ membros, eleitoresPorCabo }, { headers: noStore });
 }
 
 export async function POST(request: NextRequest) {

@@ -34,6 +34,11 @@ const pct = (m: Membro) =>
 
 export function RedeCadastro() {
   const [membros, setMembros] = useState<Membro[]>([]);
+  const [eleitoresPorCabo, setEleitoresPorCabo] = useState<Record<string, number>>({});
+  const [qrAberto, setQrAberto] = useState<string | null>(null);
+  const [origin] = useState(() =>
+    typeof window !== "undefined" ? window.location.origin : "",
+  );
   const [msg, setMsg] = useState("");
   // form
   const [nome, setNome] = useState("");
@@ -47,14 +52,21 @@ export function RedeCadastro() {
 
   const carregar = useCallback(async () => {
     const r = await fetch("/api/organizadores", { cache: "no-store" });
-    if (r.ok) setMembros((await r.json()).membros ?? []);
+    if (r.ok) {
+      const d = await r.json();
+      setMembros(d.membros ?? []);
+      setEleitoresPorCabo(d.eleitoresPorCabo ?? {});
+    }
   }, []);
   useEffect(() => {
     let vivo = true;
     fetch("/api/organizadores", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { membros: [] }))
+      .then((r) => (r.ok ? r.json() : { membros: [], eleitoresPorCabo: {} }))
       .then((d) => {
-        if (vivo) setMembros(d.membros ?? []);
+        if (vivo) {
+          setMembros(d.membros ?? []);
+          setEleitoresPorCabo(d.eleitoresPorCabo ?? {});
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -227,6 +239,18 @@ export function RedeCadastro() {
                     </select>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
+                    {m.nivel === "cabo" ? (
+                      <>
+                        <button
+                          type="button"
+                          className="chip"
+                          onClick={() => setQrAberto(qrAberto === m.id ? null : m.id)}
+                          title="QR de cadastro de eleitores deste cabo"
+                        >
+                          QR ({eleitoresPorCabo[m.id] ?? 0})
+                        </button>{" "}
+                      </>
+                    ) : null}
                     <button type="button" className="chip" onClick={() => cobrar(m)} title="Gerar e enviar cobrança por IA">
                       Cobrar
                     </button>{" "}
@@ -263,6 +287,33 @@ export function RedeCadastro() {
                           ))
                         )}
                       </div>
+                    </td>
+                  </tr>
+                ) : null}
+                {qrAberto === m.id ? (
+                  <tr key={`${m.id}-qr`}>
+                    <td colSpan={8}>
+                      {(() => {
+                        const url = `${origin}/e/${m.id}`;
+                        const qr = `/api/qr?data=${encodeURIComponent(url)}`;
+                        return (
+                          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", padding: "8px 0" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={qr} alt="QR de cadastro" width={150} height={150} style={{ background: "#fff", borderRadius: 8, padding: 6 }} />
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                              <div style={{ fontSize: 12, color: "#8a93a8" }}>Link de cadastro de eleitores — cabo {m.nome}:</div>
+                              <a href={url} target="_blank" rel="noreferrer" style={{ color: "#7fb0ff", fontSize: 12.5, wordBreak: "break-all" }}>
+                                {url}
+                              </a>
+                              <div style={{ fontSize: 12, color: "#16C784" }}>{eleitoresPorCabo[m.id] ?? 0} eleitores ativos captados</div>
+                              <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                                <a href={url} target="_blank" rel="noreferrer" className="chip">Abrir página</a>
+                                <a href={qr} target="_blank" rel="noreferrer" className="chip">Abrir QR (imprimir)</a>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ) : null}
