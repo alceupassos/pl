@@ -32,6 +32,7 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { TAB_IDS, type TabId } from "@/components/mobile/tabs";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { OnboardingModal } from "@/components/mobile/ui/onboarding-modal";
+import { CADASTRO_LIVRE } from "@/lib/cadastro-gate";
 import { logClientAccess } from "@/lib/log-client-access";
 import type { PlenarioState } from "@/lib/live-schemas";
 
@@ -243,7 +244,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
 
   return (
     <>
-      {!registered && (
+      {!CADASTRO_LIVRE && !registered && (
         <OnboardingModal onComplete={() => setRegistered(true)} />
       )}
       <header className="m-header">

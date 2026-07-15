@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { CADASTRO_LIVRE } from "@/lib/cadastro-gate";
+
 type AltchaWidgetElement = HTMLElement & {
   getState?: () => string;
   reset?: () => void;
@@ -382,6 +384,7 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
   const [showTransparencyModal, setShowTransparencyModal] = useState(false);
   const [transparencyFormStatus, setTransparencyFormStatus] = useState<"idle" | "sending" | "saved" | "error">("idle");
   const [transparencyError, setTransparencyError] = useState("");
+  const [transparencyAviso, setTransparencyAviso] = useState("");
   const [transparencyStep, setTransparencyStep] = useState<"form" | "code">("form");
   const [transparencyNome, setTransparencyNome] = useState("");
   const [transparencyEmail, setTransparencyEmail] = useState("");
@@ -397,7 +400,7 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
       typeof window !== "undefined" && localStorage.getItem("scp_reg") === "1";
     const timer = window.setTimeout(() => {
       setShowEntryModal(false);
-      if (!alreadyRegistered) setShowTransparencyModal(true);
+      if (!alreadyRegistered && !CADASTRO_LIVRE) setShowTransparencyModal(true);
     }, 5000);
     return () => window.clearTimeout(timer);
   }, []);
@@ -447,8 +450,27 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
       });
       const data = await res.json().catch(() => ({}));
 
+      // Celular já cadastrado → libera acesso sem enviar código.
+      if (res.ok && data?.alreadyRegistered) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("scp_reg", "1");
+          if (!localStorage.getItem("scp_uid")) {
+            localStorage.setItem(
+              "scp_uid",
+              typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+            );
+          }
+        }
+        setTransparencyAviso("Celular já cadastrado. Acesso liberado.");
+        setTransparencyFormStatus("saved");
+        window.setTimeout(() => setShowTransparencyModal(false), 1200);
+        return;
+      }
+
       if (!res.ok) {
-        if (data?.error === "invalid_phone") setTransparencyError("Número de WhatsApp inválido.");
+        if (data?.error === "invalid_phone") setTransparencyError("Número inválido.");
         else if (data?.error === "rate_limited")
           setTransparencyError("Aguarde alguns segundos antes de pedir um novo código.");
         else setTransparencyError("Não foi possível enviar o código. Tente novamente.");
@@ -773,7 +795,8 @@ export function LoginScreen({ onLogin, defaultOpen = false }: LoginScreenProps) 
                   />
                 </label>
                 {transparencyError ? <div className="transparency-error">{transparencyError}</div> : null}
-                <button className="transparency-submit" type="submit" disabled={transparencyFormStatus === "sending"}>
+                {transparencyAviso ? <div className="transparency-success">{transparencyAviso}</div> : null}
+                <button className="transparency-submit" type="submit" disabled={transparencyFormStatus === "sending" || !!transparencyAviso}>
                   {transparencyFormStatus === "sending" ? "Enviando..." : "Receber código no WhatsApp"}
                 </button>
               </form>
