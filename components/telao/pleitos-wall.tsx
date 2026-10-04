@@ -1,16 +1,19 @@
 "use client";
 
-// Telão de Pleitos 2026 — alterna PRESIDENTE → GOVERNADOR SP → SENADOR SP →
-// DEP. FEDERAL SP → DEP. ESTADUAL SP. Antes das 17h mostra os candidatos
-// (snapshot eleicoes.dev) com contagem regressiva; durante a apuração faz
-// polling de /api/telao/apuracao (JSON oficial TSE) e anima ranking, barras,
-// votos e o andamento do processo. Fotos vêm do proxy /api/telao/foto, que só
-// baixa do TSE quando o candidato aparece na tela.
+// Telão de Pleitos 2026 — alterna PRESIDENTE → BRASIL (governadores, Senado,
+// Câmara, Assembleias) → GOVERNADOR → SENADOR → DEP. FEDERAL → DEP. ESTADUAL
+// da UF escolhida (padrão SP). Antes das 17h mostra os candidatos com contagem
+// regressiva; durante a apuração faz polling de /api/telao/apuracao (JSON
+// oficial TSE) e anima ranking, barras, votos e o andamento do processo.
+// Fotos vêm do proxy /api/telao/foto (cache em disco em data/tse-fotos/).
 //
-// Querystring: ?int=20 (segundos por pleito) &p=senador-sp (fixa um pleito)
+// Querystring: ?int=20 (segundos por tela) &p=senador-sp|brasil (fixa) &uf=rj
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
+import { LoginScreen } from "@/components/login-screen";
+import { BrazilMap } from "@/components/telao/brazil-map";
+import { AtivacaoCandidatoModal } from "@/components/telao/ativacao-candidato";
 import { useOdometer } from "@/components/mobile/ui/odometer";
 import type {
   Apuracao,
@@ -20,6 +23,8 @@ import type {
   PleitoId,
   PleitoSnapshot,
 } from "@/lib/telao/tse-apuracao";
+import type { Casa, Panorama, UFMajoritario } from "@/lib/telao/tse-nacional";
+import { UFS, UF_NOME } from "@/lib/telao/ufs";
 import type { BocaDeUrna, BocaPesquisa } from "@/lib/telao/boca-de-urna";
 import type { Noticia } from "@/lib/telao/noticias";
 
@@ -30,13 +35,49 @@ type Props = {
   meta: { atualizado: string; fonte: string };
 };
 
-const FECHAMENTO = new Date("2026-10-04T17:00:00-03:00").getTime();
+// Horário unificado de Brasília em todo o país (8h–17h), 1º turno em 04/10/2026.
 const ABERTURA = new Date("2026-10-04T08:00:00-03:00").getTime();
+const FECHAMENTO = new Date("2026-10-04T17:00:00-03:00").getTime();
 // Apuração oficial TSE: atualiza a cada 5 min. Boca de urna (lançada à mão): 30s.
 const POLL_MS = 5 * 60_000;
 const POLL_BOCA_MS = 30_000;
 const MAJORITARIO_MAX = 20; // presidente/governador/senador: todos os candidatos
 const PROPORCIONAL_MAX = 20;
+
+/* ── contagem regressiva: abertura (8h) → fechamento (17h) → apuração ── */
+type Fase = { fase: "antes" | "votacao" | "apuracao"; rotulo: string; falta: number; sub: string };
+
+function hms(ms: number): string {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function faseEleicao(now: number): Fase {
+  if (now && now < ABERTURA)
+    return {
+      fase: "antes",
+      rotulo: "VOTAÇÃO COMEÇA EM",
+      falta: ABERTURA - now,
+      sub: `urnas abrem 8h · apuração a partir das 17h (em ${hms(FECHAMENTO - now)})`,
+    };
+  if (now && now < FECHAMENTO)
+    return { fase: "votacao", rotulo: "URNAS FECHAM EM", falta: FECHAMENTO - now, sub: "votação em andamento · 8h–17h (Brasília)" };
+  return { fase: "apuracao", rotulo: "URNAS FECHADAS", falta: 0, sub: "apuração oficial do TSE" };
+}
+
+function Contagem({ now }: { now: number }) {
+  if (!now) return null;
+  const f = faseEleicao(now);
+  return (
+    <div className={`pl-contagem pl-contagem-${f.fase}`} title={f.sub}>
+      <span className="pl-contagem-lbl">{f.rotulo}</span>
+      {f.falta > 0 ? <b className="tl-mono">{hms(f.falta)}</b> : <i className="pl-pulse-dot" />}
+    </div>
+  );
+}
 
 const COR_PARTIDO: Record<string, string> = {
   PT: "#e2252b", PL: "#1f5fbf", REPUBLICANOS: "#2a7de1", PSD: "#f2a900", NOVO: "#f26522",
@@ -146,17 +187,18 @@ function useNow(ms = 1000): number {
   return now;
 }
 
-function useApuracao(escopo: Escopo): Partial<Record<PleitoId, Apuracao>> {
-  // guarda o recorte junto dos dados: ao trocar cidade/zona não exibe o anterior
+function useApuracao(escopo: Escopo, uf: string): Partial<Record<PleitoId, Apuracao>> {
+  // guarda o recorte junto dos dados: ao trocar UF/cidade/zona não exibe o anterior
   const [state, setState] = useState<{ key: string; data: Partial<Record<PleitoId, Apuracao>> }>({
     key: "",
     data: {},
   });
   const { mu, zona } = escopo;
-  const key = `${mu ?? ""}|${zona ?? ""}`;
+  const key = `${uf}|${mu ?? ""}|${zona ?? ""}`;
   useEffect(() => {
     let alive = true;
     const qs = new URLSearchParams();
+    if (uf !== "sp") qs.set("uf", uf);
     if (mu) qs.set("mu", mu);
     if (mu && zona) qs.set("zona", zona);
     const load = async () => {
@@ -173,24 +215,62 @@ function useApuracao(escopo: Escopo): Partial<Record<PleitoId, Apuracao>> {
       alive = false;
       clearInterval(id);
     };
-  }, [mu, zona, key]);
+  }, [mu, zona, uf, key]);
   return state.key === key ? state.data : {};
+}
+
+/* ── painel nacional (27 UFs) ── */
+function usePanorama(): Panorama | null {
+  const [d, setD] = useState<Panorama | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch("/api/telao/nacional", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((x: Panorama | null) => alive && x && setD(x))
+        .catch(() => {});
+    load();
+    // primeira montagem no servidor pode levar ~30s (108 arquivos): tenta de novo logo
+    const t = setTimeout(load, 45_000);
+    const id = setInterval(load, POLL_MS);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+      clearInterval(id);
+    };
+  }, []);
+  return d;
 }
 
 function semAcento(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-/* ── filtro por cidade / zona eleitoral (SP) ── */
+/* ── seletor de UF ── */
+function SeletorUF({ uf, onClick }: { uf: string; onClick: () => void }) {
+  return (
+    <div className="pl-filtro pl-uf">
+      <button className={`pl-filtro-btn ${uf !== "sp" ? "on" : ""}`} onClick={onClick} title="Estado">
+        <span className="pl-filtro-ico">▣</span>
+        <span>{uf.toUpperCase()}</span>
+      </button>
+    </div>
+  );
+}
+
+/* ── filtro por cidade / zona eleitoral (UF do telão) ── */
 function FiltroLocal({
   escopo,
   onChange,
   municipios,
+  uf,
 }: {
   escopo: Escopo;
   onChange: (e: Escopo) => void;
   municipios: Municipio[];
+  uf: string;
 }) {
+  const UF = uf.toUpperCase();
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const atual = municipios.find((m) => m.cd === escopo.mu);
@@ -201,7 +281,7 @@ function FiltroLocal({
   }, [busca, municipios]);
   const rotulo = atual
     ? `${titulo(atual.nm)}${escopo.zona ? ` · Zona ${Number(escopo.zona)}` : ""}`
-    : "Estado de SP · Brasil";
+    : `Estado de ${UF} · Brasil`;
 
   return (
     <div className="pl-filtro">
@@ -219,7 +299,7 @@ function FiltroLocal({
         <div className="pl-filtro-pop">
           <input
             autoFocus
-            placeholder="Buscar cidade de SP…"
+            placeholder={`Buscar cidade de ${UF}…`}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -245,7 +325,7 @@ function FiltroLocal({
           )}
           <div className="pl-mun-list">
             <button className={!atual ? "on" : ""} onClick={() => { onChange({}); setAberto(false); }}>
-              Estado de SP (Presidente: Brasil)
+              Estado de {UF} (Presidente: Brasil)
             </button>
             {lista.map((m) => (
               <button
@@ -363,7 +443,7 @@ function Andamento({ ap, now }: { ap?: Apuracao; now: number }) {
 
 /* ── ranking majoritário (presidente/governador/senador) ── */
 function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
-  const lista = ap.cand.slice(0, MAJORITARIO_MAX);
+  const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos).slice(0, MAJORITARIO_MAX);
   const lider = lista[0];
   const max = Math.max(lider?.pct ?? 1, 1);
   // linhas dividem a altura disponível: cabem todos (presidente = 14)
@@ -426,7 +506,7 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
 
 /* ── ranking proporcional (deputados): top 20 em 2 colunas ── */
 function Proporcional({ ap, vagas }: { ap: Apuracao; vagas: number }) {
-  const lista = ap.cand.slice(0, PROPORCIONAL_MAX);
+  const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos).slice(0, PROPORCIONAL_MAX);
   const porCol = Math.ceil(PROPORCIONAL_MAX / 2);
   return (
     <div className="pl-prop">
@@ -491,28 +571,13 @@ function Vitrine({
   const lista = p.candidatos
     .filter((c, i, a) => a.findIndex((x) => x.num === c.num) === i)
     .map((c) => ({ c, pct: pctDe(c.num), fora: desistiu(c.st) }))
-    .sort((a, b) => Number(a.fora) - Number(b.fora) || (b.pct ?? -1) - (a.pct ?? -1) || b.c.bens - a.c.bens)
+    .sort((a, b) => Number(a.fora) - Number(b.fora) || a.c.nome.localeCompare(b.c.nome))
     .slice(0, prop ? 18 : 16);
   const falta = now ? Math.max(0, FECHAMENTO - now) : 0;
-  const h = Math.floor(falta / 3.6e6);
-  const m = Math.floor((falta % 3.6e6) / 6e4);
-  const s = Math.floor((falta % 6e4) / 1000);
   return (
     <div className="pl-vit">
       <div className="pl-count">
-        {falta > 0 ? (
-          <>
-            <span>APURAÇÃO COMEÇA EM</span>
-            <b className="tl-mono">
-              {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}
-            </b>
-          </>
-        ) : (
-          <>
-            <span className="pl-pulse-dot" />
-            <span>URNAS FECHADAS · AGUARDANDO TOTALIZAÇÃO DO TSE</span>
-          </>
-        )}
+        <Contagem now={now} />
         <em>
           {nf(p.total)} candidatos · {p.vagas} {p.vagas > 1 ? "vagas" : "vaga"}
           {pesquisa ? ` · ordem da última pesquisa: ${pesquisa.fonte || pesquisa.instituto}` : prop ? " · maiores patrimônios declarados" : ""}
@@ -1070,11 +1135,44 @@ function Bancadas({ p, ap }: { p: PleitoSnapshot; ap?: Apuracao }) {
         </div>
       </div>
       <div className="pl-banc-lista">
+        {ap.necessidade && (
+          <div className="pl-nec-box">
+            <div className="pl-nec-title">
+              <span>NECESSIDADE DE VOTOS</span>
+              <em className="tl-mono">
+                {ap.necessidade.base === "oficial" ? "Oficial TSE" : ap.necessidade.base === "apuracao" ? `Com ${pctf(ap.pctUrnas, 1)}% apurado` : "Estimativa pré-apuração"}
+              </em>
+            </div>
+            <div className="pl-nec-grid">
+              <div>
+                <b>QE {ap.necessidade.base === "oficial" ? "oficial" : "projetado"}</b>
+                <span className="tl-mono">{nf(ap.necessidade.qeProjetado)}</span>
+                <em>votos por cadeira</em>
+              </div>
+              <div>
+                <b>Min. individual (10%)</b>
+                <span className="tl-mono">{nf(ap.necessidade.minIndividual)}</span>
+                <em>p/ candidato assumir</em>
+              </div>
+              <div>
+                <b>Min. partido (80%)</b>
+                <span className="tl-mono">{nf(ap.necessidade.minPartidoSobras)}</span>
+                <em>p/ disputar sobras</em>
+              </div>
+              <div>
+                <b>Corte do último eleito</b>
+                <span className="tl-mono">{ap.necessidade.corte ? nf(ap.necessidade.corte) : "—"}</span>
+                <em>{ap.necessidade.ultimoEleito ? `${ap.necessidade.ultimoEleito.partido} (${titulo(ap.necessidade.ultimoEleito.nome)})` : "votos nominais"}</em>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="pl-banc-th">
           <span>Partido / federação</span>
           <span>Nominais + legenda</span>
           <span>% válidos</span>
           <span>Cadeiras</span>
+          <span>+1 cadeira precisa de</span>
         </div>
         {partidos.slice(0, 14).map((x, i) => {
           const cor = corPartido(x.partidos[0] ?? x.sigla);
@@ -1093,6 +1191,9 @@ function Bancadas({ p, ap }: { p: PleitoSnapshot; ap?: Apuracao }) {
               </span>
               <span className="tl-mono">{pctf(x.pct)}%</span>
               <b className="tl-mono pl-banc-vagas">{x.vagas}</b>
+              <span className="tl-mono pl-banc-falta">
+                {x.faltaMais1 ? `+${nf(x.faltaMais1)}` : "—"}
+              </span>
             </div>
           );
         })}
@@ -1279,7 +1380,7 @@ function Comparativo({
   );
 }
 
-/* ── notícias: título + resumo + veículo + hora ── */
+/* ── notícias: título + resumo + veículo + hora com link externo em nova aba ── */
 function NoticiasScene({ lista, offset }: { lista: Noticia[]; offset: number }) {
   if (!lista.length) {
     return (
@@ -1295,7 +1396,14 @@ function NoticiasScene({ lista, offset }: { lista: Noticia[]; offset: number }) 
   return (
     <div className="pl-news">
       {sel.map((x, i) => (
-        <article key={`${x.veiculo}-${x.titulo}`} className={`pl-news-card ${i === 0 ? "pl-news-main" : ""}`} style={{ animationDelay: `${i * 90}ms` }}>
+        <a
+          key={`${x.veiculo}-${x.titulo}`}
+          href={x.link || "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`pl-news-card ${i === 0 ? "pl-news-main" : ""}`}
+          style={{ animationDelay: `${i * 90}ms` }}
+        >
           <header>
             <b style={{ background: x.cor }}>{x.nome}</b>
             <span className="tl-mono">
@@ -1304,8 +1412,79 @@ function NoticiasScene({ lista, offset }: { lista: Noticia[]; offset: number }) 
           </header>
           <h3>{x.titulo}</h3>
           {x.resumo && <p>{x.resumo}</p>}
-        </article>
+          <span className="pl-news-link">Abrir matéria na íntegra ↗</span>
+        </a>
       ))}
+    </div>
+  );
+}
+
+/* ── painel nacional: apuração nas 27 UFs ── */
+function PainelBrasil({ panorama }: { panorama: Panorama | null }) {
+  if (!panorama) {
+    return (
+      <div className="pl-boca-vazio">
+        <div className="pl-boca-tag pl-evo-tag">PANORAMA NACIONAL</div>
+        <p>Carregando apuração das 27 unidades da federação (TSE)…</p>
+      </div>
+    );
+  }
+  return (
+    <div className="pl-br-panel">
+      <div className="pl-br-head">
+        <div>
+          <h2>BRASIL · APURAÇÃO AO VIVO EM TODAS AS 27 UFS</h2>
+          <em>{pctf(panorama.pctUrnasMedia, 1)}% de urnas apuradas no país · atualizado {new Date(panorama.geradoEm).toLocaleTimeString("pt-BR")}</em>
+        </div>
+      </div>
+      <div className="pl-br-grid">
+        <div className="pl-br-card">
+          <h3>CÂMARA DOS DEPUTADOS ({panorama.camara.vagas} CADEIRAS)</h3>
+          <div className="pl-br-bancadas">
+            {panorama.camara.partidos.slice(0, 10).map((p) => (
+              <div key={p.partido} className="pl-br-banc-item">
+                <b style={{ color: corPartido(p.partido) }}>{p.partido}</b>
+                <span className="tl-mono">{p.vagas} vagas</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="pl-br-card">
+          <h3>SENADO FEDERAL ({panorama.casaSenado.vagas} VAGAS EM DISPUTA)</h3>
+          <div className="pl-br-bancadas">
+            {panorama.casaSenado.partidos.slice(0, 8).map((p) => (
+              <div key={p.partido} className="pl-br-banc-item">
+                <b style={{ color: corPartido(p.partido) }}>{p.partido}</b>
+                <span className="tl-mono">{p.vagas} eleitos/líd.</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="pl-br-govs">
+        <h3>GOVERNADORES NAS 27 UFS</h3>
+        <div className="pl-br-gov-grid">
+          {panorama.governadores.map((g) => {
+            const l = g.cand[0];
+            const cor = l ? corPartido(l.partido) : "#666";
+            return (
+              <div key={g.uf} className="pl-br-gov-item">
+                <span className="pl-br-uf tl-mono">{g.uf.toUpperCase()}</span>
+                {l ? (
+                  <div className="pl-br-gov-cand">
+                    <span className="pl-br-cand-nome">{titulo(l.nome)}</span>
+                    <span className="pl-br-cand-part" style={{ color: cor }}>{l.partido}</span>
+                    <span className="tl-mono">{pctf(l.pct, 1)}%</span>
+                  </div>
+                ) : (
+                  <span>aguardando</span>
+                )}
+                <em className="tl-mono">{pctf(g.pctUrnas, 0)}%</em>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1342,236 +1521,51 @@ const CENA_NOME: Record<Cena["tipo"], string> = {
   noticias: "Notícias",
 };
 
-export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) {
-  const mobile = variant === "mobile";
-  const now = useNow(1000);
-  const [escopo, setEscopo] = useState<Escopo>({});
-  const [municipios, setMunicipios] = useState<Municipio[]>([]);
-  const ap = useApuracao(escopo);
-  const boca = useBoca();
-  const pesquisas = useBoca("pesquisa");
-  const noticias = useNoticias();
-  const toque = useRef(0);
-  const [modo, setModo] = useState<Modo>("ambos");
-  const [destaque, setDestaque] = useState<string[]>([]);
-  const [escolhendo, setEscolhendo] = useState(false);
 
-  // partidos presentes nos pleitos (para o seletor), ordenados por nº de candidatos
-  const partidos = useMemo(() => {
-    const cont = new Map<string, number>();
-    for (const pl of pleitos) for (const c of pl.candidatos) cont.set(c.p, (cont.get(c.p) ?? 0) + 1);
-    for (const p of Object.keys(COR_PARTIDO)) if (!cont.has(p)) cont.set(p, 0);
-    return [...cont.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([p]) => p);
-  }, [pleitos]);
-  const neonMap = useMemo(
-    () => new Map(destaque.map((p, i) => [p, NEON[i % NEON.length]])),
-    [destaque],
-  );
+function EdgeScroller() {
+  const tRef = useRef<number>(0);
 
-  // destaque inicial: ?destaque=PL,NOVO > último salvo > abre o seletor no início
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("destaque");
-    let sel: string[] | null = q ? q.split(",").map((s) => s.trim()).filter(Boolean) : null;
-    if (!sel) {
-      try {
-        const raw = localStorage.getItem("telao-pleitos-destaque");
-        if (raw) sel = JSON.parse(raw) as string[];
-      } catch {
-        /* ignora */
-      }
-    }
-    const t = setTimeout(() => {
-      if (sel) setDestaque(sel);
-      else setEscolhendo(true);
-    }, 0);
-    return () => clearTimeout(t);
-  }, []);
-
-  const fecharSeletor = useCallback(() => {
-    setEscolhendo(false);
-    try {
-      localStorage.setItem("telao-pleitos-destaque", JSON.stringify(destaque));
-    } catch {
-      /* ignora */
-    }
-    const q = new URLSearchParams(window.location.search);
-    if (destaque.length) q.set("destaque", destaque.join(","));
-    else q.delete("destaque");
-    const qs = q.toString();
-    history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [destaque]);
-
-  useEffect(() => {
-    fetch("/api/telao/municipios")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d: Municipio[]) => setMunicipios(d))
-      .catch(() => {});
-  }, []);
-
-  // filtro inicial por querystring (?mu=71072&zona=0001) ou último usado
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    let e: Escopo = {};
-    if (q.get("mu")) e = { mu: q.get("mu")!, zona: q.get("zona") ?? undefined };
-    else {
-      try {
-        e = JSON.parse(localStorage.getItem("telao-pleitos-escopo") ?? "{}") as Escopo;
-      } catch {
-        /* ignora */
-      }
-    }
-    const t = setTimeout(() => setEscopo(e), 0);
-    return () => clearTimeout(t);
-  }, []);
-
-  const mudarEscopo = useCallback((e: Escopo) => {
-    setEscopo(e);
-    try {
-      localStorage.setItem("telao-pleitos-escopo", JSON.stringify(e));
-    } catch {
-      /* ignora */
-    }
-    const q = new URLSearchParams(window.location.search);
-    q.delete("mu");
-    q.delete("zona");
-    if (e.mu) q.set("mu", e.mu);
-    if (e.mu && e.zona) q.set("zona", e.zona);
-    const qs = q.toString();
-    history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, []);
-
-  const munAtual = municipios.find((m) => m.cd === escopo.mu);
-  const localTxt = munAtual
-    ? `${titulo(munAtual.nm)}${escopo.zona ? ` · ${Number(escopo.zona)}ª Zona` : ""}`
-    : "";
-  const [idx, setIdx] = useState(0);
-  const [intervalo, setIntervalo] = useState(20);
-  const [fixo, setFixo] = useState(mobile);
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    const int = Number(q.get("int"));
-    const p = q.get("p");
-    const t = setTimeout(() => {
-      if (int >= 6) setIntervalo(int);
-      const i = pleitos.findIndex((x) => x.id === p);
-      if (i >= 0) {
-        setIdx(i * 5); // modo inicial: apuração, corrida, evolução, bancadas/comparativo, notícias
-        setFixo(true);
-      }
-      const m = q.get("modo");
-      if (m === "boca" || m === "apuracao") setModo(m);
-    }, 0);
-    return () => clearTimeout(t);
-  }, [pleitos]);
-
-  // sequência de telas: por pleito, apuração e/ou boca de urna (só onde há pesquisa,
-  // exceto no modo "boca", que mostra os majoritários mesmo aguardando)
-  const cenas = useMemo<Cena[]>(() => {
-    const out: Cena[] = [];
-    pleitos.forEach((pl, pi) => {
-      if (modo !== "boca") {
-        out.push({ pi, tipo: "apuracao" });
-        out.push({ pi, tipo: "corrida" });
-        out.push({ pi, tipo: "evolucao" });
-        out.push({ pi, tipo: isProporcional(pl.id) ? "bancadas" : "comparativo" });
-      }
-      if (modo === "boca" ? !isProporcional(pl.id) : modo === "ambos" && temBoca(pl.id, boca))
-        out.push({ pi, tipo: "boca" });
-      if (modo === "ambos") out.push({ pi, tipo: "noticias" });
-    });
-    return out;
-  }, [pleitos, modo, boca]);
-  const nCenas = cenas.length;
-
-  const go = useCallback(
-    (d: number) => {
-      setIdx((i) => (i + d + nCenas) % nCenas);
-      setElapsed(0);
-    },
-    [nCenas],
-  );
-
-  // rotação automática (tick de 250ms para a barra de progresso do pleito)
-  useEffect(() => {
-    if (fixo) return;
-    const id = setInterval(() => {
-      setElapsed((e) => {
-        if (e + 0.25 >= intervalo) {
-          setIdx((i) => (i + 1) % nCenas);
-          return 0;
+  const startScroll = (dirX: number, dirY: number) => {
+    cancelAnimationFrame(tRef.current);
+    const loop = () => {
+      document.querySelectorAll(".pl-tabs, .pl-cenas, .pl-cols, .pl-prop, .pl-bc-grid, .pl-mun-list, .telao.pl-wall, .pl-body").forEach(el => {
+        if (dirX !== 0 && el.scrollWidth > el.clientWidth) {
+          el.scrollLeft += dirX * 12;
         }
-        return e + 0.25;
+        if (dirY !== 0 && el.scrollHeight > el.clientHeight) {
+          el.scrollTop += dirY * 12;
+        }
       });
-    }, 250);
-    return () => clearInterval(id);
-  }, [fixo, intervalo, nCenas]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") go(1);
-      else if (e.key === "ArrowLeft") go(-1);
-      else if (e.key === " ") setFixo((f) => !f);
+      tRef.current = requestAnimationFrame(loop);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [go]);
+    tRef.current = requestAnimationFrame(loop);
+  };
+  const stopScroll = () => cancelAnimationFrame(tRef.current);
 
-  const cena = cenas[idx % nCenas] ?? { pi: 0, tipo: "apuracao" };
-  const p = pleitos[cena.pi];
-  const a = ap[p.id];
-  const ehBoca = cena.tipo === "boca";
-  const cenasDoPleito = cenas.map((c, j) => ({ ...c, j })).filter((c) => c.pi === cena.pi);
-  const temResultado = !!a && a.cand.length > 0 && a.status !== "aguardando";
-  const hora = now ? new Date(now).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "--:--:--";
-
-  const ticker = useMemo(
-    () =>
-      pleitos.map((pl) => {
-        const r = ap[pl.id];
-        const l = r?.cand[0];
-        return l
-          ? `${pl.titulo}: ${titulo(l.nome)} (${l.partido}) ${pctf(l.pct)}% · ${pctf(r.pctUrnas)}% urnas`
-          : `${pl.titulo}: ${nf(pl.total)} candidatos · aguardando apuração`;
-      }),
-    [ap, pleitos],
-  );
-
-  const statusTxt = ehBoca
-    ? "PESQUISA DE BOCA DE URNA"
-    : cena.tipo === "corrida"
-      ? "CORRIDA · PASSO A PASSO"
-      : cena.tipo === "evolucao"
-        ? "EVOLUÇÃO DA APURAÇÃO"
-        : cena.tipo === "bancadas"
-          ? "BANCADAS · CADEIRAS POR PARTIDO"
-          : cena.tipo === "comparativo"
-            ? "PROJEÇÃO × PESQUISA × BOCA DE URNA × REALIDADE"
-    : a?.status === "finalizado"
-      ? "APURAÇÃO ENCERRADA"
-      : temResultado
-        ? "APURAÇÃO AO VIVO"
-        : "PRÉ-APURAÇÃO";
+  useEffect(() => stopScroll, []);
 
   return (
-    <NeonCtx.Provider value={neonMap}>
-    <main
-      className={`telao pl-wall ${ehBoca ? "pl-modo-boca" : ""} ${mobile ? "pl-mobile" : ""}`}
-      onTouchStart={(e) => {
-        toque.current = e.touches[0].clientX;
-      }}
-      onTouchEnd={(e) => {
-        const dx = e.changedTouches[0].clientX - toque.current;
-        if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
-      }}
-    >
-      <Fundo3D />
-      <header className="pl-head">
-        <div className="pl-brand">
-          <span className={`pl-live ${temResultado && a?.status !== "finalizado" ? "on" : ""}`} />
-          <div>
-            <div className="pl-kicker">ELEIÇÕES 2026 · 1º TURNO · {statusTxt}</div>
+    <>
+      <div 
+        onMouseEnter={() => startScroll(0, -1)} 
+        onMouseLeave={stopScroll}
+        style={{ position: 'fixed', left: '15%', right: '15%', top: 0, height: '60px', zIndex: 90, cursor: 'n-resize' }} 
+      />
+      <div 
+        onMouseEnter={() => startScroll(0, 1)} 
+        onMouseLeave={stopScroll}
+        style={{ position: 'fixed', left: '15%', right: '15%', bottom: 0, height: '60px', zIndex: 90, cursor: 's-resize' }} 
+      />
+      <div 
+        onMouseEnter={() => startScroll(-1, 0)} 
+        onMouseLeave={stopScroll}
+        style={{ position: 'fixed', left: 0, top: '15%', bottom: '15%', width: '80px', zIndex: 90, cursor: 'w-resize' }} 
+      />
+      <div 
+        onMouseEnter={() => startScroll(1, 0)} 
+        onMouseLeave={stopScroll}
+        style={{ position: 'fixed', right: 0, top: '15%', bottom: '15%', width: '80px', zIndex: 90, cursor: 'e-resize' }} 
+      />
             <h1 key={`${p.id}-${cena.tipo}`} className="pl-title">
               {p.titulo}
               {localTxt && <span className="pl-title-local">{localTxt}</span>}
@@ -1626,13 +1620,22 @@ export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) 
           ))}
         </div>
         <button
+          className="pl-filtro-btn pl-dest-btn"
+          onClick={() => setAtivando(true)}
+          title="Ativação diária do perfil do candidato e push de resultados"
+        >
+          👤 Candidato
+        </button>
+        <button
           className={`pl-filtro-btn pl-dest-btn ${destaque.length ? "on" : ""}`}
           onClick={() => setEscolhendo(true)}
           title="Partidos em destaque (neon)"
         >
           ★ {destaque.length ? destaque.join(" · ") : "Destaque"}
         </button>
-        <FiltroLocal escopo={escopo} onChange={mudarEscopo} municipios={municipios} />
+        <SeletorUF uf={uf} onClick={() => setMapaAberto(true)} />
+        <FiltroLocal escopo={escopo} onChange={mudarEscopo} municipios={municipios} uf={uf} />
+        <Contagem now={now} />
         <div className="pl-clock tl-mono">{hora}</div>
       </header>
 
@@ -1715,6 +1718,25 @@ export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) 
       </a>
       {escolhendo && (
         <SeletorDestaque partidos={partidos} sel={destaque} onChange={setDestaque} onClose={fecharSeletor} />
+      )}
+      {mapaAberto && (
+        <div className="pl-dest-ov" style={{ zIndex: 100 }}>
+          <div className="pl-dest-box" style={{ width: "min(600px, 90vw)", padding: "2rem" }}>
+            <div className="pl-kicker">SELECIONE O ESTADO</div>
+            <h2>Qual estado você quer acompanhar?</h2>
+            <div style={{ maxWidth: 400, margin: "2rem auto" }}>
+              <BrazilMap uf={uf} onSelect={(u) => { 
+                setUf(u); 
+                setEscopo({}); 
+                setMapaAberto(false); 
+                if (precisaAtivar) setAtivando(true); 
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
+      {ativando && (
+        <AtivacaoCandidatoModal onClose={() => { setAtivando(false); setPrecisaAtivar(false); }} />
       )}
     </main>
     </NeonCtx.Provider>

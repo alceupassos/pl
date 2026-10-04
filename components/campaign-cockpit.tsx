@@ -202,6 +202,13 @@ export function CampaignCockpit() {
   const [authStatus, setAuthStatus] = useState<
     "checking" | "guest" | "authenticated"
   >("checking");
+  
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      window.location.replace("/c");
+    }
+  }, []);
+
   const [activeSection, setActiveSection] =
     useState<SectionId>(DEFAULT_SECTION);
   const [selectedCandidateKey, setSelectedCandidateKey] =

@@ -59,3 +59,14 @@ out/
 /data/boca-de-urna.json
 /data/apuracao-historico.json
 /data/pesquisa-telao.json
+
+# credenciais sensíveis e logs de acesso
+senhas.md
+/data/access-log.jsonl
+/data/provisional-credential-ip-bindings.json
+/data/transparency-leads.jsonl
+
+# build info
+tsconfig.tsbuildinfo
+
+

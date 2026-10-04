@@ -4,6 +4,7 @@ import {
   PLEITO_CFG,
   getApuracao,
   isPleitoId,
+  isUF,
   type Apuracao,
   type Escopo,
   type PleitoId,
@@ -18,14 +19,16 @@ export const dynamic = "force-dynamic";
 // GET /api/telao/apuracao?pleito=id            → um pleito
 // &mu=71072                                     → recorte por município de SP (cód. TSE)
 // &mu=71072&zona=0001                           → recorte por zona eleitoral
+// &uf=rj                                        → governador/senado/deputados de outra UF (padrão sp)
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
   const mu = q.get("mu") ?? "";
   const zona = q.get("zona") ?? "";
-  if ((mu && !/^\d{5}$/.test(mu)) || (zona && (!mu || !/^\d{4}$/.test(zona)))) {
+  const uf = (q.get("uf") ?? "sp").toLowerCase();
+  if ((mu && !/^\d{5}$/.test(mu)) || (zona && (!mu || !/^\d{4}$/.test(zona))) || !isUF(uf)) {
     return NextResponse.json({ error: "filtro inválido" }, { status: 400 });
   }
-  const escopo: Escopo = mu ? { mu, zona: zona || undefined } : {};
+  const escopo: Escopo = mu ? { mu, zona: zona || undefined, uf } : { uf };
 
   const pleito = q.get("pleito");
   if (pleito) {

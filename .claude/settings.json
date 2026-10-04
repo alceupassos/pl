@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "jevmem@anthropic-plugin-directory": true,
+    "toolstorm@anthropic-plugin-directory": true
+  }
+}

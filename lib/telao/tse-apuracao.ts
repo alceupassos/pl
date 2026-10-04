@@ -35,6 +35,23 @@ export function isPleitoId(v: string): v is PleitoId {
   return v in PLEITO_CFG;
 }
 
+/* ── UFs ── */
+import { REGIAO, UFS, UF_NOME, isUF } from "./ufs";
+export { REGIAO, UFS, UF_NOME, isUF };
+
+/** UF efetiva do pleito: presidente = Brasil (ou a UF quando há recorte municipal). */
+export function ufDe(pleito: PleitoId, escopo: Escopo = {}): string {
+  const uf = escopo.uf && isUF(escopo.uf) ? escopo.uf : "sp";
+  if (pleito === "presidente") return escopo.mu ? uf : "br";
+  return uf;
+}
+
+/** Código do cargo; no DF a assembleia é a Câmara Legislativa (dep. distrital, 0008). */
+function cargoDe(pleito: PleitoId, uf: string): string {
+  if (pleito === "dep-estadual-sp" && uf === "df") return "0008";
+  return PLEITO_CFG[pleito].cargo;
+}
+
 export type CandApurado = {
   sq: string; // sequencial TSE (também é o nome da foto)
   num: string;
@@ -57,7 +74,36 @@ export type PartidoApurado = {
   pct: number; // % dos válidos
   vagas: number; // oficial (TSE) quando já distribuídas, senão estimativa
   vagasOficial: boolean;
+  faltaMais1?: number; // ≈ votos que faltam para a próxima cadeira (estimativa)
 };
+
+/**
+ * Necessidade de votos (proporcionais), recalculada a cada totalização.
+ * - QE = válidos ÷ vagas: votos que o partido/federação precisa por cadeira.
+ * - Mínimo individual: 10% do QE (cadeiras por QP) e 20% (sobras) — Lei 14.211/21.
+ * - Partido precisa de 80% do QE para disputar as sobras.
+ * - "Projetado" = escalado para 100% das urnas (ou, antes da apuração, estimado
+ *   pelo eleitorado × comparecimento × válidos históricos).
+ */
+export type Necessidade = {
+  base: "apuracao" | "estimativa" | "oficial";
+  eleitorado: number;
+  validosProjetados: number;
+  qe: number; // atual (parcial)
+  qeProjetado: number;
+  minIndividual: number; // 10% do QE projetado
+  minSobras: number; // 20% do QE projetado
+  minPartidoSobras: number; // 80% do QE projetado
+  corte: number; // votos do último eleito projetado (parcial)
+  corteProjetado: number;
+  ultimoEleito?: { nome: string; partido: string; votos: number };
+  primeiroFora?: { nome: string; partido: string; votos: number };
+};
+
+// Parâmetros da estimativa pré-apuração (proporcionais, referência 2022):
+// comparecimento ≈ 79,5% do eleitorado; válidos ≈ 87,5% dos votos totais.
+const COMPARECIMENTO_EST = 0.795;
+const VALIDOS_EST = 0.875;
 
 export type Apuracao = {
   pleito: PleitoId;
@@ -89,6 +135,8 @@ export type Apuracao = {
   cand: CandApurado[];
   partidos: PartidoApurado[];
   historico: PontoHist[]; // evolução: um ponto por totalização observada
+  uf: string; // UF dos dados (br = Brasil)
+  necessidade?: Necessidade; // só proporcionais
 };
 
 /** % dos válidos de cada candidato (top 15, por sq) num instante da apuração. */
@@ -112,7 +160,7 @@ type Raw = Record<string, unknown> & {
   carg?: { nv?: string; qe?: string; agr?: RawAgr[] }[];
 };
 
-export type Escopo = { mu?: string; zona?: string };
+export type Escopo = { mu?: string; zona?: string; uf?: string };
 
 // Dois formatos do TSE: "dados-simplificados" (cand plano, partido em cc) e o
 // relatório completo "dados/…-u.json" (carg → agr → par → cand).
@@ -132,10 +180,11 @@ function rawCands(raw: Raw): (RawCand & { _sg?: string; _agr?: string })[] {
  * 2) sobras pelas maiores médias (D'Hondt) entre quem atingiu 80% do QE;
  * 3) se ainda sobrar, maiores médias entre todas (STF, ADIs 7228/7263/7325).
  */
-function estimarVagas(partidos: PartidoApurado[], vagas: number, qe: number): void {
-  if (!vagas || !qe) return;
+function estimarVagas(partidos: PartidoApurado[], vagas: number, qe: number): number {
+  if (!vagas || !qe) return 0;
   const qp = new Map(partidos.map((p) => [p.sigla, Math.floor(p.total / qe)]));
   let livres = vagas - [...qp.values()].reduce((a, b) => a + b, 0);
+  let menorMedia = 0; // menor média que ainda levou cadeira (corte das sobras)
   const media = (aptos: PartidoApurado[]) => {
     while (livres > 0 && aptos.length) {
       let best = aptos[0];
@@ -148,12 +197,66 @@ function estimarVagas(partidos: PartidoApurado[], vagas: number, qe: number): vo
         }
       }
       qp.set(best.sigla, (qp.get(best.sigla) ?? 0) + 1);
+      menorMedia = menorMedia ? Math.min(menorMedia, bestM) : bestM;
       livres--;
     }
   };
   media(partidos.filter((p) => p.total >= 0.8 * qe));
   media(partidos.filter((p) => p.total > 0));
   for (const p of partidos) p.vagas = qp.get(p.sigla) ?? 0;
+  return menorMedia;
+}
+
+/** ≈ votos que cada agremiação precisa somar para ganhar mais uma cadeira. */
+function faltasMais1(partidos: PartidoApurado[], qe: number, menorMedia: number): void {
+  if (!qe) return;
+  for (const p of partidos) {
+    const porMedia = menorMedia ? (p.vagas + 1) * menorMedia - p.total : (p.vagas + 1) * qe - p.total;
+    const porClausula = p.total < 0.8 * qe ? 0.8 * qe - p.total : 0;
+    p.faltaMais1 = Math.max(1, Math.ceil(Math.max(porMedia, porClausula)));
+  }
+}
+
+function calcNecessidade(a: Apuracao): Necessidade {
+  const u = a.pctUrnas;
+  const apurando = a.votosValidos > 0 && u > 0;
+  const fator = apurando ? 100 / u : 1;
+  const validosProjetados = apurando
+    ? Math.round(a.votosValidos * fator)
+    : Math.round(a.eleitorado * COMPARECIMENTO_EST * VALIDOS_EST);
+  const oficial = a.totalizado && a.quocienteEleitoral > 0;
+  const qeProjetado = oficial ? a.quocienteEleitoral : a.vagas ? Math.round(validosProjetados / a.vagas) : 0;
+  const qe = a.quocienteEleitoral;
+
+  // eleitos: oficiais (TSE) ou projetados = mais votados de cada agremiação
+  // dentro das cadeiras estimadas, respeitando os 10% do QE individuais
+  let eleitos = a.cand.filter((c) => c.eleito);
+  if (!eleitos.length && apurando) {
+    if (a.partidos.some((p) => p.vagas > 0)) {
+      for (const p of a.partidos) {
+        if (!p.vagas) continue;
+        eleitos.push(...a.cand.filter((c) => c.agremiacao === p.sigla && c.votos >= 0.1 * qe).slice(0, p.vagas));
+      }
+    } else eleitos = a.cand.slice(0, a.vagas);
+  }
+  const sqEleitos = new Set(eleitos.map((c) => c.sq));
+  const ult = eleitos.reduce<CandApurado | undefined>((m, c) => (!m || c.votos < m.votos ? c : m), undefined);
+  const fora = apurando ? a.cand.find((c) => !sqEleitos.has(c.sq) && c.votos > 0) : undefined;
+  const resumo = (c?: CandApurado) => (c ? { nome: c.nome, partido: c.partido, votos: c.votos } : undefined);
+  return {
+    base: oficial ? "oficial" : apurando ? "apuracao" : "estimativa",
+    eleitorado: a.eleitorado,
+    validosProjetados,
+    qe,
+    qeProjetado,
+    minIndividual: Math.ceil(qeProjetado * 0.1),
+    minSobras: Math.ceil(qeProjetado * 0.2),
+    minPartidoSobras: Math.ceil(qeProjetado * 0.8),
+    corte: ult?.votos ?? 0,
+    corteProjetado: ult ? Math.round(ult.votos * (a.totalizado ? 1 : fator)) : 0,
+    ultimoEleito: resumo(ult),
+    primeiroFora: resumo(fora),
+  };
 }
 
 function normalize(pleito: PleitoId, raw: Raw, escopo: Escopo): Apuracao {
@@ -164,6 +267,7 @@ function normalize(pleito: PleitoId, raw: Raw, escopo: Escopo): Apuracao {
   const pct = num(s.pst);
   const vv = num(v.vv);
   const vagas = num(carg?.nv) || (pleito === "senador-sp" ? 2 : 1);
+  const uf = ufDe(pleito, escopo);
   const cand = rawCands(raw)
     .map((c) => ({
       sq: String(c.sqcand ?? ""),
@@ -202,10 +306,13 @@ function normalize(pleito: PleitoId, raw: Raw, escopo: Escopo): Apuracao {
     .sort((a, b) => b.total - a.total);
   const qeOficial = num(carg?.qe);
   const qe = qeOficial || (vagas > 2 && vv > 0 ? Math.round(vv / vagas) : 0);
-  if (vagas > 2 && partidos.length && !partidos.some((p) => p.vagasOficial)) estimarVagas(partidos, vagas, qe);
+  let menorMedia = 0;
+  if (vagas > 2 && partidos.length && !partidos.some((p) => p.vagasOficial))
+    menorMedia = estimarVagas(partidos, vagas, qe);
+  if (vagas > 2) faltasMais1(partidos, qe, menorMedia);
 
   const tv = num(v.tv);
-  return {
+  const out: Apuracao = {
     pleito,
     escopo,
     // O TSE pré-publica arquivos zerados antes das 17h → ainda "aguardando".
@@ -233,21 +340,26 @@ function normalize(pleito: PleitoId, raw: Raw, escopo: Escopo): Apuracao {
     totalizado: raw.tf === "s",
     // dt/ht = horário da totalização; dg/hg = geração do arquivo
     hora: [raw.dt || raw.dg, raw.ht || raw.hg].filter(Boolean).join(" "),
-    fotoBase: fotoBaseDe(pleito),
+    fotoBase: fotoBaseDe(pleito, escopo),
     cand,
     partidos,
     historico: [],
+    uf,
   };
+  if (vagas > 2) out.necessidade = calcNecessidade(out);
+  return out;
 }
 
 // As fotos ficam no diretório da UF da candidatura (presidente = br).
-function fotoBaseDe(pleito: PleitoId): string {
-  const { eleicao, uf } = PLEITO_CFG[pleito];
+export function fotoBaseDe(pleito: PleitoId, escopo: Escopo = {}): string {
+  const { eleicao } = PLEITO_CFG[pleito];
+  const uf = pleito === "presidente" ? "br" : ufDe(pleito, escopo);
   return `/api/telao/foto/${eleicao}/${uf}`;
 }
 
 function vazio(pleito: PleitoId, status: Apuracao["status"], escopo: Escopo): Apuracao {
   return {
+    uf: ufDe(pleito, escopo),
     pleito,
     escopo,
     status,
@@ -273,7 +385,7 @@ function vazio(pleito: PleitoId, status: Apuracao["status"], escopo: Escopo): Ap
     quocienteEleitoral: 0,
     totalizado: false,
     hora: "",
-    fotoBase: fotoBaseDe(pleito),
+    fotoBase: fotoBaseDe(pleito, escopo),
     cand: [],
     partidos: [],
     historico: [],
@@ -286,23 +398,24 @@ const TTL = 5 * 60_000;
 const cache = new Map<string, { at: number; data: Apuracao }>();
 const inflight = new Map<string, Promise<Apuracao>>();
 
-// Município/zona são sempre de SP (a UF do telão). Para presidente, o recorte
-// municipal usa o diretório sp da eleição federal.
+// Município/zona pertencem à UF do telão (escopo.uf, padrão SP). Para presidente,
+// o recorte municipal usa o diretório da UF na eleição federal.
 export const UF_FILTRO = "sp";
 
 // Relatório completo (dados/…-u.json) é a fonte principal: traz eleitorado,
 // comparecimento, legenda, bancadas, QE e situação (QP/média). O simplificado
 // (dados-simplificados/…-r.json) fica como reserva para estado/Brasil.
 function urlsDe(pleito: PleitoId, escopo: Escopo): string[] {
-  const { eleicao, uf, cargo } = PLEITO_CFG[pleito];
-  const sufixo = `c${cargo}-e00${eleicao}`;
+  const { eleicao } = PLEITO_CFG[pleito];
+  const uf = ufDe(pleito, escopo);
+  const sufixo = `c${cargoDe(pleito, uf)}-e00${eleicao}`;
   if (!escopo.mu)
     return [
       `${TSE_BASE}/${eleicao}/dados/${uf}/${uf}-${sufixo}-u.json`,
       `${TSE_BASE}/${eleicao}/dados-simplificados/${uf}/${uf}-${sufixo}-r.json`,
     ];
   const z = escopo.zona ? `-z${escopo.zona}` : "";
-  return [`${TSE_BASE}/${eleicao}/dados/${UF_FILTRO}/${UF_FILTRO}${escopo.mu}${z}-${sufixo}-u.json`];
+  return [`${TSE_BASE}/${eleicao}/dados/${uf}/${uf}${escopo.mu}${z}-${sufixo}-u.json`];
 }
 
 async function fetchUm(url: string, pleito: PleitoId, escopo: Escopo): Promise<Apuracao> {
@@ -329,7 +442,10 @@ async function fetchPleito(pleito: PleitoId, escopo: Escopo): Promise<Apuracao> 
 }
 
 export async function getApuracao(pleito: PleitoId, escopo: Escopo = {}): Promise<Apuracao> {
-  const key = `${pleito}|${escopo.mu ?? ""}|${escopo.zona ?? ""}`;
+  // SP mantém a chave antiga (histórico já gravado em data/apuracao-historico.json)
+  const uf = ufDe(pleito, escopo);
+  const ufKey = uf === "sp" || uf === "br" ? "" : `|${uf}`;
+  const key = `${pleito}|${escopo.mu ?? ""}|${escopo.zona ?? ""}${ufKey}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) return hit.data;
   let p = inflight.get(key);
@@ -342,7 +458,7 @@ export async function getApuracao(pleito: PleitoId, escopo: Escopo = {}): Promis
   if (data.status === "erro" && hit) return hit.data;
   if (data.status !== "erro") data.historico = await registrarHistorico(key, data);
   cache.set(key, { at: Date.now(), data });
-  if (cache.size > 400) cache.delete(cache.keys().next().value!);
+  if (cache.size > 800) cache.delete(cache.keys().next().value!);
   return data;
 }
 
@@ -379,28 +495,33 @@ async function registrarHistorico(key: string, a: Apuracao): Promise<PontoHist[]
   return h[key] ?? serie;
 }
 
-/* ── municípios e zonas de SP (config oficial do TSE) ── */
+/* ── municípios e zonas por UF (config oficial do TSE) ── */
 
 export type Municipio = { cd: string; nm: string; z: string[] };
-let munCache: { at: number; data: Municipio[] } | null = null;
+let munCache: { at: number; data: Record<string, Municipio[]> } | null = null;
 
-export async function getMunicipiosSP(): Promise<Municipio[]> {
-  if (munCache && Date.now() - munCache.at < 6 * 3.6e6) return munCache.data;
+export async function getMunicipios(uf = UF_FILTRO): Promise<Municipio[]> {
+  if (munCache && Date.now() - munCache.at < 6 * 3.6e6) return munCache.data[uf] ?? [];
   try {
     const res = await fetch(`${TSE_BASE}/6259/config/mun-e006259-cm.json`, {
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
     });
     const json = (await res.json()) as { abr: { cd: string; mu: Municipio[] }[] };
-    const sp = json.abr.find((a) => a.cd === UF_FILTRO);
-    const data = (sp?.mu ?? [])
-      .map((m) => ({ cd: m.cd, nm: m.nm, z: m.z ?? [] }))
-      .sort((a, b) => a.nm.localeCompare(b.nm, "pt-BR"));
-    if (data.length) munCache = { at: Date.now(), data };
-    return data;
+    const data: Record<string, Municipio[]> = {};
+    for (const a of json.abr)
+      data[a.cd.toLowerCase()] = (a.mu ?? [])
+        .map((m) => ({ cd: m.cd, nm: m.nm, z: m.z ?? [] }))
+        .sort((x, y) => x.nm.localeCompare(y.nm, "pt-BR"));
+    if (Object.keys(data).length) munCache = { at: Date.now(), data };
+    return data[uf] ?? [];
   } catch {
-    return munCache?.data ?? [];
+    return munCache?.data[uf] ?? [];
   }
+}
+
+export function getMunicipiosSP(): Promise<Municipio[]> {
+  return getMunicipios(UF_FILTRO);
 }
 
 /* ── snapshot pré-apuração (eleicoes.dev / DivulgaCandContas) ── */
@@ -435,4 +556,50 @@ export const SNAPSHOT_META = { atualizado: snapshot.atualizado, fonte: snapshot.
 export function sqFromFotoUrl(url: string): string {
   const m = url.match(/\/(\d{9,})\/[A-Z]{2}$/);
   return m ? m[1] : "";
+}
+
+/**
+ * Snapshot pré-apuração de outra UF, montado a partir dos JSONs que o TSE
+ * pré-publica zerados (nome de urna, número, partido, sequencial). SP usa o
+ * snapshot rico (eleicoes.dev, com bens/ocupação).
+ */
+const TITULO: Record<PleitoId, string> = {
+  presidente: "PRESIDENTE",
+  "governador-sp": "GOVERNADOR",
+  "senador-sp": "SENADOR",
+  "dep-federal-sp": "DEPUTADO FEDERAL",
+  "dep-estadual-sp": "DEPUTADO ESTADUAL",
+};
+
+export async function getSnapshotUF(uf: string): Promise<PleitoSnapshot[]> {
+  if (uf === "sp" || !isUF(uf)) return PLEITOS;
+  const ids = Object.keys(PLEITO_CFG) as PleitoId[];
+  const aps = await Promise.all(ids.map((id) => getApuracao(id, { uf })));
+  return ids.map((id, i) => {
+    const base = PLEITOS.find((p) => p.id === id);
+    if (id === "presidente" && base) return base;
+    const a = aps[i];
+    const UF = uf.toUpperCase();
+    const titulo = id === "dep-estadual-sp" && uf === "df" ? "DEPUTADO DISTRITAL" : TITULO[id];
+    return {
+      id,
+      titulo: `${titulo} · ${UF}`,
+      uf: UF,
+      vagas: a.vagas || (id === "senador-sp" ? 2 : 1),
+      total: a.cand.length,
+      candidatos: a.cand.map((c) => ({
+        n: c.nome,
+        nome: c.nome,
+        num: Number(c.num),
+        p: c.partido,
+        st: c.situacao,
+        bens: 0,
+        foto: `https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img/2045202024/${c.sq}/${UF}`,
+        col: c.agremiacao === c.partido ? null : c.agremiacao,
+        occ: "",
+        nat: "",
+        g: "M" as const,
+      })),
+    };
+  });
 }

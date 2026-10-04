@@ -222,21 +222,23 @@ body {
 .login-field {
   width: 100%;
   box-sizing: border-box;
-  background: #0e0e15;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 9px;
+  background: rgba(14, 14, 21, 0.6);
+  border: 1px solid rgba(155, 138, 251, 0.2);
+  border-radius: 12px;
   color: var(--branco);
-  font-size: 13px;
-  padding: 11px 14px;
+  font-size: 14px;
+  padding: 14px 16px;
   outline: none;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: all 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
   font-family: inherit;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 .login-field:focus {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.08);
+  border-color: rgba(155, 138, 251, 0.6);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.2),
+    0 0 0 4px rgba(155, 138, 251, 0.15);
+  background: rgba(14, 14, 21, 0.8);
 }
 .login-field.shake {
   animation: shake 0.4s ease;
@@ -262,38 +264,36 @@ body {
 
 .login-btn {
   width: 100%;
-  margin-top: 8px;
-  background: #1b8a3e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 15px;
+  padding: 16px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
   font-family: inherit;
-  /* Premium Neumorphic effect for dark theme */
   box-shadow:
-    6px 6px 12px rgba(0, 0, 0, 0.4),
-    -4px -4px 8px rgba(255, 255, 255, 0.05),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    0 6px 16px rgba(124, 58, 237, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 .login-btn:hover {
-  background: #22c55e;
+  background: linear-gradient(135deg, #8b5cf6 0%, #5b21b6 100%);
   transform: translateY(-2px);
   box-shadow:
-    8px 8px 16px rgba(0, 0, 0, 0.5),
-    -6px -6px 12px rgba(255, 255, 255, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    0 8px 24px rgba(124, 58, 237, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 .login-btn:active {
   transform: translateY(1px);
   box-shadow:
-    inset 4px 4px 8px rgba(0, 0, 0, 0.4),
-    inset -2px -2px 4px rgba(255, 255, 255, 0.05);
+    0 2px 8px rgba(124, 58, 237, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 .login-btn:disabled {
   opacity: 0.5;

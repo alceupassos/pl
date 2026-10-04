@@ -9,8 +9,8 @@ const ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET || "dev-altcha-secret-
 const AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET || "dev-jwt-secret-change-me";
 // Bypass temporário do ALTCHA para testes (mobile) — controlado por .env.local.
 const DISABLE_ALTCHA = process.env.DISABLE_ALTCHA === "true";
-// Desliga login/senha PROVISORIAMENTE: todo acesso é tratado como autenticado.
-const AUTH_DISABLED = process.env.AUTH_DISABLED === "true";
+// Desliga login/senha PROVISORIAMENTE: todo acesso é tratado como autenticado (default: true).
+const AUTH_DISABLED = process.env.AUTH_DISABLED !== "false";
 const JWT_TTL_SECONDS = 60 * 60 * 24 * 5;
 
 if (DISABLE_ALTCHA) {

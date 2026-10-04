@@ -1,0 +1,130 @@
+[      93ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[     116ms] [LOG] [HMR] connected @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[     403ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[     430ms] [LOG] [Fast Refresh] done in 128ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[     932ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[   20849ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[   20880ms] [LOG] [Fast Refresh] done in 72ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[   53515ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[   53530ms] [LOG] [Fast Refresh] done in 115ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[   97597ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[   97636ms] [LOG] [Fast Refresh] done in 98ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  127880ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  127929ms] [LOG] [Fast Refresh] done in 109ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  145121ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  145158ms] [LOG] [Fast Refresh] done in 112ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  203477ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  203512ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  203853ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  203854ms] [LOG] [Fast Refresh] done in 102ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  204311ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6259/sp/250002548080:0
+[  221160ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  221192ms] [LOG] [Fast Refresh] done in 97ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  221973ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  237888ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  237943ms] [LOG] [HMR] connected @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  238609ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  274663ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  274721ms] [LOG] [Fast Refresh] done in 135ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  326461ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  326732ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  327713ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  367777ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  367822ms] [LOG] [Fast Refresh] done in 115ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  368540ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  389250ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  389293ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  389979ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  414537ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  414785ms] [LOG] [Fast Refresh] done in 95ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  415963ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  415994ms] [LOG] [Fast Refresh] done in 132ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  416176ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  416234ms] [LOG] [Fast Refresh] done in 158ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  416421ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  416451ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  416695ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  416713ms] [LOG] [Fast Refresh] done in 117ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  417379ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  417413ms] [LOG] [Fast Refresh] done in 133ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  417513ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  417544ms] [LOG] [Fast Refresh] done in 131ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  441957ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  441987ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  442174ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  442235ms] [LOG] [Fast Refresh] done in 163ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  443010ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  485277ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  485321ms] [LOG] [Fast Refresh] done in 53ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  504316ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  504506ms] [LOG] [Fast Refresh] done in 52ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  587070ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  587127ms] [LOG] [Fast Refresh] done in 97ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  616676ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  616734ms] [LOG] [Fast Refresh] done in 120ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  617344ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  682245ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  682277ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  683029ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  715237ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  715266ms] [LOG] [Fast Refresh] done in 71ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  754573ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  754919ms] [LOG] [Fast Refresh] done in 342ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  755205ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  755211ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  755605ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  755621ms] [LOG] [Fast Refresh] done in 116ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  755954ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  755956ms] [LOG] [Fast Refresh] done in 103ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757110ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757154ms] [LOG] [Fast Refresh] done in 146ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757552ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757557ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757727ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757735ms] [LOG] [Fast Refresh] done in 109ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757895ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  757895ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  758071ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  758080ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  758188ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  758203ms] [LOG] [Fast Refresh] done in 116ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  759127ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  783083ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  783113ms] [LOG] [Fast Refresh] done in 71ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  812455ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  812525ms] [LOG] [Fast Refresh] done in 127ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  813121ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  843380ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  843537ms] [LOG] [HMR] connected @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  844723ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  853656ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  853675ms] [LOG] [HMR] connected @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  854155ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  854195ms] [LOG] [Fast Refresh] done in 140ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  854297ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  854303ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  854429ms] [LOG] [Fast Refresh] done in 230ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  854539ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  854704ms] [LOG] [Fast Refresh] done in 276ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  859527ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  859841ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  859855ms] [LOG] [HMR] connected @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  860360ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3100/api/telao/foto/6257/br/280002553884:0
+[  888153ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  888187ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  948807ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  948844ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  962261ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[  962290ms] [LOG] [Fast Refresh] done in 85ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1829124ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1829194ms] [LOG] [Fast Refresh] done in 173ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1906084ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1906086ms] [LOG] [Fast Refresh] done in 102ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1906132ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1906260ms] [LOG] [Fast Refresh] done in 83ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1944214ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1944299ms] [LOG] [Fast Refresh] done in 129ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1972667ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1972697ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1997100ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[ 1997128ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3100/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431

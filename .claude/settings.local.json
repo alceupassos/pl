@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Get-Content public\\\\info.html | Measure-Object -Line\\).Lines)",
+      "PowerShell(npm run *)",
+      "Bash(git -C \"C:\\\\Users\\\\Alceu Passos\\\\angra\\\\sostenes\" log --oneline -8)",
+      "Bash(git -C \"C:\\\\Users\\\\Alceu Passos\\\\angra\\\\sostenes\" status --short)",
+      "Bash(curl -s --max-time 25 -A \"Mozilla/5.0\" \"https://news.google.com/rss/search?q=%22S%C3%B3stenes%20Cavalcante%22&hl=pt-BR&gl=BR&ceid=BR:pt\" -o /tmp/gnews.xml -w \"HTTP:%{http_code} BYTES:%{size_download}\\\\n\")",
+      "Read(//tmp/**)",
+      "Bash(curl -sL --max-time 30 -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" \"https://news.google.com/rss/search?q=%22Sostenes%20Cavalcante%22&hl=pt-BR&gl=BR&ceid=BR:pt\" -o /tmp/gnews.xml -w \"FINAL_HTTP:%{http_code} BYTES:%{size_download} URL:%{url_effective}\\\\n\")",
+      "PowerShell($g = \\(Get-Command git -ErrorAction SilentlyContinue\\).Source; if\\(-not $g\\){ $cands = @\\(\"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\",\"C:\\\\Program Files\\\\Git\\\\bin\\\\git.exe\",\"C:\\\\Program Files \\(x86\\)\\\\Git\\\\cmd\\\\git.exe\"\\); $g = \\($cands | Where-Object { Test-Path $_ } | Select-Object -First 1\\) }; Write-Output \"GIT=$g\")",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell($git = Get-ChildItem -Path \"C:\\\\Program Files\",\"C:\\\\Program Files \\(x86\\)\",\"$env:LOCALAPPDATA\" -Filter git.exe -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object -First 1 -ExpandProperty FullName; Write-Output \"GIT=$git\")",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); $g=\\(Get-Command git -ErrorAction SilentlyContinue\\).Source; Write-Output \"GIT=$g\"; if\\($g\\){ & $g -C \"C:\\\\Users\\\\Alceu Passos\\\\angra\\\\sostenes\" status --short; Write-Output \"---\"; & $g -C \"C:\\\\Users\\\\Alceu Passos\\\\angra\\\\sostenes\" log --oneline -3 })",
+      "PowerShell($p = \"C:\\\\Program Files\\\\Git\\\\bin\\\\git.exe\"; \"exists1=$\\(Test-Path $p\\)\"; \\(Get-Command where.exe\\).Source; cmd /c \"where git 2>nul\"; cmd /c \"git --version 2>nul\")",
+      "PowerShell(cmd /c \"gh --version 2>nul\"; Write-Output \"---gh path---\"; cmd /c \"where gh 2>nul\"; Write-Output \"---PATH segments with git/gh---\"; \\($env:PATH -split ';'\\) | Where-Object { $_ -match 'git|gh|cli' })",
+      "PowerShell(cmd /c \"gh auth status 2>&1\"; Write-Output \"===WINGET===\"; cmd /c \"winget --version 2>nul\")",
+      "PowerShell(winget install *)",
+      "PowerShell(cmd /c \"winget source reset --force 2>&1\"; Write-Output \"===UPDATE===\"; cmd /c \"winget source update 2>&1\" | Select-Object -Last 8)",
+      "PowerShell(cmd /c \"winget install --id Git.Git -e --silent --accept-package-agreements --accept-source-agreements 2>&1\" | Select-Object -Last 12)",
+      "PowerShell(\\(Get-Command ssh.exe -ErrorAction SilentlyContinue\\).Source; \\(Get-Command scp.exe -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell($git = \\(Get-Command git.exe -ErrorAction SilentlyContinue\\).Source; if \\(-not $git\\) { $git = \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\" }; Write-Output \"GIT=$git\"; & $git rev-parse --is-inside-work-tree)",
+      "PowerShell(Write-Output \"=== local branch ref ===\"; Get-Content .git\\\\refs\\\\heads\\\\candidato-deploy -ErrorAction SilentlyContinue; Write-Output \"=== origin candidato-deploy ref ===\"; Get-Content .git\\\\refs\\\\remotes\\\\origin\\\\candidato-deploy -ErrorAction SilentlyContinue; Write-Output \"=== packed-refs \\(origin\\) ===\"; Select-String -Path .git\\\\packed-refs -Pattern \"candidato-deploy|refs/heads/main|origin/main\" -ErrorAction SilentlyContinue; Write-Output \"=== ORIG_HEAD ===\"; Get-Content .git\\\\ORIG_HEAD -ErrorAction SilentlyContinue; Write-Output \"=== last fetch ===\"; \\(Get-Item .git\\\\FETCH_HEAD -ErrorAction SilentlyContinue\\).LastWriteTime)",
+      "PowerShell(Write-Output \"=== components/w ===\"; Get-ChildItem -Recurse components\\\\w -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer} | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\\(Get-Location\\).Path + '\\\\',''\\) }; Write-Output \"=== lib/w ===\"; Get-ChildItem -Recurse lib\\\\w -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer} | ForEach-Object { $_.FullName.Replace\\(\\(Get-Location\\).Path + '\\\\',''\\) }; Write-Output \"=== app/w ===\"; Get-ChildItem -Recurse app\\\\w -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer} | ForEach-Object { $_.FullName.Replace\\(\\(Get-Location\\).Path + '\\\\',''\\) }; Write-Output \"=== app/api/w ===\"; Get-ChildItem -Recurse app\\\\api\\\\w -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer} | ForEach-Object { $_.FullName.Replace\\(\\(Get-Location\\).Path + '\\\\',''\\) })",
+      "PowerShell($pg = \"C:\\\\Users\\\\Alceu Passos\\\\angra\\\\portablegit\\\\cmd\\\\git.exe\"; Write-Output \"portable git exists: $\\(Test-Path $pg\\)\"; if \\(Test-Path $pg\\) { & $pg --version }; Write-Output \"--- node ---\"; \\(Get-Command node -ErrorAction SilentlyContinue\\).Source; node --version 2>$null; Write-Output \"--- npm ---\"; \\(Get-Command npm -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell(git check-ignore *)",
+      "PowerShell(git add *)",
+      "PowerShell(git push *)",
+      "Bash(ls -la .env*)",
+      "Bash(ls data/)",
+      "Bash(ls *.md)",
+      "Bash(wc -l cockpit-eleicoes-2026.html)",
+      "Bash(ls -la senhas.md)",
+      "Bash(grep -oE '^[A-Z0-9_]+' .env)",
+      "Bash(grep -oE '^[A-Z0-9_]+' .env.local)",
+      "Bash(npm run *)",
+      "Bash(echo \"EXIT=$?\")"
+    ]
+  }
+}
