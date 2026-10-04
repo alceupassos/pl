@@ -3165,5 +3165,10 @@
   transform: translateY(-2px);
 }
 
+/* ── Barra Em Destaque desativada ── */
+.pl-posbar {
+  display: none !important;
+}
+
 
 

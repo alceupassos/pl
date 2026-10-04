@@ -266,7 +266,7 @@ function SeletorUF({ uf, onClick }: { uf: string; onClick: () => void }) {
 function FiltroLocal({
   escopo,
   onChange,
-  municipios,
+  municipios: propsMunicipios,
   uf,
 }: {
   escopo: Escopo;
@@ -277,12 +277,39 @@ function FiltroLocal({
   const UF = uf.toUpperCase();
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
-  const atual = municipios.find((m) => m.cd === escopo.mu);
+  const [localMuns, setLocalMuns] = useState<Municipio[]>(propsMunicipios);
+  const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    if (propsMunicipios && propsMunicipios.length > 0) {
+      setLocalMuns(propsMunicipios);
+      return;
+    }
+    let ativo = true;
+    setCarregando(true);
+    fetch(`/api/telao/municipios?uf=${uf.toLowerCase()}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!ativo) return;
+        if (Array.isArray(data)) setLocalMuns(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (ativo) setCarregando(false);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [uf, propsMunicipios]);
+
+  const listaMunicipios = localMuns.length ? localMuns : propsMunicipios;
+  const atual = listaMunicipios.find((m) => m.cd === escopo.mu);
   const lista = useMemo(() => {
     const q = semAcento(busca.trim());
-    const base = q ? municipios.filter((m) => semAcento(m.nm).includes(q)) : municipios;
-    return base.slice(0, 60);
-  }, [busca, municipios]);
+    const base = q ? listaMunicipios.filter((m) => semAcento(m.nm).includes(q)) : listaMunicipios;
+    return base.slice(0, 100);
+  }, [busca, listaMunicipios]);
+
   const rotulo = atual
     ? `${titulo(atual.nm)}${escopo.zona ? ` · Zona ${Number(escopo.zona)}` : ""}`
     : `Estado de ${UF} · Brasil`;
@@ -335,13 +362,21 @@ function FiltroLocal({
               <button
                 key={m.cd}
                 className={m.cd === escopo.mu ? "on" : ""}
-                onClick={() => onChange({ mu: m.cd })}
+                onClick={() => {
+                  onChange({ mu: m.cd });
+                  setAberto(false);
+                }}
               >
                 {titulo(m.nm)}
                 <em>{m.z.length} {m.z.length === 1 ? "zona" : "zonas"}</em>
               </button>
             ))}
-            {municipios.length === 0 && <div className="pl-mun-vazio">carregando municípios do TSE…</div>}
+            {carregando && listaMunicipios.length === 0 && (
+              <div className="pl-mun-vazio">Carregando municípios do TSE…</div>
+            )}
+            {!carregando && listaMunicipios.length === 0 && (
+              <div className="pl-mun-vazio">Nenhum município disponível</div>
+            )}
           </div>
         </div>
       )}
@@ -771,7 +806,6 @@ function Vitrine({
                 {c.p}
               </div>
               {!prop && <div className="pl-vocc">{titulo(c.occ)}</div>}
-              {c.bens > 0 && <div className="pl-vbens tl-mono">{brl(c.bens)}</div>}
               <div
                 className={`pl-vst ${
                   /defer/i.test(c.st) && !/indefer/i.test(c.st)
@@ -2119,12 +2153,6 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         </section>
       </div>
 
-      <PosicaoBar
-        p={p}
-        ap={escopo.mu && ehBoca ? undefined : a}
-        pesquisa={boca[p.id as keyof BocaDeUrna] as BocaPesquisa | undefined}
-        ehBoca={ehBoca}
-      />
       <footer className="pl-foot">
         <div className="pl-ticker">
           <div

@@ -39,9 +39,34 @@ const parser = new XMLParser({ ignoreAttributes: false });
 let cache: { at: number; data: Noticia[] } | null = null;
 let inflight: Promise<Noticia[]> | null = null;
 
+function fixAcentos(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/&atilde;/gi, "ã").replace(/&otilde;/gi, "õ")
+    .replace(/&aacute;/gi, "á").replace(/&eacute;/gi, "é").replace(/&iacute;/gi, "í").replace(/&oacute;/gi, "ó").replace(/&uacute;/gi, "ú")
+    .replace(/&acirc;/gi, "â").replace(/&ecirc;/gi, "ê").replace(/&ocirc;/gi, "ô")
+    .replace(/&agrave;/gi, "à")
+    .replace(/&ccedil;/gi, "ç")
+    .replace(/&Atilde;/g, "Ã").replace(/&Otilde;/g, "Õ")
+    .replace(/&Aacute;/g, "Á").replace(/&Eacute;/g, "É").replace(/&Iacute;/g, "Í").replace(/&Oacute;/g, "Ó").replace(/&Uacute;/g, "Ú")
+    .replace(/&Acirc;/g, "Â").replace(/&Ecirc;/g, "Ê").replace(/&Ocirc;/g, "Ô")
+    .replace(/&Agrave;/g, "À")
+    .replace(/&Ccedil;/g, "Ç")
+    // Mojibake comum (UTF-8 mal decodificado em ISO-8859-1)
+    .replace(/Ã¡/g, "á").replace(/Ã /g, "à").replace(/Ã¢/g, "â").replace(/Ã£/g, "ã")
+    .replace(/Ã©/g, "é").replace(/Ãª/g, "ê").replace(/Ã­/g, "í")
+    .replace(/Ã³/g, "ó").replace(/Ã´/g, "ô").replace(/Ãµ/g, "õ")
+    .replace(/Ãº/g, "ú").replace(/Ã¼/g, "ü").replace(/Ã§/g, "ç")
+    .replace(/Ã/g, "Á").replace(/Ã/g, "À").replace(/Ã/g, "Â").replace(/Ã/g, "Ã")
+    .replace(/Ã/g, "É").replace(/Ã/g, "Ê").replace(/Ã/g, "Í")
+    .replace(/Ã/g, "Ó").replace(/Ã/g, "Ô").replace(/Ã/g, "Õ")
+    .replace(/Ã/g, "Ú").replace(/Ã/g, "Ç")
+    .replace(/\uFFFD/g, "");
+}
+
 function limpa(html: unknown): string {
   const s = typeof html === "string" ? html : html && typeof html === "object" && "#text" in html ? String((html as { "#text": unknown })["#text"]) : "";
-  return s
+  const limpo = s
     .replace(/<!\[CDATA\[|\]\]>/g, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
@@ -53,6 +78,7 @@ function limpa(html: unknown): string {
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/\s+/g, " ")
     .trim();
+  return fixAcentos(limpo);
 }
 
 function corta(s: string, n = 230): string {
@@ -86,18 +112,9 @@ async function doVeiculo(v: Veiculo): Promise<Noticia[]> {
     });
     if (!res.ok) return [];
     const buf = Buffer.from(await res.arrayBuffer());
-    let encoding = "utf-8";
-    const ct = res.headers.get("content-type") || "";
-    const m = ct.match(/charset=([^\s;]+)/i);
-    if (m) {
-      encoding = m[1].toLowerCase();
-    } else {
-      const inicio = buf.slice(0, 300).toString("latin1");
-      const xm = inicio.match(/encoding=["']([^"']+)["']/i);
-      if (xm) encoding = xm[1].toLowerCase();
-    }
-    const decoder = new TextDecoder(encoding.includes("iso-8859") || encoding.includes("windows-1252") || encoding.includes("latin1") ? "iso-8859-1" : "utf-8");
-    const xmlText = decoder.decode(buf);
+    const utf8Str = buf.toString("utf8");
+    // Se UTF-8 produziu caractere de substituição (\uFFFD), decodifica como latin1 (ISO-8859-1)
+    const xmlText = utf8Str.includes("\uFFFD") ? buf.toString("latin1") : utf8Str;
     const doc = parser.parse(xmlText);
     const raw = doc?.rss?.channel?.item;
     const items: Item[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
