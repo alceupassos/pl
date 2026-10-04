@@ -33,16 +33,16 @@ export function BrazilMap({ uf, onSelect }: { uf: string, onSelect: (uf: string)
     return (
       <div className="map-tooltip" style={{ left: mousePos.x + 15, top: mousePos.y + 15, position: 'fixed', zIndex: 9999, background: 'rgba(10,11,20,0.95)', border: '1px solid #7c3aed', padding: '1rem', borderRadius: '12px', pointerEvents: 'none', color: '#fff', width: '300px' }}>
         <h3 style={{ margin: '0 0 10px 0', textTransform: 'uppercase', color: '#a78bfa' }}>{hoverUf} - Governador</h3>
-        {gov?.candidatos.slice(0, 3).map(c => (
+        {gov?.candidatos?.slice(0, 3).map(c => (
           <div key={c.n} style={{ fontSize: '12px', marginBottom: '4px' }}>{c.n} - {c.nome} ({c.p})</div>
         ))}
-        {gov?.candidatos.length > 3 && <div style={{ fontSize: '10px', color: '#888' }}>+ {gov.candidatos.length - 3} candidatos</div>}
+        {(gov?.candidatos?.length ?? 0) > 3 && <div style={{ fontSize: '10px', color: '#888' }}>+ {gov!.candidatos.length - 3} candidatos</div>}
         
         <h3 style={{ margin: '10px 0 5px 0', textTransform: 'uppercase', color: '#a78bfa', fontSize: '12px' }}>Senador</h3>
-        {sen?.candidatos.slice(0, 3).map(c => (
+        {sen?.candidatos?.slice(0, 3).map(c => (
           <div key={c.n} style={{ fontSize: '12px', marginBottom: '4px' }}>{c.n} - {c.nome} ({c.p})</div>
         ))}
-        {sen?.candidatos.length > 3 && <div style={{ fontSize: '10px', color: '#888' }}>+ {sen.candidatos.length - 3} candidatos</div>}
+        {(sen?.candidatos?.length ?? 0) > 3 && <div style={{ fontSize: '10px', color: '#888' }}>+ {sen!.candidatos.length - 3} candidatos</div>}
       </div>
     );
   };
