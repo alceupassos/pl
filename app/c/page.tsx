@@ -3,6 +3,7 @@ import { PLEITOS, PLEITO_CFG, SNAPSHOT_META, type PleitoId } from "@/lib/telao/t
 
 import "../telao/telao.css";
 import "../telao/pleitos/pleitos.css";
+import "../telao/pleitos/refresh.css";
 
 export const dynamic = "force-dynamic";
 

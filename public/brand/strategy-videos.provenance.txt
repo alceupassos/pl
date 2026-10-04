@@ -1,0 +1,8 @@
+Provider: Google Gemini API
+Model: veo-3.1-fast-generate-preview
+Generations: exactly 2 successful requests, each 4 seconds at 720p.
+Desktop: 16:9. Mobile: 9:16, compressed to 540x960.
+Budget estimate: USD 0.80 at published USD 0.10/second. Invoice/balance not available through API.
+Grok: model-list read request rejected HTTP 403; no generation submitted.
+Higgsfield: no generation submitted.
+Audio stripped for muted website loops; H264, faststart.

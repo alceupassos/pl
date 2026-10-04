@@ -1,0 +1,109 @@
+/* Apuração: typography, hierarchy and responsive controls. */
+.telao.pl-wall { --bg:#0c1523; --panel:#15253a; --hair:#2d3f55; --ink:#f1f5fa; --ink2:#acbdd0; --ink3:#9aadbf; --alta:#43d3a0; --baixa:#fb858c; --azul:#82b5ff; --roxo:#94b4d8; --ambar:#e6bb65; background:var(--bg); padding:24px; gap:20px; font-family:var(--font-dm-sans),system-ui,sans-serif; }
+.pl-wall::after,.pl-bg3d,.pl-lider-halo { display:none; }
+.pl-wall .pl-title { color:var(--ink); background:none; -webkit-text-fill-color:currentColor; animation:none; font-size:2em; line-height:1.15; letter-spacing:-.025em; font-weight:700; }
+.pl-wall .pl-kicker { color:var(--ink2); letter-spacing:.05em; line-height:1.5; font-size:.7em; }
+.pl-wall .pl-head { gap:12px; padding-bottom:18px; border-bottom:1px solid var(--hair); align-items:center; flex-wrap:wrap; }
+.pl-wall .pl-tabs { gap:6px; overflow-x:auto; max-width:100%; }
+.pl-wall .pl-tabs button { border-radius:7px; padding:12px 16px; font-size:12px; letter-spacing:0; min-height:44px; white-space:nowrap; background:#101d2e; color:var(--ink2); }
+.pl-wall .pl-tabs button.on { color:#e5fcf5; background:#21473f; border-color:#427768; }
+.pl-wall .pl-tabs button i { background:#43d3a0; height:2px; }
+.pl-wall .pl-modos button,.pl-wall .pl-cenas button { font-size:12px; min-height:40px; letter-spacing:0; border-radius:6px; color:var(--ink2); }
+.pl-wall .pl-filtro-btn,.pl-wall .pl-filtro-x { font-size:12px; min-height:44px; letter-spacing:0; gap:8px; }
+.pl-wall .pl-body { min-width:0; gap:20px; }
+.pl-wall .pl-stage { min-width:0; background:#101d2e; border-radius:12px; padding:20px; border:1px solid var(--hair); }
+.pl-wall .pl-proc { background:#15253a; border-radius:12px; box-shadow:none; }
+.pl-wall .pl-row,.pl-wall .pl-pcard,.pl-wall .pl-vcard,.pl-wall .pl-lider { background:#15253a; box-shadow:none; border-radius:10px; animation:none; transform:none; }
+.pl-wall .pl-row-fill,.pl-wall .pl-bar-fill,.pl-wall .pl-col-bar { box-shadow:none; }
+.pl-wall .pl-news-card { background:#15253a; backdrop-filter:none; border:1px solid var(--hair); border-radius:12px; box-shadow:none; }
+.pl-wall .pl-news-card h3 { color:var(--ink); line-height:1.4; }
+.pl-wall .pl-news-card p { color:var(--ink2); }
+.pl-wall .pl-neon { text-shadow:none; }
+.pl-region-overlay { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:24px; background:#0c1523; overflow-y:auto; }
+.pl-region-dialog { width:min(1060px,100%); display:grid; grid-template-columns:1fr 1fr; background:#f5f4ee; color:#152e42; border-radius:16px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.25); }
+.pl-region-photo { position:relative; min-height:640px; background:#152e42; }
+.pl-region-photo > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:55% center; }
+.pl-region-photo > div { position:absolute; inset:0; padding:38px; display:flex; flex-direction:column; justify-content:flex-end; background:linear-gradient(transparent 35%,rgba(6,20,30,.95)); color:#fff; }
+.pl-region-photo h2 { font-size:40px; line-height:1.12; letter-spacing:-.025em; margin:20px 0; font-weight:600; }
+.pl-region-photo p { font-size:15px; line-height:1.7; color:#d5e2e6; max-width:36ch; }
+.pl-region-photo small { color:#b2c6cc; font-size:10px; margin-top:28px; }
+.pl-region-content { position:relative; padding:36px 44px; }
+.pl-region-content h2 { font-size:38px; line-height:1.12; letter-spacing:-.025em; font-weight:600; margin:0 0 16px; }
+.pl-region-content h2 span { font-family:var(--font-playfair),Georgia,serif; font-style:italic; color:#24685e; }
+.pl-region-content > p { font-size:14px; line-height:1.7; color:#425c6e; max-width:45ch; }
+.pl-region-map { max-width:230px; margin:18px auto; }
+.pl-region-content label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; margin-bottom:8px; }
+.pl-region-content select { display:block; width:100%; min-height:48px; border:1px solid #bdccc4; border-radius:7px; padding:10px 14px; font-size:16px; color:#152e42; background:#fff; }
+.pl-region-continue { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:50px; padding:14px 18px; margin:14px 0; color:#fff; background:#164c47; border:0; border-radius:7px; cursor:pointer; font-size:14px; font-weight:700; }
+.pl-region-continue:hover { background:#23675e; }
+.pl-region-content > small { display:block; font-size:11px; line-height:1.6; color:#536b7a; }
+.pl-region-close { position:absolute; right:12px; top:12px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; border:0; color:#425c6e; background:transparent; cursor:pointer; }
+.brazil-state-map { display:block; width:100%; height:auto; overflow:visible; filter:none!important; transform:none!important; }
+.brazil-state-map path { fill:#d8e4df; stroke:#f5f4ee; stroke-width:1.5; stroke-linejoin:round; vector-effect:non-scaling-stroke; cursor:pointer; transition:fill .15s; filter:none!important; transform:none!important; }
+.brazil-state-map path.on,.brazil-state-map path:hover,.brazil-state-map path:focus-visible { fill:#24685e; stroke:#f5f4ee; outline:none; }
+.pl-region-overlay .map-tooltip { display:none; }
+.pl-dest-ov { padding:20px; overflow-y:auto; background:rgba(5,15,27,.88); backdrop-filter:none; }
+.pl-dest-box { background:#15253a; border:1px solid #2d3f55; border-radius:12px; box-shadow:none; max-height:calc(100dvh - 40px); overflow-y:auto; }
+.pl-dest-box input,.pl-dest-box select,.pl-dest-box textarea { font-size:16px; min-height:44px; }
+.pl-dest-grid button,.pl-ed-save,.pl-ed-del { min-height:44px; }
+@media(max-width:1100px) { .pl-wall .pl-tabs { flex:1 0 100%; order:8; } .pl-wall .pl-brand { flex:1 1 55%; } }
+@media(max-width:700px) {
+  html:has(.pl-mobile),body:has(.pl-mobile) { height:auto; overflow-y:auto; overflow-x:clip; background:#0c1523; }
+  .telao.pl-mobile { width:100%; padding:16px 14px calc(44px + env(safe-area-inset-bottom)); font-size:15px; gap:16px; }
+  .pl-mobile .pl-head { position:relative; top:auto; margin:0; padding:8px 0 16px; background:#0c1523; backdrop-filter:none; gap:8px; }
+  .pl-mobile .pl-title { font-size:27px; }
+  .pl-mobile .pl-kicker { font-size:10px; }
+  .pl-mobile .pl-tabs { gap:6px; padding-bottom:4px; }
+  .pl-mobile .pl-tabs button { padding:10px 12px; font-size:12px; }
+  .pl-mobile .pl-cenas { padding:4px 0; gap:6px; }
+  .pl-mobile .pl-modos { display:flex; flex-wrap:wrap; }
+  .pl-mobile .pl-filtro-pop { top:20px; max-height:calc(100dvh - 40px); }
+  .pl-mobile .pl-stage { padding:14px; }
+  .pl-mobile .pl-lider { padding:20px 14px; }
+  .pl-mobile .pl-rank { gap:10px; }
+  .pl-mobile .pl-row { min-width:0; padding:12px; }
+  .pl-mobile .pl-row-nome { font-size:14px; white-space:normal; overflow-wrap:anywhere; }
+  .pl-mobile .pl-prop-grid { grid-template-columns:1fr; }
+  .pl-mobile .pl-news { grid-template-columns:1fr; }
+  .pl-mobile .pl-br-grid,.pl-mobile .pl-br-gov-grid { grid-template-columns:1fr; }
+  .pl-region-overlay { padding:12px; align-items:flex-start; }
+  .pl-region-dialog { grid-template-columns:1fr; max-width:480px; }
+  .pl-region-photo { min-height:180px; height:180px; }
+  .pl-region-photo > div { padding:22px; background:linear-gradient(transparent,rgba(6,20,30,.88)); }
+  .pl-region-photo svg,.pl-region-photo p,.pl-region-photo small { display:none; }
+  .pl-region-photo h2 { font-size:28px; margin:0; }
+  .pl-region-content { padding:26px 24px; }
+  .pl-region-content h2 { font-size:30px; }
+  .pl-region-map { max-width:180px; margin:12px auto; }
+  .pl-region-close { top:4px; right:4px; }
+  .pl-mobile .pl-src { font-size:11px; line-height:1.6; padding:12px 0; }
+}
+@media(prefers-reduced-motion:reduce) { .pl-wall *, .pl-wall *::before,.pl-wall *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+.pl-wall > .pl-region-overlay { position:fixed; inset:0; z-index:100; }
+.pl-wall > .pl-dest-ov { position:fixed; inset:0; z-index:90; }
+.pl-wall .pl-ed-save { background:#164c47; border-color:#427768; }
+/* Direct children in the legacy wall have a high-specificity positioning rule. */
+.telao.pl-wall > .pl-region-overlay { position:fixed!important; z-index:100!important; }
+.telao.pl-wall > .pl-dest-ov { position:fixed!important; z-index:90!important; }
+.pl-wall .pl-atv-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.pl-wall .pl-atv-form { display:grid; gap:16px; }
+.pl-wall .pl-atv-form label { display:grid; gap:7px; font-size:13px; color:var(--ink2); min-width:0; }
+.pl-wall .pl-atv-form input,.pl-wall .pl-atv-form select,.pl-wall .pl-atv-form textarea { width:100%; min-width:0; background:#101d2e; border:1px solid var(--hair); border-radius:7px; padding:12px; color:var(--ink); font-size:16px; }
+@media(max-width:700px) { .pl-wall .pl-atv-row { grid-template-columns:1fr; gap:14px; } .pl-dest-box h2 { font-size:24px; line-height:1.3; } .pl-wall .pl-atv-form .pl-dest-act { display:flex; flex-wrap:wrap; } }
+.brazil-state-map path:focus-visible { stroke:#102e42; stroke-width:3; paint-order:stroke fill; }
+.pl-region-content :focus-visible { outline:3px solid #24685e; outline-offset:3px; }
+.pl-region-photo > .ambient-video { position:absolute; inset:0; padding:0; display:block; background:none; }
+.pl-region-photo > div:not(.ambient-video) { pointer-events:none; }
+.pl-region-photo .ambient-video-control { z-index:4; }
+.pl-profile-steps { display:flex; align-items:center; gap:12px; font-size:13px; color:var(--ink2); }
+.pl-profile-steps .on { color:var(--alta); font-weight:700; }
+.pl-atv-form small { font-size:11px; color:var(--ink2); }
+.pl-profile-summary { display:flex; gap:14px; align-items:flex-start; padding:20px 0; border-block:1px solid var(--hair); }
+.pl-profile-summary > div { display:grid; gap:7px; flex:1; min-width:0; }
+.pl-profile-summary strong { font-size:20px; }
+.pl-profile-summary span { color:var(--ink2); font-size:13px; overflow-wrap:anywhere; }
+.pl-profile-summary button { background:none; color:var(--alta); border:0; padding:8px; min-height:44px; cursor:pointer; }
+.pl-profile-error { color:#ffc1c4!important; background:#472531; padding:12px; border-radius:7px; font-size:13px; line-height:1.5; }
+.pl-profile-optional summary { cursor:pointer; padding:10px 0; font-size:13px; color:var(--ink2); }
+.pl-profile-optional label { margin-top:12px; }
+.pl-wall .pl-ed-save,.pl-wall .pl-ed-del { display:inline-flex; align-items:center; justify-content:center; gap:8px; }

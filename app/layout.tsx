@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import "./landing.css";
+import "./design-refresh.css";
 
 import { LegalNotice } from "@/components/legal-notice";
 import { PageTracker } from "@/components/page-tracker";

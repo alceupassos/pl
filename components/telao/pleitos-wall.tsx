@@ -9,10 +9,14 @@
 //
 // Querystring: ?int=20 (segundos por tela) &p=senador-sp|brasil (fixa) &uf=rj
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { MapPin, UserRound, Star, X, ArrowRight, Radio, Flag } from "lucide-react";
 
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+
+import { AmbientVideo } from "@/components/ambient-video";
 import { LoginScreen } from "@/components/login-screen";
 import { BrazilMap } from "@/components/telao/brazil-map";
+import { MiniMapaPleito } from "@/components/telao/mini-mapa-pleito";
 import { AtivacaoCandidatoModal } from "@/components/telao/ativacao-candidato";
 import { useOdometer } from "@/components/mobile/ui/odometer";
 import type {
@@ -1497,19 +1501,7 @@ type Cena = {
 
 /* ── wall ── */
 /* fundo: "skyline" de barras 3D em degradê (decorativo, alturas determinísticas) */
-const BG_BARS = Array.from({ length: 48 }, (_, i) => 18 + ((i * 37 + (i % 7) * 23) % 70));
 
-function Fundo3D() {
-  return (
-    <div className="pl-bg3d" aria-hidden>
-      <div className="pl-bg3d-floor">
-        {BG_BARS.map((h, i) => (
-          <span key={i} style={{ height: `${h}%`, animationDelay: `${-(i % 12) * 0.7}s` }} />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 const CENA_NOME: Record<Cena["tipo"], string> = {
   apuracao: "Apuração",
@@ -1523,54 +1515,6 @@ const CENA_NOME: Record<Cena["tipo"], string> = {
 };
 
 
-function EdgeScroller() {
-  const tRef = useRef<number>(0);
-
-  const startScroll = (dirX: number, dirY: number) => {
-    cancelAnimationFrame(tRef.current);
-    const loop = () => {
-      document.querySelectorAll(".pl-tabs, .pl-cenas, .pl-cols, .pl-prop, .pl-bc-grid, .pl-mun-list, .telao.pl-wall, .pl-body").forEach(el => {
-        if (dirX !== 0 && el.scrollWidth > el.clientWidth) {
-          el.scrollLeft += dirX * 12;
-        }
-        if (dirY !== 0 && el.scrollHeight > el.clientHeight) {
-          el.scrollTop += dirY * 12;
-        }
-      });
-      tRef.current = requestAnimationFrame(loop);
-    };
-    tRef.current = requestAnimationFrame(loop);
-  };
-  const stopScroll = () => cancelAnimationFrame(tRef.current);
-
-  useEffect(() => stopScroll, []);
-
-  return (
-    <>
-      <div 
-        onMouseEnter={() => startScroll(0, -1)} 
-        onMouseLeave={stopScroll}
-        style={{ position: 'fixed', left: '15%', right: '15%', top: 0, height: '60px', zIndex: 90, cursor: 'n-resize' }} 
-      />
-      <div 
-        onMouseEnter={() => startScroll(0, 1)} 
-        onMouseLeave={stopScroll}
-        style={{ position: 'fixed', left: '15%', right: '15%', bottom: 0, height: '60px', zIndex: 90, cursor: 's-resize' }} 
-      />
-      <div 
-        onMouseEnter={() => startScroll(-1, 0)} 
-        onMouseLeave={stopScroll}
-        style={{ position: 'fixed', left: 0, top: '15%', bottom: '15%', width: '80px', zIndex: 90, cursor: 'w-resize' }} 
-      />
-      <div 
-        onMouseEnter={() => startScroll(1, 0)} 
-        onMouseLeave={stopScroll}
-        style={{ position: 'fixed', right: 0, top: '15%', bottom: '15%', width: '80px', zIndex: 90, cursor: 'e-resize' }} 
-      />
-    </>
-  );
-}
-
 export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "tv" }: Props) {
   const mobile = variant === "mobile";
   const now = useNow(1000);
@@ -1583,13 +1527,14 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   const boca = useBoca();
   const pesquisas = useBoca("pesquisa");
   const noticias = useNoticias();
-  const toque = useRef(0);
+
   const [modo, setModo] = useState<Modo>("ambos");
   const [destaque, setDestaque] = useState<string[]>([]);
   const [escolhendo, setEscolhendo] = useState(false);
   const [ativando, setAtivando] = useState(false);
   const [authStatus, setAuthStatus] = useState<"checking" | "guest" | "authenticated">("checking");
   const [mapaAberto, setMapaAberto] = useState(true);
+  const regionDialogRef = useRef<HTMLElement>(null);
   const [precisaAtivar, setPrecisaAtivar] = useState(false);
 
   useEffect(() => {
@@ -1608,15 +1553,16 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
 
   // carregar pré-apuração da UF quando o usuário trocar para estado diferente de SP
   useEffect(() => {
-    if (uf === "sp") setPleitosUF(pleitosProps);
-    else
-      fetch(`/api/telao/candidatos?uf=${uf}`)
+    if (uf === "sp") return;
+    let cancelled = false;
+    fetch(`/api/telao/candidatos?uf=${uf}`)
         .then((r) => (r.ok ? r.json() : pleitosProps))
-        .then((d) => setPleitosUF(d))
-        .catch(() => setPleitosUF(pleitosProps));
+        .then((d) => { if (!cancelled) setPleitosUF(d); })
+        .catch(() => { if (!cancelled) setPleitosUF(pleitosProps); });
+    return () => { cancelled = true; };
   }, [uf, pleitosProps]);
 
-  const pleitos = pleitosUF;
+  const pleitos = uf === "sp" ? pleitosProps : pleitosUF;
 
   // partidos presentes nos pleitos (para o seletor), ordenados por nº de candidatos
   const partidos = useMemo(() => {
@@ -1626,9 +1572,10 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
     return [...cont.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([p]) => p);
   }, [pleitos]);
   const neonMap = useMemo(
-    () => new Map(destaque.map((p, i) => [p, NEON[i % NEON.length]])),
+    () => new Map(destaque.map((p) => [p, COR_PARTIDO[p] ?? "#facc15"])),
     [destaque],
   );
+  const [mostrarMiniMapa, setMostrarMiniMapa] = useState(false);
 
   // destaque inicial: ?destaque=PL,NOVO > último salvo > abre o seletor no início
   useEffect(() => {
@@ -1663,11 +1610,14 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   const [intervalo, setIntervalo] = useState(15_000);
   useEffect(() => {
     const usp = new URLSearchParams(window.location.search);
+    const timer = setTimeout(() => {
     setFixo(usp.get("p"));
     const i = parseInt(usp.get("int") || "", 10);
     if (i && i >= 5) setIntervalo(i * 1000);
     const m = usp.get("m");
     if (m === "boca" || m === "noticias") setModo(m);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const nCenas = modo === "boca" ? 2 : modo === "noticias" ? 1 : 4;
@@ -1712,7 +1662,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   // timer do carrossel (só roda se não houver um pleito fixo, ou se o fixo
   // tiver múltiplas cenas)
   useEffect(() => {
-    if (!cenas.length) return;
+    if (mobile || mapaAberto || escolhendo || ativando || !cenas.length) return;
     if (fixo && cenas.length <= 1) return;
     const t = setInterval(() => {
       setElapsed((e) => {
@@ -1725,7 +1675,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
       });
     }, 50);
     return () => clearInterval(t);
-  }, [intervalo, cenas.length, fixo, toque.current]);
+  }, [intervalo, cenas.length, fixo, mobile, mapaAberto, escolhendo, ativando]);
 
   const cena = cenas[idx] || { pi: 0, j: 0, tipo: "apuracao" };
   const p = pleitos[cena.pi] || pleitos[0];
@@ -1766,8 +1716,35 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
                 ? "APURAÇÃO AO VIVO"
                 : "PRÉ-APURAÇÃO";
 
-  // if (authStatus === "checking") return null;
-  // if (authStatus === "guest") return <LoginScreen onLogin={() => setAuthStatus("authenticated")} defaultOpen />;
+  useEffect(() => {
+    if (!mapaAberto || authStatus !== "authenticated") return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const dialog = regionDialogRef.current;
+    dialog?.querySelector<HTMLSelectElement>("select")?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMapaAberto(false);
+        if (precisaAtivar) setAtivando(true);
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button, select, [tabindex="0"]'));
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus();
+      else document.querySelector<HTMLButtonElement>(".pl-tabs button[aria-current='page']")?.focus();
+    };
+  }, [mapaAberto, authStatus, precisaAtivar]);
+
+  if (authStatus === "checking") return null;
+  if (authStatus === "guest") return <LoginScreen onLogin={() => setAuthStatus("authenticated")} defaultOpen />;
 
   const mudarEscopo = (novo: Escopo) => {
     setEscopo(novo);
@@ -1779,10 +1756,10 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
     <main
       className={`telao pl-wall ${mobile ? "pl-mobile" : ""} ${a ? "pl-status-apurando" : ""}`}
       style={mobile ? undefined : ({ "--pl-h": "100vh" } as React.CSSProperties)}
-      onTouchStart={() => toque.current++}
+
     >
-      <Fundo3D />
-      {!mobile && <EdgeScroller />}
+
+
       <header className="pl-head">
         <div className="pl-brand">
           <span className={`pl-live ${temResultado && a?.status !== "finalizado" ? "on" : ""}`} />
@@ -1794,11 +1771,12 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
             </h1>
           </div>
         </div>
-        <nav className="pl-tabs">
+        <nav className="pl-tabs" aria-label="Cargo eleitoral">
           {pleitos.map((pl, i) => (
             <button
               key={pl.id}
               className={i === cena.pi ? "on" : ""}
+              aria-current={i === cena.pi ? "page" : undefined}
               onClick={() => {
                 const j = cenas.findIndex((c) => c.pi === i);
                 if (j >= 0) setIdx(j);
@@ -1812,7 +1790,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
             </button>
           ))}
         </nav>
-        <nav className="pl-cenas">
+        <nav className="pl-cenas" aria-label="Visualização de resultados">
           {cenasDoPleito.map((c) => (
             <button
               key={c.tipo}
@@ -1846,20 +1824,61 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
           onClick={() => setAtivando(true)}
           title="Ativação diária do perfil do candidato e push de resultados"
         >
-          👤 Candidato
+          <UserRound size={16} aria-hidden /> Candidato
+        </button>
+        <div className="pl-partido-quick-select" title="Escolha rápida de partido para destacar candidatos">
+          <i style={{ width: 10, height: 10, borderRadius: "50%", background: destaque[0] ? (COR_PARTIDO[destaque[0]] ?? "#fff") : "#64748b", display: "inline-block" }} />
+          <select
+            className="pl-partido-select-native"
+            value={destaque[0] ?? ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              const novo = val ? [val] : [];
+              setDestaque(novo);
+              try {
+                localStorage.setItem("telao-pleitos-destaque", JSON.stringify(novo));
+              } catch {}
+            }}
+          >
+            <option value="">Partido (todos)</option>
+            {partidos.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          className={`pl-filtro-btn pl-dest-btn ${mostrarMiniMapa ? "on" : ""}`}
+          onClick={() => setMostrarMiniMapa((v) => !v)}
+          title="Ver mapa de andamento do pleito por estado e cargo"
+        >
+          <Flag size={16} aria-hidden /> Andamento
         </button>
         <button
           className={`pl-filtro-btn pl-dest-btn ${destaque.length ? "on" : ""}`}
           onClick={() => setEscolhendo(true)}
           title="Partidos em destaque (neon)"
         >
-          ★ {destaque.length ? destaque.join(" · ") : "Destaque"}
+          <Star size={16} aria-hidden /> {destaque.length ? destaque.join(" · ") : "Destaque"}
         </button>
         <SeletorUF uf={uf} onClick={() => setMapaAberto(true)} />
         <FiltroLocal escopo={escopo} onChange={mudarEscopo} municipios={municipios} uf={uf} />
         <Contagem now={now} />
         <div className="pl-clock tl-mono">{hora}</div>
       </header>
+
+      {mostrarMiniMapa && (
+        <div style={{ padding: "0 2rem" }}>
+          <MiniMapaPleito
+            ufSel={uf}
+            onSelectUf={(u) => {
+              setUf(u);
+              setEscopo({});
+            }}
+          />
+        </div>
+      )}
 
       <div className="pl-body" key={`${p.id}-${cena.tipo}`}>
         <Andamento ap={a} now={now} />
@@ -1932,33 +1951,37 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
           </div>
         </div>
         <div className="pl-src">
-          Fonte: TSE resultados.tse.jus.br (atualiza a cada 5 min) · notícias via Google News{ehBoca ? " · boca de urna: instituto indicado" : ""} · candidatos {meta.fonte} ({meta.atualizado}) · ← → troca · espaço fixa
+          <b style={{ color: "#facc15" }}>USO ESTRITAMENTE INTERNO PARTIDÁRIO</b> · Não aberto ao público · Dados oficiais: TSE resultados.tse.jus.br (atualiza a cada 5 min) · Mídias sintéticas rotuladas conforme Resoluções TSE nº 23.610/2019 e 23.755/2026 · notícias via Google News{ehBoca ? " · boca de urna: instituto indicado" : ""} · candidatos {meta.fonte} ({meta.atualizado}) · ← → troca · espaço fixa
         </div>
       </footer>
       <a className="pl-assina" href="https://angra.io" target="_blank" rel="noreferrer">
         by ALCEU PASSOS (angra.io)
       </a>
-      {escolhendo && (
+      {escolhendo && !mapaAberto && !ativando && (
         <SeletorDestaque partidos={partidos} sel={destaque} onChange={setDestaque} onClose={fecharSeletor} />
       )}
       {mapaAberto && (
-        <div className="pl-dest-ov" style={{ zIndex: 100 }}>
-          <div className="pl-dest-box" style={{ width: "min(600px, 90vw)", padding: "2rem" }}>
-            <div className="pl-kicker">SELECIONE O ESTADO</div>
-            <h2>Qual estado você quer acompanhar?</h2>
-            <div style={{ maxWidth: 400, margin: "2rem auto" }}>
-              <BrazilMap uf={uf} onSelect={(u) => { 
-                setUf(u); 
-                setEscopo({}); 
-                setMapaAberto(false); 
-                if (precisaAtivar) setAtivando(true); 
-              }} />
+        <div className="pl-region-overlay" role="dialog" aria-modal="true" aria-labelledby="region-title">
+          <section className="pl-region-dialog" ref={regionDialogRef}>
+            <div className="pl-region-photo">
+              <AmbientVideo />
+              <div><Radio size={28} /><h2>O Brasil decide.<br />Você acompanha.</h2><p>Presidente, governadores e casas legislativas em uma central de apuração.</p><small>Imagem ilustrativa gerada por IA</small></div>
             </div>
-          </div>
+            <div className="pl-region-content">
+              <button type="button" className="pl-region-close" aria-label="Continuar com o estado atual" onClick={() => { setMapaAberto(false); if (precisaAtivar) setAtivando(true); }}><X size={22} /></button>
+              <h2 id="region-title">Sua eleição,<br /><span>mais perto.</span></h2>
+              <p>Escolha o estado para acompanhar candidatos e resultados. Você pode trocar a região a qualquer momento.</p>
+              <div className="pl-region-map"><BrazilMap uf={uf} onSelect={(u) => { setUf(u); }} /></div>
+              <label htmlFor="region-select"><MapPin size={16} /> Estado que deseja acompanhar</label>
+              <select id="region-select" value={uf} onChange={(event) => setUf(event.target.value)}>{[...UFS].sort((a,b) => UF_NOME[a].localeCompare(UF_NOME[b], "pt-BR")).map((u) => <option key={u} value={u}>{UF_NOME[u]}</option>)}</select>
+              <button type="button" className="pl-region-continue" onClick={() => { setEscopo({}); setMapaAberto(false); if (precisaAtivar) setAtivando(true); }}>Acompanhar {UF_NOME[uf]} <ArrowRight size={18} /></button>
+              <small>Dados e horários sujeitos à atualização das fontes. Consulte os canais oficiais do TSE.</small>
+            </div>
+          </section>
         </div>
       )}
       {ativando && (
-        <AtivacaoCandidatoModal onClose={() => { setAtivando(false); setPrecisaAtivar(false); }} />
+        <AtivacaoCandidatoModal initialUf={uf} required={precisaAtivar} onSaved={() => { setPrecisaAtivar(false); setAtivando(false); }} onClose={() => setAtivando(false)} />
       )}
     </main>
     </NeonCtx.Provider>

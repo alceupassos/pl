@@ -6,13 +6,11 @@ export function WebCommandHeader() {
   return (
     <header className="web-command-header">
       <div className="web-command-header-main">
-        <p className="web-command-kicker">Command Center</p>
         <h2 className="web-command-title">
-          Cockpit operacional <span>{version}</span>
+          Visão de comando <span>{version}</span>
         </h2>
         <p className="web-command-sub">
-          Visão desktop espelhando a lógica do mobile: índice, cadastro, concorrentes, redes e
-          plenário — sem remover nenhuma seção existente.
+          Acompanhe o cenário, organize prioridades e conduza a operação da campanha.
         </p>
       </div>
       <div className="web-command-actions">

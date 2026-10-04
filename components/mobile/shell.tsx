@@ -25,6 +25,8 @@ import {
   Settings2,
   Users,
   Wallet,
+  Grid2X2,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,7 +34,6 @@ import { useLiveChannel } from "@/components/mobile/live/use-live";
 import { TAB_IDS, type TabId } from "@/components/mobile/tabs";
 import { LiveBadge } from "@/components/mobile/ui/live-badge";
 import { OnboardingModal } from "@/components/mobile/ui/onboarding-modal";
-import { CADASTRO_LIVRE } from "@/lib/cadastro-gate";
 import { logClientAccess } from "@/lib/log-client-access";
 import type { PlenarioState } from "@/lib/live-schemas";
 
@@ -89,7 +90,7 @@ const TABS: {
   Icon: typeof Activity;
   Component: React.ComponentType;
 }[] = [
-  { id: "ticker", label: "Ticker", Icon: Activity, Component: TickerTab },
+  { id: "ticker", label: "Resumo", Icon: Activity, Component: TickerTab },
   { id: "redes", label: "Redes", Icon: RadioTower, Component: RedesTab },
   { id: "plenario", label: "Plenário", Icon: Landmark, Component: PlenarioTab },
   { id: "rio", label: "Rio", Icon: MapIcon, Component: RioTab },
@@ -115,6 +116,7 @@ const TABS: {
 export function MobileShell({ initialTab }: { initialTab: TabId }) {
   const initialIndex = Math.max(0, TAB_IDS.indexOf(initialTab));
   const [index, setIndex] = useState(initialIndex);
+  const [modulesOpen, setModulesOpen] = useState(false);
   const [visited, setVisited] = useState<ReadonlySet<number>>(
     () => new Set([initialIndex]),
   );
@@ -154,6 +156,16 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
       ]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [index]);
 
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      el.scrollTo({ left: index * el.clientWidth, behavior: "instant" });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [index]);
+
   const prevTabIndex = useRef(index);
   useEffect(() => {
     if (prevTabIndex.current === index) return;
@@ -170,6 +182,7 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
     const next = Math.max(0, Math.min(TABS.length - 1, i));
     setVisited((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
     setIndex(next);
+    setModulesOpen(false);
   }, []);
 
   // sincroniza o índice com o scroll nativo (coalescido por rAF)
@@ -244,15 +257,15 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
 
   return (
     <>
-      {!CADASTRO_LIVRE && !registered && (
+      {!registered && (
         <OnboardingModal onComplete={() => setRegistered(true)} />
       )}
       <header className="m-header">
         <div className="m-header-brand">
-          COCKPIT <span style={{ color: "var(--m-up)" }}>ELEITORAL 2026</span>
+          Cockpit <span style={{ color: "var(--m-up)" }}>2026</span>
           {/* carimbo de versão visível — diagnóstico de cache no aparelho.
               O minor sobe sozinho a cada build (ver next.config.ts). */}
-          <small style={{ fontSize: 7.5 }}>
+          <small style={{ fontSize: 10 }}>
             SÓSTENES CAVALCANTE · {process.env.NEXT_PUBLIC_APP_VERSION ?? "v4"}
           </small>
         </div>
@@ -296,8 +309,8 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
         </div>
       </div>
 
-      <nav className="m-tabbar" aria-label="Abas do cockpit" ref={tabbarRef}>
-        {TABS.map((tab, i) => (
+      <nav className="m-tabbar m-primary-nav" aria-label="Abas do cockpit" ref={tabbarRef}>
+        {TABS.slice(0, 4).map((tab, i) => (
           <button
             key={tab.id}
             type="button"
@@ -312,7 +325,9 @@ export function MobileShell({ initialTab }: { initialTab: TabId }) {
             <span>{tab.label}</span>
           </button>
         ))}
+        <button type="button" className={`m-tab ${index >= 4 || modulesOpen ? "active" : ""}`} aria-expanded={modulesOpen} aria-controls="mobile-modules" onClick={() => setModulesOpen((open) => !open)}><Grid2X2 aria-hidden /><span>Mais</span></button>
       </nav>
+      {modulesOpen && <div className="m-module-overlay"><button className="m-module-backdrop" type="button" aria-label="Fechar módulos" onClick={() => setModulesOpen(false)} /><section className="m-module-menu" id="mobile-modules" aria-label="Todos os módulos"><header><h2>Seus módulos</h2><button type="button" aria-label="Fechar módulos" onClick={() => setModulesOpen(false)}><X size={22} /></button></header><div>{TABS.slice(4).map((tab, offset) => <button type="button" key={tab.id} aria-current={index === offset + 4 ? "page" : undefined} onClick={() => onTabClick(offset + 4)}><tab.Icon size={22} aria-hidden /><span>{tab.label === "Oportun." ? "Oportunidades" : tab.label}</span></button>)}<Link href="/m/config"><Settings2 size={22} /><span>Configurações</span></Link></div></section></div>}
     </>
   );
 }

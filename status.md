@@ -1,6 +1,6 @@
 # Plano de Execução & Status do Sistema — Eleições 2026
 
-> Última atualização: **2026-10-04T05:46:30-03:00**
+> Última atualização: **2026-10-04T06:45:00-03:00** — Executado no **Gemini 3.8 Flash**
 
 ---
 
@@ -18,25 +18,74 @@
 | `[x]` | **8. Ativação Diária do Candidato** | Formulário 1x/dia com Nome, Email, WhatsApp, Número, Cargo, UF e Território. | [candidato-push.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/candidato-push.ts), [route.ts](file:///Users/alceupassos/angra/sostenes/app/api/candidato/perfil/route.ts), [ativacao-candidato.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/ativacao-candidato.tsx) |
 | `[x]` | **9. Push de Resultados ao Vivo** | Disparo de notificações WebPush + WhatsApp sempre que a apuração atualizar a posição. | [candidato-push.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/candidato-push.ts) |
 | `[x]` | **10. Validação TypeScript** | Checagem compilada sem nenhum erro (`tsc --noEmit` exit code 0). | — |
-| `[x]` | **11. Disclaimer de Tempo Real** | Aviso legal atualizado deixando claro que os dados não substituem fontes oficiais em tempo real (atualizado no VPS 169). | [legal-text.ts](file:///Users/alceupassos/angra/sostenes/lib/legal-text.ts) |
-| `[x]` | **12. Mapa Visual SVG Interativo** | Trocar o seletor de estados (grid) por um Mapa do Brasil clicável (SVG) com efeito de relevo, exibição de candidatos no hover e sobreposição inicial na tela. | [brazil-map.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/brazil-map.tsx), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
-| `[x]` | **13. Bloqueio Inicial em pl.angra.io** | Telão e mobile (/c) iniciam sobrepostos pelo Mapa e exigem login/ativação. Mobile redireciona automaticamente e também exige cadastro único e login. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [campaign-cockpit.tsx](file:///Users/alceupassos/angra/sostenes/components/campaign-cockpit.tsx) |
-| `[x]` | **14. UX Premium de Login & Scroll Lateral** | Redesign do Glassmorphism no cadastro e modal de acesso. Adicionado `EdgeScroller` para arrasto de mouse nas bordas da tela. | [landing.css](file:///Users/alceupassos/angra/sostenes/app/landing.css), [globals.css](file:///Users/alceupassos/angra/sostenes/app/globals.css) |
-| `[x]` | **15. Inteligência de Ordenação e UX Visual** | Vitrine alterada para ordenar por Ordem Alfabética antes da apuração, e por Status de "Eleito" depois. Adicionadas rolagem Vertical no EdgeScroller. Lente de notícias ajustada para *dark milk* e blur. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
-| `[x]` | **16. Deploy em Produção** | Commit integral e implantação feita no servidor `169.58.71.28` (`/opt/pl`). Build executado via Turbopack e PM2 recarregado. | — |
+| `[x]` | **11. Disclaimer TSE & Uso Interno** | Aviso legal atualizado: uso restrito interno de partidos políticos + conformidade com resoluções do TSE sobre IA (Res. 23.610/2019 e 23.755/2026). | [legal-text.ts](file:///Users/alceupassos/angra/sostenes/lib/legal-text.ts), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
+| `[x]` | **12. Mapa do Brasil Colorido & Hover Clicado** | Mapa SVG do Brasil colorido com paleta viva por regiões, efeito luminoso `:hover` e `.on` idênticos ao clique, seleção imediata de estado ao clicar. | [brazil-map.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/brazil-map.tsx) |
+| `[x]` | **13. Domínio Espelho politica.angra.io** | Configurado Nginx com proxy_pass porta 3080 e certificado SSL HTTPS emitido via Certbot no servidor `169.58.71.28`. | `/etc/nginx/sites-available/politica.angra.io` |
+| `[x]` | **14. Menu de Escolha de Partido & Cores** | Seletor rápido de partidos no Header e modal de destaque, com cores oficiais de cada agremiação (`COR_PARTIDO`) refletidas nos candidatos. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
+| `[x]` | **15. Mini Mapa de Andamento por Cargo & UF** | Componente interativo com seletor de cargo (Presidente, Governador, Senado, Dep. Federal, Dep. Estadual), % de urnas apuradas por estado, escala de calor e clique para troca rápida de UF. | [mini-mapa-pleito.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/mini-mapa-pleito.tsx), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
+| `[x]` | **16. Deploy em Produção** | Sincronização e publicação no servidor `169.58.71.28` (`/opt/pl`), build verificado e recarga do PM2 `pl`. | — |
 
 ---
 
-## ⏸️ Como Continuar Após Atualizar a IDE
+## 🚀 Implementações Realizadas Nesta Etapa
 
-### 1. Continuar o Download das Fotos do TSE (pula as fotos já salvas):
-```bash
-node scripts/baixar-fotos-tse.mjs todas
-```
+### 1. Mapa do Brasil Colorido e Interativo
+- **Cores por Estado/Região**: Cada UF recebeu uma coloração temática harmoniosa (Norte em tons esmeralda/turquesa, Nordeste em tons quentes âmbar/laranja/coral, Centro-Oeste em tons dourados/oliva, Sudeste em azul e cobalto, Sul em tons violeta e púrpura).
+- **Hover Idêntico ao Clicado**: Ao passar o cursor, o estado recebe borda amarela brilhante (`stroke: #facc15`, `stroke-width: 3.5`), preenchimento branco com `drop-shadow` intenso e elevação, simulando instantaneamente o estado selecionado.
+- **Seleção Direta**: Ao clicar em qualquer estado, a UF é selecionada e a apuração carrega os dados locais.
 
-### 2. Iniciar a Aplicação Localmente:
+### 2. Cópia Ativa em `politica.angra.io`
+- Criada configuração dedicada em `/etc/nginx/sites-available/politica.angra.io` no servidor `169.58.71.28`.
+- Emitido certificado SSL Let's Encrypt para `politica.angra.io` com redirecionamento HTTPS automático.
+- Resposta `HTTP/2 200` validada para ambos os domínios: `https://pl.angra.io` e `https://politica.angra.io`.
+
+### 3. Menu de Partido e Cores Oficiais
+- **Seletor Rápido no Header**: Dropdown nativo estilizado no topo do telão para troca instantânea de partido de foco.
+- **Cor Oficial do Partido**: Substituída a paleta genérica para usar a cor oficial de cada legenda (`COR_PARTIDO`), como PL (`#1f5fbf`), PT (`#e2252b`), NOVO (`#f26522`), Republicanos (`#2a7de1`), PSD (`#f2a900`), etc.
+- Os nomes dos candidatos e indicadores passam a irradiar a cor do partido selecionado.
+
+### 4. Mini Mapa de Andamento do Pleito por Estado e Cargo
+- Criado o componente [mini-mapa-pleito.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/mini-mapa-pleito.tsx).
+- Alternância entre 5 cargos: **Presidente**, **Governador**, **Senado**, **Deputado Federal** e **Deputado Estadual**.
+- Escala de calor visual por % de urnas apuradas:
+  - `0%`: Cinza escuro (aguardando início)
+  - `1-50%`: Azul / ciano (apuração inicial)
+  - `51-85%`: Âmbar / amarelo dourado (apuração avançada)
+  - `86-99%`: Laranja (reta final)
+  - `100%`: Verde esmeralda (totalização concluída)
+- Tooltip com líder parcial e clique no badge do estado para navegar diretamente até ele.
+
+### 5. Disclaimer Legal do TSE e Uso Interno Partidário
+- Atualizado em [legal-text.ts](file:///Users/alceupassos/angra/sostenes/lib/legal-text.ts) e no rodapé do telão:
+  - **Uso Estritamente Interno**: Indicação expressa de que o sistema é de uso confidencial e exclusivo de diretórios partidários, não aberto ao público em geral.
+  - **Norma do TSE sobre IA**: Menção explícita às Resoluções TSE nº 23.610/2019 e 23.755/2026, com rotulagem de mídias sintéticas para fins analíticos internos e fonte oficial de apuração do TSE.
+
+---
+
+## 📋 Instruções do que Falta Fazer para Terminar no Gemini 3.8 Flash
+
+1. **Download Contínuo de Fotos Oficiais TSE**:
+   - Manter rodando o script de fotos para garantir 100% dos candidatos em cache local:
+   ```bash
+   node scripts/baixar-fotos-tse.mjs todas
+   ```
+2. **Monitoramento do Horário de Fechamento das Urnas (17h00)**:
+   - Às 17h00 (horário de Brasília), o telão transita automaticamente de contagem regressiva para polling contínuo da API do TSE.
+   - Testar chamadas em `/api/telao/apuracao?p=presidente&uf=br` e `/api/telao/nacional`.
+3. **Verificação de Novos Partidos**:
+   - Caso novas agremiações necessitem de cores personalizadas, registrar no mapa `COR_PARTIDO` em `components/telao/pleitos-wall.tsx`.
+
+---
+
+## 🛠️ Comandos Rápidos de Operação
+
+### Iniciar Localmente:
 ```bash
 npm run dev
 ```
 - **Central Mobile**: `http://localhost:3000/c`
 - **Telão de Pleitos TV**: `http://localhost:3000/telao/pleitos`
+
+### Produção:
+- **Telão TV**: `https://pl.angra.io/telao/pleitos` ou `https://politica.angra.io/telao/pleitos`
+- **Central Mobile**: `https://pl.angra.io/c` ou `https://politica.angra.io/c`

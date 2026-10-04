@@ -2578,3 +2578,128 @@
 .pl-mobile .pl-news-main {
   grid-column: auto;
 }
+
+/* ── Menu Rápido de Partido no Header ── */
+.pl-partido-quick-select {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  padding: 0.2rem 0.5rem;
+}
+.pl-partido-select-native {
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+.pl-partido-select-native option {
+  background: #0f172a;
+  color: #fff;
+}
+
+/* ── Mini Mapa de Andamento do Pleito ── */
+.mini-mapa-box {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.mini-mapa-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mini-mapa-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  color: var(--ouro);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.mini-mapa-cargos {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+.mini-cargo-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.mini-cargo-btn.on,
+.mini-cargo-btn:hover {
+  background: var(--ouro);
+  color: #000;
+  border-color: var(--ouro);
+  font-weight: 700;
+}
+.mini-mapa-grid-ufs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 0.35rem;
+}
+.mini-uf-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 0.25rem 0.1rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.mini-uf-badge:hover,
+.mini-uf-badge.hov,
+.mini-uf-badge.sel {
+  transform: translateY(-2px) scale(1.05);
+}
+.mini-uf-sigla {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #fff;
+}
+.mini-uf-pct {
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+.mini-mapa-legenda {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  font-size: 0.65rem;
+  color: var(--ink2);
+}
+.mini-mapa-legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.mini-mapa-legenda i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
