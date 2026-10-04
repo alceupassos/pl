@@ -60,9 +60,13 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${dmSans.variable} ${playfair.variable} ${sora.variable} ${jetbrains.variable}`}
+      className={`dark ${dmSans.variable} ${playfair.variable} ${sora.variable} ${jetbrains.variable}`}
+      style={{ colorScheme: "dark", backgroundColor: "#060a12" }}
     >
-      <body>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: `html,body{background-color:#070a12!important;background-image:linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 40%,rgba(2,6,23,0.6) 100%),repeating-linear-gradient(90deg,rgba(255,255,255,0.035) 0px,rgba(255,255,255,0.035) 2px,transparent 2px,transparent 32px),radial-gradient(ellipse 100% 70% at 50% -10%,rgba(56,189,248,0.12),transparent 70%)!important;background-attachment:fixed!important;color:#f1f5fa!important;color-scheme:dark!important;}` }} />
+      </head>
+      <body style={{ backgroundColor: "#070a12", color: "#f1f5fa" }}>
         {children}
         <PageTracker />
         <LegalNotice variant="page" />

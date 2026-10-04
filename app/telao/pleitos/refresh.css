@@ -1,5 +1,32 @@
 /* Apuração: typography, hierarchy and responsive controls. */
-.telao.pl-wall { --bg:#0c1523; --panel:#15253a; --hair:#2d3f55; --ink:#f1f5fa; --ink2:#acbdd0; --ink3:#9aadbf; --alta:#43d3a0; --baixa:#fb858c; --azul:#82b5ff; --roxo:#94b4d8; --ambar:#e6bb65; background:var(--bg); padding:24px; gap:20px; font-family:var(--font-dm-sans),system-ui,sans-serif; }
+.telao.pl-wall {
+  --bg: #070a12;
+  --panel: #15253a;
+  --hair: #2d3f55;
+  --ink: #f1f5fa;
+  --ink2: #acbdd0;
+  --ink3: #9aadbf;
+  --alta: #43d3a0;
+  --baixa: #fb858c;
+  --azul: #82b5ff;
+  --roxo: #94b4d8;
+  --ambar: #e6bb65;
+  background-color: #070a12;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(2, 6, 23, 0.6) 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 2px,
+      transparent 2px,
+      transparent 32px
+    ),
+    radial-gradient(ellipse 100% 70% at 50% -10%, rgba(56, 189, 248, 0.12), transparent 70%);
+  background-attachment: fixed;
+  padding: 24px;
+  gap: 20px;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
 .pl-wall::after,.pl-bg3d,.pl-lider-halo { display:none; }
 .pl-wall .pl-title { color:var(--ink); background:none; -webkit-text-fill-color:currentColor; animation:none; font-size:2em; line-height:1.15; letter-spacing:-.025em; font-weight:700; }
 .pl-wall .pl-kicker { color:var(--ink2); letter-spacing:.05em; line-height:1.5; font-size:.7em; }
@@ -19,28 +46,28 @@
 .pl-wall .pl-news-card h3 { color:var(--ink); line-height:1.4; }
 .pl-wall .pl-news-card p { color:var(--ink2); }
 .pl-wall .pl-neon { text-shadow:none; }
-.pl-region-overlay { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:24px; background:#0c1523; overflow-y:auto; }
-.pl-region-dialog { width:min(1060px,100%); display:grid; grid-template-columns:1fr 1fr; background:#f5f4ee; color:#152e42; border-radius:16px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.25); }
-.pl-region-photo { position:relative; min-height:640px; background:#152e42; }
+.pl-region-overlay { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(7,10,18,0.92); backdrop-filter:blur(8px); overflow-y:auto; }
+.pl-region-dialog { width:min(1060px,100%); display:grid; grid-template-columns:1fr 1fr; background:#101d2e; color:#f1f5fa; border:1px solid #2d3f55; border-radius:16px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.6); }
+.pl-region-photo { position:relative; min-height:640px; background:#070a12; }
 .pl-region-photo > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:55% center; }
 .pl-region-photo > div { position:absolute; inset:0; padding:38px; display:flex; flex-direction:column; justify-content:flex-end; background:linear-gradient(transparent 35%,rgba(6,20,30,.95)); color:#fff; }
 .pl-region-photo h2 { font-size:40px; line-height:1.12; letter-spacing:-.025em; margin:20px 0; font-weight:600; }
 .pl-region-photo p { font-size:15px; line-height:1.7; color:#d5e2e6; max-width:36ch; }
-.pl-region-photo small { color:#b2c6cc; font-size:10px; margin-top:28px; }
-.pl-region-content { position:relative; padding:36px 44px; }
-.pl-region-content h2 { font-size:38px; line-height:1.12; letter-spacing:-.025em; font-weight:600; margin:0 0 16px; }
-.pl-region-content h2 span { font-family:var(--font-playfair),Georgia,serif; font-style:italic; color:#24685e; }
-.pl-region-content > p { font-size:14px; line-height:1.7; color:#425c6e; max-width:45ch; }
+.pl-region-photo small { color:#94a3b8; font-size:10px; margin-top:28px; }
+.pl-region-content { position:relative; padding:36px 44px; background:#101d2e; }
+.pl-region-content h2 { font-size:38px; line-height:1.12; letter-spacing:-.025em; font-weight:600; margin:0 0 16px; color:#f1f5fa; }
+.pl-region-content h2 span { font-family:var(--font-playfair),Georgia,serif; font-style:italic; color:#43d3a0; }
+.pl-region-content > p { font-size:14px; line-height:1.7; color:#cbd5e1; max-width:45ch; }
 .pl-region-map { max-width:230px; margin:18px auto; }
-.pl-region-content label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; margin-bottom:8px; }
-.pl-region-content select { display:block; width:100%; min-height:48px; border:1px solid #bdccc4; border-radius:7px; padding:10px 14px; font-size:16px; color:#152e42; background:#fff; }
+.pl-region-content label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; margin-bottom:8px; color:#cbd5e1; }
+.pl-region-content select { display:block; width:100%; min-height:48px; border:1px solid #2d3f55; border-radius:7px; padding:10px 14px; font-size:16px; color:#f1f5fa; background:#15253a; }
 .pl-region-continue { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:50px; padding:14px 18px; margin:14px 0; color:#fff; background:#164c47; border:0; border-radius:7px; cursor:pointer; font-size:14px; font-weight:700; }
 .pl-region-continue:hover { background:#23675e; }
-.pl-region-content > small { display:block; font-size:11px; line-height:1.6; color:#536b7a; }
-.pl-region-close { position:absolute; right:12px; top:12px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; border:0; color:#425c6e; background:transparent; cursor:pointer; }
+.pl-region-content > small { display:block; font-size:11px; line-height:1.6; color:#94a3b8; }
+.pl-region-close { position:absolute; right:12px; top:12px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; border:0; color:#94a3b8; background:transparent; cursor:pointer; }
 .brazil-state-map { display:block; width:100%; height:auto; overflow:visible; filter:none!important; transform:none!important; }
-.brazil-state-map path { fill:#d8e4df; stroke:#f5f4ee; stroke-width:1.5; stroke-linejoin:round; vector-effect:non-scaling-stroke; cursor:pointer; transition:fill .15s; filter:none!important; transform:none!important; }
-.brazil-state-map path.on,.brazil-state-map path:hover,.brazil-state-map path:focus-visible { fill:#24685e; stroke:#f5f4ee; outline:none; }
+.brazil-state-map path { fill:#1c2c42; stroke:#101d2e; stroke-width:1.5; stroke-linejoin:round; vector-effect:non-scaling-stroke; cursor:pointer; transition:fill .15s; filter:none!important; transform:none!important; }
+.brazil-state-map path.on,.brazil-state-map path:hover,.brazil-state-map path:focus-visible { fill:#43d3a0; stroke:#101d2e; outline:none; }
 .pl-region-overlay .map-tooltip { display:none; }
 .pl-dest-ov { padding:20px; overflow-y:auto; background:rgba(5,15,27,.88); backdrop-filter:none; }
 .pl-dest-box { background:#15253a; border:1px solid #2d3f55; border-radius:12px; box-shadow:none; max-height:calc(100dvh - 40px); overflow-y:auto; }

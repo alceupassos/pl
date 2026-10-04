@@ -1719,7 +1719,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   const [escolhendo, setEscolhendo] = useState(false);
   const [ativando, setAtivando] = useState(false);
   const [authStatus, setAuthStatus] = useState<"checking" | "guest" | "authenticated">("checking");
-  const [mapaAberto, setMapaAberto] = useState(true);
+  const [mapaAberto, setMapaAberto] = useState(false);
   const regionDialogRef = useRef<HTMLElement>(null);
   const [precisaAtivar, setPrecisaAtivar] = useState(false);
 

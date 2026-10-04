@@ -469,23 +469,16 @@ export function CampaignCockpit() {
         />
         <div id="sidebar">
           <div className="logo-area">
-            <div className="logo-box">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="logo-img"
-                src="sostenesfundoescuro.png"
-                alt="Sostenes"
-              />
+            <div className="cockpit-brand-badge">
+              <div className="cockpit-brand-flag">
+                <span className="dot-green" />
+                <span className="dot-yellow" />
+                <span className="dot-blue" />
+              </div>
+              <div className="cockpit-brand-title">POLÍTICA</div>
+              <div className="cockpit-brand-sub">SALA DE COMANDO · 2026</div>
             </div>
-            <div className="logo-photo-frame">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="logo-photo"
-                src="sostenes10.png"
-                alt="Foto principal do candidato"
-              />
-            </div>
-            <div className="versao">Cockpit v3.0 · 2026</div>
+            <div className="versao">Cockpit v4.18 · Eleições 2026</div>
           </div>
 
           {navigationGroups.map((group) => (
