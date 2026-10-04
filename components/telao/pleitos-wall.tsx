@@ -1048,25 +1048,29 @@ function Majoritario({ ap, vagas, pesquisa }: { ap: Apuracao; vagas: number; pes
                 <Nome partido={c.partido} className="pl-row-nome">{titulo(c.nome)}</Nome>
                 <span className="pl-row-part" style={{ color: corPartido(c.partido) }}>{c.partido}</span>
                 <Badge c={c} />
-              </div>
-              <div className="pl-row-bar">
-                <div
-                  className="pl-row-fill"
-                  style={{ width: `${(c.pct / max) * 100}%`, background: corPartido(c.partido), ["--c" as string]: corPartido(c.partido) }}
-                />
-              </div>
-              {pq !== undefined && (
-                <div className="pl-row-pesq" title={`Pesquisa: ${pctf(pq, 1)}%`}>
-                  <i style={{ width: `${(pq / max) * 100}%`, ["--c" as string]: corPartido(c.partido) }} />
-                  <span className="tl-mono">
+                {pq !== undefined && (
+                  <span className="pl-row-pesq-txt tl-mono" title={`Pesquisa: ${pctf(pq, 1)}%`}>
                     pesq. {pctf(pq, 1)}%{" "}
                     <b className={c.pct - pq >= 0 ? "pl-dif-mais" : "pl-dif-menos"}>
                       {c.pct - pq >= 0 ? "+" : "−"}
                       {pctf(Math.abs(c.pct - pq), 1)}
                     </b>
                   </span>
-                </div>
-              )}
+                )}
+              </div>
+              <div className="pl-row-bar">
+                <div
+                  className="pl-row-fill"
+                  style={{ width: `${(c.pct / max) * 100}%`, background: corPartido(c.partido), ["--c" as string]: corPartido(c.partido) }}
+                />
+                {pq !== undefined && (
+                  <i
+                    className="pl-row-pesq"
+                    aria-hidden
+                    style={{ width: `${(pq / max) * 100}%`, ["--c" as string]: corPartido(c.partido) }}
+                  />
+                )}
+              </div>
             </div>
             <div className="pl-row-num">
               <Pct v={c.pct} className="pl-row-pct" />
