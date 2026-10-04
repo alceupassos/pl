@@ -3,13 +3,18 @@
 // Lista completa de notícias (/telao/notícias). Segue o tema do telão:
 // claro "wood" (padrão) ou escuro, salvo em localStorage "telao-tema".
 
-import { ArrowLeft, Moon, Sun } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { ArrowLeft, Moon, RefreshCw, Sun } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { Noticia } from "@/lib/telao/noticias";
 
 type Tema = "wood" | "escuro";
 const EVENTO_TEMA = "telao-tema";
+const ATUALIZA_MS = 10 * 60_000; // busca novas notícias a cada 10 min
+const MAX_NOTICIAS = 400;
+
+const hhmm = (t: number) =>
+  new Date(t).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 
 const normalize = (s: string) =>
   s
@@ -43,15 +48,68 @@ export function NewsList({ news }: { news: Noticia[] }) {
   const [fonte, setFonte] = useState("");
   const tema = useSyncExternalStore(assinarTema, lerTema, () => "wood" as Tema);
 
+  // lista viva: começa com o que veio do servidor e recebe as novas no topo
+  const [lista, setLista] = useState<Noticia[]>(news);
+  const [novas, setNovas] = useState<Set<string>>(() => new Set());
+  const [estado, setEstado] = useState<{ em: number; buscando: boolean; erro: boolean; ultimas: number }>({
+    em: 0,
+    buscando: false,
+    erro: false,
+    ultimas: 0,
+  });
+  const ultimaBusca = useRef(0);
+  const listaRef = useRef(lista);
+  useEffect(() => {
+    listaRef.current = lista;
+  }, [lista]);
+
+  const atualizar = useCallback(async () => {
+    setEstado((e) => ({ ...e, buscando: true }));
+    try {
+      const r = await fetch("/api/telao/noticias", { cache: "no-store", credentials: "include" });
+      if (!r.ok) throw new Error(String(r.status));
+      const chegaram = (await r.json()) as Noticia[];
+      ultimaBusca.current = Date.now();
+      const atual = listaRef.current;
+      const links = new Set(atual.map((n) => n.link));
+      const titulos = new Set(atual.map((n) => normalize(n.titulo)));
+      const ineditas = chegaram.filter((n) => !links.has(n.link) && !titulos.has(normalize(n.titulo)));
+      if (ineditas.length) {
+        setLista((prev) => {
+          const ja = new Set(prev.map((n) => n.link));
+          return [...ineditas.filter((n) => !ja.has(n.link)), ...prev].sort((x, y) => y.t - x.t).slice(0, MAX_NOTICIAS);
+        });
+      }
+      setNovas(new Set(ineditas.map((n) => n.link)));
+      setEstado({ em: Date.now(), buscando: false, erro: false, ultimas: ineditas.length });
+    } catch {
+      setEstado((e) => ({ ...e, buscando: false, erro: true }));
+    }
+  }, []);
+
+  useEffect(() => {
+    ultimaBusca.current = Date.now();
+    const id = setInterval(atualizar, ATUALIZA_MS);
+    // aba volta ao primeiro plano depois de muito tempo: busca na hora
+    const aoVoltar = () => {
+      if (document.visibilityState === "visible" && Date.now() - ultimaBusca.current >= ATUALIZA_MS) void atualizar();
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
+  }, [atualizar]);
+
   const unicas = useMemo(() => {
     const seen = new Set<string>();
-    return news.filter((n) => {
+    return lista.filter((n) => {
       const key = normalize(n.titulo);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [news]);
+  }, [lista]);
 
   const fontes = useMemo(() => {
     const m = new Map<string, { cor: string; n: number }>();
@@ -121,16 +179,36 @@ export function NewsList({ news }: { news: Noticia[] }) {
             ))}
           </nav>
         )}
-        <p className="news-count" aria-live="polite">
-          {items.length} {items.length === 1 ? "notícia" : "notícias"} · mais recentes primeiro
-        </p>
+        <div className="news-count">
+          <p aria-live="polite">
+            {items.length} {items.length === 1 ? "notícia" : "notícias"} · mais recentes primeiro
+            {estado.em > 0 && (
+              <>
+                {" · "}
+                {estado.ultimas > 0 ? (
+                  <b className="news-novas-txt">
+                    {estado.ultimas} {estado.ultimas === 1 ? "nova" : "novas"} às {hhmm(estado.em)}
+                  </b>
+                ) : (
+                  `sem novidades às ${hhmm(estado.em)}`
+                )}
+              </>
+            )}
+            {estado.erro && " · falha ao atualizar, nova tentativa em 10 min"}
+          </p>
+          <button type="button" className="news-atualizar" onClick={() => void atualizar()} disabled={estado.buscando}>
+            <RefreshCw size={14} aria-hidden className={estado.buscando ? "girando" : ""} />
+            {estado.buscando ? "Atualizando…" : "Atualizar agora"}
+          </button>
+        </div>
       </div>
 
       <div className="news-list">
         {items.map((n) => (
-          <article key={n.link} style={{ ["--c" as string]: n.cor }}>
+          <article key={n.link} className={novas.has(n.link) ? "news-nova" : ""} style={{ ["--c" as string]: n.cor }}>
             <div className="news-meta">
               <span className="news-fonte">{n.nome}</span>
+              {novas.has(n.link) && <span className="news-tag-nova">Nova</span>}
               {n.t > 0 && (
                 <time dateTime={new Date(n.t).toISOString()}>
                   {new Date(n.t).toLocaleString("pt-BR", {
@@ -156,7 +234,8 @@ export function NewsList({ news }: { news: Noticia[] }) {
         <p className="news-empty">Nenhuma notícia disponível para esta busca. Tente outro nome ou assunto.</p>
       )}
       <footer>
-        Coleta automática de RSS públicos, com cache de até 5 minutos e janela de 12 horas. A disponibilidade
+        Coleta automática de RSS públicos a cada 10 minutos (as novas entram no topo), com cache de até 5
+        minutos e janela de 12 horas. A disponibilidade
         depende dos veículos; a lista não representa cobertura completa de cada cargo.
       </footer>
     </main>

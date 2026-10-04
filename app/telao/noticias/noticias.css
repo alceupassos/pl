@@ -8,6 +8,7 @@
   --ink2: #5c4430;
   --ink3: #7a6149;
   --acento: #9a5b0b;
+  --novo: #1b7047;
   --campo: #fffdf8;
   --veio: rgba(150, 98, 48, 0.085);
   --vidro-luz: rgba(255, 255, 255, 0.9);
@@ -22,6 +23,7 @@
   --ink2: #acbdd0;
   --ink3: #9aadbf;
   --acento: #e6bb65;
+  --novo: #2f9e6c;
   --campo: #15253a;
   --veio: rgba(255, 255, 255, 0.035);
   --vidro-luz: rgba(255, 255, 255, 0.1);
@@ -163,7 +165,46 @@ html:has(.news-page[data-tema="escuro"]) body {
 .news-fontes small { font-weight: 600; opacity: 0.65; font-variant-numeric: tabular-nums; }
 .news-fontes button.on { background: var(--ink); border-color: var(--ink); color: var(--papel); }
 .news-fontes button.on i { box-shadow: 0 0 0 2px var(--papel); }
-.news-count { margin: 12px 0 0; font-size: 12px; color: var(--ink3); }
+.news-count { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 12px; font-size: 12px; color: var(--ink3); }
+.news-count p { margin: 0; }
+.news-novas-txt { color: var(--novo); font-weight: 700; }
+.news-atualizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--hair);
+  background: var(--papel);
+  color: var(--ink2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.news-atualizar:hover:not(:disabled) { color: var(--ink); }
+.news-atualizar:disabled { opacity: 0.6; cursor: progress; }
+.news-atualizar .girando { animation: news-gira 0.9s linear infinite; }
+@keyframes news-gira { to { transform: rotate(360deg); } }
+.news-tag-nova {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--novo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.news-list article.news-nova {
+  border-color: color-mix(in oklab, var(--novo) 55%, transparent);
+  animation: news-entra 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes news-entra { from { opacity: 0; transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .news-list article.news-nova, .news-atualizar .girando { animation: none; }
+}
 
 .news-list { display: grid; gap: 12px; margin-top: 8px; }
 .news-list article {
