@@ -66,7 +66,7 @@ export function NewsList({ news }: { news: Noticia[] }) {
   const atualizar = useCallback(async () => {
     setEstado((e) => ({ ...e, buscando: true }));
     try {
-      const r = await fetch("/api/telao/noticias", { cache: "no-store", credentials: "include" });
+      const r = await fetch("/api/telao/noticias?todas=1", { cache: "no-store", credentials: "include" });
       if (!r.ok) throw new Error(String(r.status));
       const chegaram = (await r.json()) as Noticia[];
       ultimaBusca.current = Date.now();
@@ -235,7 +235,7 @@ export function NewsList({ news }: { news: Noticia[] }) {
       )}
       <footer>
         Coleta automática de RSS públicos a cada 10 minutos (as novas entram no topo), com cache de até 5
-        minutos e janela de 12 horas. A disponibilidade
+        minutos e janela de 24 horas. A disponibilidade
         depende dos veículos; a lista não representa cobertura completa de cada cargo.
       </footer>
     </main>

@@ -1,4 +1,4 @@
-import { getNoticias } from "@/lib/telao/noticias";
+import { NOTICIAS_TODAS, getNoticias } from "@/lib/telao/noticias";
 import { NewsList } from "@/components/telao/news-list";
 
 import "./noticias.css";
@@ -15,7 +15,7 @@ export default async function NoticiasPage() {
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: TEMA_JS }} />
-      <NewsList news={await getNoticias()} />
+      <NewsList news={await getNoticias(NOTICIAS_TODAS)} />
     </>
   );
 }

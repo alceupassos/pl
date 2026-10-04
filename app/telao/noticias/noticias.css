@@ -31,6 +31,18 @@
   color-scheme: dark;
 }
 
+/* globals.css trava html/body (overflow hidden, height 100%) para o cockpit: aqui a página rola */
+html:has(.news-page) {
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+html:has(.news-page) body {
+  height: auto !important;
+  min-height: 100%;
+  overflow: visible !important;
+}
+
 /* página inteira (inclusive antes da hidratação, via data-tema no <html>) */
 html[data-tema="wood"]:has(.news-page),
 html[data-tema="wood"]:has(.news-page) body,
@@ -123,7 +135,8 @@ html:has(.news-page[data-tema="escuro"]) body {
   top: 0;
   z-index: 2;
   padding: 18px 0 12px;
-  background: linear-gradient(180deg, var(--bg) 80%, transparent);
+  background: var(--bg);
+  border-bottom: 1px solid var(--hair);
 }
 .news-search { display: grid; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink2); }
 .news-search input {
@@ -241,6 +254,7 @@ html:has(.news-page[data-tema="escuro"]) body {
 @media (max-width: 767px) {
   .news-page { padding: 20px 16px 160px; }
   .news-top { margin-bottom: 20px; }
+  .news-ferramentas { position: static; border-bottom: 0; }
   .news-fontes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
   .news-fontes::-webkit-scrollbar { display: none; }
   .news-fontes button { flex: none; }

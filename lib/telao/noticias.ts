@@ -4,7 +4,7 @@
 
 import { XMLParser } from "fast-xml-parser";
 
-export type Veiculo = { id: string; nome: string; site: string; cor: string; rss?: string; geral?: boolean };
+export type Veiculo = { id: string; nome: string; site: string; cor: string; rss?: string; geral?: boolean; q?: string };
 
 export const VEICULOS: Veiculo[] = [
   { id: "folha", nome: "FOLHA", site: "folha.uol.com.br", cor: "#2b6cb0", rss: "https://feeds.folha.uol.com.br/poder/rss091.xml" },
@@ -18,7 +18,18 @@ export const VEICULOS: Veiculo[] = [
   { id: "auriverde", nome: "AURIVERDE", site: "auriverdebrasil.com.br", cor: "#1e9a3d" },
   // destaques gerais de eleição no Google News (qualquer veículo)
   { id: "gnews", nome: "GOOGLE NEWS", site: "", cor: "#4285f4" },
+  // um recorte por cargo, para a página de notícias cobrir todos os cargos
+  { id: "gn-presidente", nome: "GOOGLE NEWS", site: "", cor: "#4285f4", q: "(candidato OR candidata) presidente eleição 2026" },
+  { id: "gn-governador", nome: "GOOGLE NEWS", site: "", cor: "#4285f4", q: "(candidato OR candidata) governador eleição 2026" },
+  { id: "gn-senador", nome: "GOOGLE NEWS", site: "", cor: "#4285f4", q: "(candidato OR candidata) senado OR senador eleição 2026" },
+  { id: "gn-depfed", nome: "GOOGLE NEWS", site: "", cor: "#4285f4", q: "\"deputado federal\" OR \"deputada federal\" eleição 2026" },
+  { id: "gn-depest", nome: "GOOGLE NEWS", site: "", cor: "#4285f4", q: "\"deputado estadual\" OR \"deputada estadual\" eleição 2026" },
 ];
+
+/** Recorte devolvido: o telão usa o padrão (letreiro curto); a página de notícias pede tudo. */
+export type OpcoesNoticias = { porVeiculo?: number; total?: number; horas?: number };
+export const NOTICIAS_TELAO: Required<OpcoesNoticias> = { porVeiculo: 6, total: 45, horas: 12 };
+export const NOTICIAS_TODAS: Required<OpcoesNoticias> = { porVeiculo: 40, total: 400, horas: 24 };
 
 export type Noticia = {
   veiculo: string;
@@ -31,7 +42,7 @@ export type Noticia = {
 };
 
 const TTL = 5 * 60_000;
-const JANELA = 12 * 3.6e6; // só notícias das últimas 12h
+const JANELA = 24 * 3.6e6; // coleta as últimas 24h; cada recorte filtra a sua janela
 const POLITICA =
   /elei|apura|candidat|tse\b|urna|voto|pesquisa|governad|senad|deputad|presiden|lula|bolsonaro|tarc[ií]sio|haddad|derrite|tebet|marina silva|pol[ií]tic|campanha|segundo turno|1º turno|primeiro turno/i;
 
@@ -95,8 +106,8 @@ function data(v: unknown): number {
   return Number.isFinite(t) ? t : 0;
 }
 
-function gnUrl(site: string): string {
-  const q = `(eleição OR eleições OR apuração OR candidato OR TSE)${site ? ` site:${site}` : ""} when:1d`;
+function gnUrl(site: string, busca?: string): string {
+  const q = `${busca ?? "(eleição OR eleições OR apuração OR candidato OR TSE)"}${site ? ` site:${site}` : ""} when:1d`;
   return `https://news.google.com/rss/search?${new URLSearchParams({ q, hl: "pt-BR", gl: "BR", ceid: "BR:pt-419" })}`;
 }
 
@@ -105,7 +116,7 @@ type Item = Record<string, unknown>;
 async function doVeiculo(v: Veiculo): Promise<Noticia[]> {
   const viaGN = !v.rss;
   try {
-    const res = await fetch(v.rss ?? gnUrl(v.site), {
+    const res = await fetch(v.rss ?? gnUrl(v.site, v.q), {
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
       headers: { "user-agent": "Mozilla/5.0 (telao-pleitos)" },
@@ -138,22 +149,60 @@ async function doVeiculo(v: Veiculo): Promise<Noticia[]> {
       .filter((n) => n.titulo && (!v.geral || POLITICA.test(`${n.titulo} ${n.resumo}`)))
       .filter((n) => !n.t || agora - n.t < JANELA)
       .sort((a, b) => b.t - a.t)
-      .slice(0, 6);
+      .slice(0, NOTICIAS_TODAS.porVeiculo);
   } catch {
     return [];
   }
 }
 
+const chaveTitulo = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 async function fetchAll(): Promise<Noticia[]> {
   const porVeiculo = await Promise.all(VEICULOS.map(doVeiculo));
-  // mais recentes primeiro, sem deixar um veículo dominar (máx. 6 cada)
-  return porVeiculo.flat().sort((a, b) => b.t - a.t).slice(0, 45);
+  // a mesma matéria pode vir de vários feeds (ex.: buscas por cargo): fica a 1ª
+  const links = new Set<string>();
+  const titulos = new Set<string>();
+  return porVeiculo
+    .flat()
+    .sort((a, b) => b.t - a.t)
+    .filter((n) => {
+      const k = chaveTitulo(n.titulo);
+      if (links.has(n.link) || titulos.has(k)) return false;
+      links.add(n.link);
+      titulos.add(k);
+      return true;
+    });
 }
 
-export async function getNoticias(): Promise<Noticia[]> {
-  if (cache && Date.now() - cache.at < TTL) return cache.data;
-  inflight ??= fetchAll().finally(() => (inflight = null));
-  const data = await inflight;
-  if (data.length) cache = { at: Date.now(), data };
-  return cache?.data ?? data;
+/** Recorta a coleta: mais recentes primeiro, no máx. `porVeiculo` por fonte. */
+function recorte(todas: Noticia[], o: Required<OpcoesNoticias>): Noticia[] {
+  const agora = Date.now();
+  const conta = new Map<string, number>();
+  const out: Noticia[] = [];
+  for (const n of todas) {
+    if (n.t && agora - n.t >= o.horas * 3.6e6) continue;
+    const fonte = n.nome; // G NEWS · <veículo> conta separado por veículo
+    const c = conta.get(fonte) ?? 0;
+    if (c >= o.porVeiculo) continue;
+    conta.set(fonte, c + 1);
+    out.push(n);
+    if (out.length >= o.total) break;
+  }
+  return out;
+}
+
+export async function getNoticias(opcoes: OpcoesNoticias = NOTICIAS_TELAO): Promise<Noticia[]> {
+  const o = { ...NOTICIAS_TELAO, ...opcoes };
+  if (!cache || Date.now() - cache.at >= TTL) {
+    inflight ??= fetchAll().finally(() => (inflight = null));
+    const data = await inflight;
+    if (data.length) cache = { at: Date.now(), data };
+  }
+  return recorte(cache?.data ?? [], o);
 }
