@@ -524,10 +524,10 @@ function Andamento({ ap, now }: { ap?: Apuracao; now: number }) {
 
 /* ── ranking majoritário (presidente/governador/senador) ── */
 function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
-  const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos).slice(0, MAJORITARIO_MAX);
+  const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos);
   const lider = lista[0];
   const max = Math.max(lider?.pct ?? 1, 1);
-  // linhas dividem a altura disponível: cabem todos (presidente = 14)
+  // linhas dividem a altura disponível: cabem todos
   const n = Math.max(lista.length, 6);
   return (
     <div className="pl-maj">
@@ -585,42 +585,68 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
   );
 }
 
-/* ── ranking proporcional (deputados): top 20 em 2 colunas ── */
+/* ── ranking proporcional (deputados): todos os candidatos com cards compactos ── */
 function Proporcional({ ap, vagas }: { ap: Apuracao; vagas: number }) {
-  const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos).slice(0, PROPORCIONAL_MAX);
-  const porCol = Math.ceil(PROPORCIONAL_MAX / 2);
+  const [busca, setBusca] = useState("");
+  const todos = useMemo(() => {
+    return [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos);
+  }, [ap.cand]);
+
+  const lista = useMemo(() => {
+    if (!busca.trim()) return todos;
+    const q = busca.toLowerCase();
+    return todos.filter((c) =>
+      c.nome.toLowerCase().includes(q) ||
+      String(c.num).includes(q) ||
+      c.partido.toLowerCase().includes(q)
+    );
+  }, [todos, busca]);
+
   return (
     <div className="pl-prop">
-      <div className="pl-prop-head">
-        <span>{PROPORCIONAL_MAX} MAIS VOTADOS · % DOS VOTOS VÁLIDOS</span>
-        <span className="pl-prop-vagas">{vagas} cadeiras · {nf(ap.cand.length)} candidatos com votos</span>
+      <div className="pl-prop-head" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
+        <span><b>{lista.length}</b> de {nf(todos.length)} CANDIDATOS APURADOS · % DOS VOTOS VÁLIDOS</span>
+        <span className="pl-prop-vagas">{vagas} cadeiras · {nf(ap.cand.length)} com votos</span>
+        <div style={{ marginLeft: "auto" }}>
+          <input
+            type="search"
+            placeholder="Buscar deputado..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            style={{
+              background: "rgba(15, 23, 42, 0.8)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#fff",
+              padding: "0.25rem 0.6rem",
+              borderRadius: "6px",
+              fontSize: "0.75rem",
+              outline: "none",
+              width: "180px",
+            }}
+          />
+        </div>
       </div>
-      <div className="pl-prop-grid" style={{ height: `${porCol * 3.7}em` }}>
-        {lista.map((c, i) => {
-          const col = Math.floor(i / porCol);
-          const row = i % porCol;
-          return (
-            <div
-              key={c.sq}
-              className="pl-pcard"
-              style={{ transform: `translate(${col ? "calc(100% + 0.6em)" : "0"}, ${row * 3.7}em)` }}
-            >
-              <span className="pl-pos tl-mono">{i + 1}</span>
-              <Foto src={`${ap.fotoBase}/${c.sq}`} nome={c.nome} cor={corPartido(c.partido)} size="3em" />
-              <div className="pl-pcard-main">
-                <Nome partido={c.partido} className="pl-row-nome">{titulo(c.nome)}</Nome>
-                <span className="pl-row-part" style={{ color: corPartido(c.partido) }}>
-                  {c.partido} · {c.num}
-                </span>
-              </div>
-              <Badge c={c} />
-              <div className="pl-row-num">
-                <Num v={c.votos} className="pl-row-pct" />
-                <Pct v={c.pct} className="pl-row-votos" />
-              </div>
+      <div className="pl-prop-grid">
+        {lista.map((c, i) => (
+          <div
+            key={c.sq || `${c.num}-${c.nome}`}
+            className="pl-pcard pl-pcard-compact"
+          >
+            <span className="pl-pos tl-mono">{i + 1}</span>
+            <Foto src={`${ap.fotoBase}/${c.sq}`} nome={c.nome} cor={corPartido(c.partido)} size="2.4em" />
+            <div className="pl-pcard-main">
+              <Nome partido={c.partido} className="pl-row-nome">{titulo(c.nome)}</Nome>
+              <span className="pl-row-part" style={{ color: corPartido(c.partido) }}>
+                {c.partido} · {c.num}
+              </span>
             </div>
-          );
-        })}
+            <Badge c={c} />
+            <div className="pl-row-num">
+              <Num v={c.votos} className="pl-row-pct" />
+              <Pct v={c.pct} className="pl-row-votos" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -758,8 +784,10 @@ function Vitrine({
         className={`pl-vit-grid ${prop ? "pl-vit-prop" : ""}`}
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(auto-fill, minmax(130px, 1fr))`,
-          gap: "0.6rem",
+          gridTemplateColumns: prop
+            ? `repeat(auto-fill, minmax(88px, 1fr))`
+            : `repeat(auto-fill, minmax(130px, 1fr))`,
+          gap: prop ? "0.35rem" : "0.6rem",
           overflowY: "auto",
           maxHeight: "calc(100vh - 250px)",
           paddingRight: "0.4rem",
@@ -778,7 +806,7 @@ function Vitrine({
           return (
             <div
               key={`${c.num}-${c.nome}`}
-              className={`pl-vcard ${fora ? "pl-vcard-fora" : ""} ${destaque ? "pl-vcard-destaque" : ""}`}
+              className={`pl-vcard ${prop ? "pl-vcard-compact" : ""} ${fora ? "pl-vcard-fora" : ""} ${destaque ? "pl-vcard-destaque" : ""}`}
               style={{
                 borderColor: destaque ? cor : undefined,
                 boxShadow: destaque ? `0 0 12px ${cor}55` : undefined,
@@ -795,7 +823,7 @@ function Vitrine({
                   <span className="pl-vpesq-sub">sem pesquisa</span>
                 </div>
               )}
-              <Foto src={fotoUrl} fallbackSrc={c.foto} nome={c.n} cor={cor} size={prop ? "4.2em" : "5.4em"} />
+              <Foto src={fotoUrl} fallbackSrc={c.foto} nome={c.n} cor={cor} size={prop ? "2.5em" : "5.4em"} />
               <div className="pl-vnum tl-mono" style={{ background: cor }}>
                 {c.num}
               </div>

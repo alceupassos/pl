@@ -3170,5 +3170,89 @@
   display: none !important;
 }
 
+/* ── CARDS ULTRACOMPACTOS DE DEPUTADOS (FEDERAL E ESTADUAL) ── */
+.pl-vit-grid.pl-vit-prop {
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)) !important;
+  gap: 0.35rem !important;
+}
+
+.pl-vcard.pl-vcard-compact {
+  padding: 0.35rem 0.25rem 0.4rem !important;
+  gap: 0.15em !important;
+  border-radius: 0.5em !important;
+  min-height: auto !important;
+}
+
+.pl-vcard.pl-vcard-compact .pl-vnum {
+  font-size: 0.72em !important;
+  padding: 0.05em 0.38em !important;
+  margin-top: -0.55em !important;
+}
+
+.pl-vcard.pl-vcard-compact .pl-vnome {
+  font-size: 0.68em !important;
+  line-height: 1.12 !important;
+  max-height: 2.25em !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.pl-vcard.pl-vcard-compact .pl-vpart {
+  font-size: 0.6em !important;
+  margin-top: 0.1em !important;
+  letter-spacing: 0.05em !important;
+}
+
+.pl-vcard.pl-vcard-compact .pl-vst {
+  font-size: 0.48em !important;
+  padding: 0.08em 0.25em !important;
+}
+
+.pl-vcard.pl-vcard-compact .pl-vpesq {
+  min-height: 2.1rem !important;
+  font-size: 0.72em !important;
+  margin-bottom: 0.15em !important;
+}
+
+/* ── APURAÇÃO PROPORCIONAL: GRID COM SCROLL E CARDS COMPACTOS ── */
+.pl-prop-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: 0.5em !important;
+  max-height: calc(100vh - 240px) !important;
+  overflow-y: auto !important;
+  padding-right: 0.4rem !important;
+  height: auto !important;
+}
+
+.pl-pcard.pl-pcard-compact {
+  position: relative !important;
+  left: auto !important;
+  width: 100% !important;
+  height: 3.2em !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5em !important;
+  padding: 0 0.6em !important;
+  border-radius: 0.6em !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--hair) !important;
+  transform: none !important;
+}
+
+.pl-pcard.pl-pcard-compact .pl-row-nome {
+  font-size: 0.85em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.pl-pcard.pl-pcard-compact .pl-row-part {
+  font-size: 0.72em !important;
+}
+
 
 
