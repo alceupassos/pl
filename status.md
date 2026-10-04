@@ -1,6 +1,6 @@
 # Plano de Execução & Status do Sistema — Eleições 2026
 
-> Última atualização: **2026-10-04T05:13:30-03:00**
+> Última atualização: **2026-10-04T05:46:30-03:00**
 
 ---
 
@@ -22,6 +22,8 @@
 | `[x]` | **12. Mapa Visual SVG Interativo** | Trocar o seletor de estados (grid) por um Mapa do Brasil clicável (SVG) com efeito de relevo, exibição de candidatos no hover e sobreposição inicial na tela. | [brazil-map.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/brazil-map.tsx), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
 | `[x]` | **13. Bloqueio Inicial em pl.angra.io** | Telão e mobile (/c) iniciam sobrepostos pelo Mapa e exigem login/ativação. Mobile redireciona automaticamente e também exige cadastro único e login. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [campaign-cockpit.tsx](file:///Users/alceupassos/angra/sostenes/components/campaign-cockpit.tsx) |
 | `[x]` | **14. UX Premium de Login & Scroll Lateral** | Redesign do Glassmorphism no cadastro e modal de acesso. Adicionado `EdgeScroller` para arrasto de mouse nas bordas da tela. | [landing.css](file:///Users/alceupassos/angra/sostenes/app/landing.css), [globals.css](file:///Users/alceupassos/angra/sostenes/app/globals.css) |
+| `[x]` | **15. Inteligência de Ordenação e UX Visual** | Vitrine alterada para ordenar por Ordem Alfabética antes da apuração, e por Status de "Eleito" depois. Adicionadas rolagem Vertical no EdgeScroller. Lente de notícias ajustada para *dark milk* e blur. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
+| `[x]` | **16. Deploy em Produção** | Commit integral e implantação feita no servidor `169.58.71.28` (`/opt/pl`). Build executado via Turbopack e PM2 recarregado. | — |
 
 ---
 

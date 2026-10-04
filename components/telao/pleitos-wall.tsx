@@ -1492,7 +1492,7 @@ function PainelBrasil({ panorama }: { panorama: Panorama | null }) {
 type Modo = "ambos" | "apuracao" | "boca" | "noticias";
 type Cena = {
   pi: number;
-  tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" | "noticias";
+  tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" | "noticias" | "panorama";
 };
 
 /* ── wall ── */
@@ -1519,6 +1519,7 @@ const CENA_NOME: Record<Cena["tipo"], string> = {
   comparativo: "Comparativo",
   boca: "Boca de urna",
   noticias: "Notícias",
+  panorama: "Panorama",
 };
 
 
@@ -1670,7 +1671,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   }, []);
 
   const nCenas = modo === "boca" ? 2 : modo === "noticias" ? 1 : 4;
-  const numCenasFixas = (pleitoId: string): number => {
+  const numCenasFixas = (pleitoId: PleitoId): number => {
     if (modo === "boca") return temBoca(pleitoId, boca) ? 2 : 0;
     if (modo === "noticias") return 1;
     return isProporcional(pleitoId) ? 2 : 4;
@@ -1726,15 +1727,28 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
     return () => clearInterval(t);
   }, [intervalo, cenas.length, fixo, toque.current]);
 
-  const cenaAtiva = cenas[idx] || { pi: 0, j: 0, tipo: "apuracao" };
-  const p = pleitos[cenaAtiva.pi] || pleitos[0];
+  const cena = cenas[idx] || { pi: 0, j: 0, tipo: "apuracao" };
+  const p = pleitos[cena.pi] || pleitos[0];
   const a = ap[p.id];
-  const pesq = pesquisas[p.id];
-  const cenasDoPleito = cenas.filter((c) => c.pi === cenaAtiva.pi);
+  const pesq = pesquisas[p.id as keyof typeof pesquisas];
+  const ehBoca = cena.tipo === "boca";
+  const cenasDoPleito = cenas.map((c, j) => ({ ...c, j })).filter((c) => c.pi === cena.pi);
+  const temResultado = !!a && a.cand.length > 0 && a.status !== "aguardando";
+  const hora = now ? new Date(now).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "--:--:--";
+
+  const ticker = useMemo(
+    () =>
+      pleitos.map((pl) => {
+        const r = ap[pl.id];
+        if (!r || r.pctUrnas === 0) return `${pl.titulo}: aguardando urnas...`;
+        return `${pl.titulo}: ${r.cand.slice(0, 3).map((c) => `${c.nome} ${c.pct}%`).join(" · ")} (${pctf(r.pctUrnas, 1)}% apurado)`;
+      }),
+    [ap, pleitos],
+  );
 
   const localTxt = p.id.startsWith("presidente")
-    ? (escopo.mun && municipios.find((m) => m.n === escopo.mun)?.nome) || (escopo.uf && UF_NOME[escopo.uf])
-    : escopo.mun && municipios.find((m) => m.n === escopo.mun)?.nome;
+    ? (escopo.mu && municipios.find((m) => m.cd === escopo.mu)?.nm) || (escopo.uf && UF_NOME[escopo.uf as keyof typeof UF_NOME])
+    : escopo.mu && municipios.find((m) => m.cd === escopo.mu)?.nm;
 
   const status =
     now < ABERTURA
@@ -1757,14 +1771,14 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
     <NeonCtx.Provider value={neonMap}>
     <main
       className={`telao pl-wall ${mobile ? "pl-mobile" : ""} ${a ? "pl-status-apurando" : ""}`}
-      style={mobile ? undefined : { "--pl-h": "100vh" }}
+      style={mobile ? undefined : ({ "--pl-h": "100vh" } as React.CSSProperties)}
       onTouchStart={() => toque.current++}
     >
       <header className="pl-header">
         <Fundo3D />
         {!mobile && <EdgeScroller />}
         <div className="pl-titles">
-          <div className="pl-titles-slide" style={{ transform: `translateY(-${cenaAtiva.pi * 100}%)` }}>
+          <div className="pl-titles-slide" style={{ transform: `translateY(-${cena.pi * 100}%)` }}>
             {pleitos.map((pl, i) => (
               <h1 key={i} className="pl-title">
                 {pl.titulo}
