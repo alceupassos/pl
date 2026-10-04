@@ -29,6 +29,9 @@ export const PESQUISAS_PADRAO: BocaDeUrna = {
     cand: [
       { num: 10, nome: "TARCÍSIO", partido: "REPUBLICANOS", pct: 60 },
       { num: 13, nome: "FERNANDO HADDAD", partido: "PT", pct: 36 },
+      { num: 16, nome: "VERA LÚCIA", partido: "PSTU", pct: 2 },
+      { num: 80, nome: "VIVIAN MENDES", partido: "UP", pct: 2 },
+      { num: 21, nome: "CARLOS MACHADO", partido: "PCB", pct: 0 },
     ],
   },
   "senador-sp": {
