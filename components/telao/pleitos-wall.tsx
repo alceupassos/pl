@@ -359,19 +359,61 @@ function Pct({ v, className = "" }: { v: number; className?: string }) {
   return <span className={`tl-mono ${className}`}>{pctf(d)}%</span>;
 }
 
-function Foto({ src, nome, cor, size }: { src: string; nome: string; cor: string; size: string }) {
+function extrairSq(fotoUrl?: string): string {
+  if (!fotoUrl) return "";
+  // formato TSE oficial: .../img/<ano-eleicao>/<sqcand>/<uf>
+  const m = fotoUrl.match(/\/(\d{9,15})\/[A-Za-z]{2}(?:$|\?)/);
+  if (m) return m[1];
+  const parts = fotoUrl.split("/").filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (/^\d{9,15}$/.test(parts[i]) && parts[i] !== "20322002026" && parts[i] !== "2045202024") {
+      return parts[i];
+    }
+  }
+  return "";
+}
+
+function Foto({
+  src,
+  nome,
+  cor,
+  size,
+  fallbackSrc,
+}: {
+  src: string;
+  nome: string;
+  cor: string;
+  size: string;
+  fallbackSrc?: string;
+}) {
+  const [currentSrc, setCurrentSrc] = useState(src);
   const [ok, setOk] = useState(true);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setOk(true);
+  }, [src]);
+
+  const handleError = () => {
+    if (fallbackSrc && currentSrc !== fallbackSrc) {
+      setCurrentSrc(fallbackSrc);
+    } else {
+      setOk(false);
+    }
+  };
+
   const ini = nome
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((s) => s[0])
     .join("");
+
   return (
     <span className="pl-foto" style={{ width: size, height: size, borderColor: cor }}>
-      {ok && src ? (
+      {ok && currentSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={nome} loading="lazy" onError={() => setOk(false)} />
+        <img src={currentSrc} alt={nome} loading="lazy" onError={handleError} />
       ) : (
         <span className="pl-ini">{ini}</span>
       )}
@@ -586,8 +628,15 @@ function Vitrine({
       }))
       .sort((a, b) => {
         if (a.fora !== b.fora) return Number(a.fora) - Number(b.fora);
-        if (a.destaque !== b.destaque) return Number(b.destaque) - Number(a.destaque);
-        if (a.pct !== undefined || b.pct !== undefined) return (b.pct ?? -1) - (a.pct ?? -1);
+        // Se houver percentual na pesquisa, ordenar por % decrescente
+        const hasA = a.pct !== undefined;
+        const hasB = b.pct !== undefined;
+        if (hasA && hasB) return b.pct! - a.pct!;
+        if (hasA && !hasB) return -1;
+        if (!hasA && hasB) return 1;
+        // Se não houver pesquisa ou empatado, destaque do partido primeiro
+        if (a.destaque !== b.destaque) return a.destaque ? -1 : 1;
+        // Por fim, ordem alfabética
         return a.c.nome.localeCompare(b.c.nome, "pt-BR");
       });
   }, [p.candidatos, pesquisa, neon]);
@@ -606,7 +655,9 @@ function Vitrine({
   const scrollUp = () => gridRef.current?.scrollBy({ top: -350, behavior: "smooth" });
   const scrollDown = () => gridRef.current?.scrollBy({ top: 350, behavior: "smooth" });
 
-  const ufClean = (p.uf || "sp").toLowerCase();
+  const isPres = p.id === "presidente" || (p.uf && p.uf.toUpperCase() === "BR");
+  const eleicaoFoto = isPres ? "6257" : "6259";
+  const ufFoto = isPres ? "br" : (p.uf || "sp").toLowerCase();
 
   return (
     <div className="pl-vit">
@@ -680,13 +731,15 @@ function Vitrine({
         }}
       >
         {lista.map(({ c, pct, fora, destaque }) => {
-          const sq = c.foto.match(/(\d{9,})/)?.[1] ?? "";
+          const sq = extrairSq(c.foto);
           const cor = corPartido(c.p);
           const fotoUrl = sq
-            ? `/api/telao/foto/6259/${ufClean}/${sq}`
-            : c.foto && c.foto.startsWith("/")
+            ? `/api/telao/foto/${eleicaoFoto}/${ufFoto}/${sq}`
+            : c.foto && c.foto.startsWith("http")
               ? c.foto
               : "";
+          const posPesq = pesquisa?.cand ? pesquisa.cand.findIndex((x) => x.num === c.num) + 1 : 0;
+
           return (
             <div
               key={`${c.num}-${c.nome}`}
@@ -696,12 +749,18 @@ function Vitrine({
                 boxShadow: destaque ? `0 0 12px ${cor}55` : undefined,
               }}
             >
-              {pct !== undefined && (
+              {pct !== undefined ? (
                 <div className="pl-vpesq">
                   <b className="tl-mono">{pctf(pct, 1)}%</b>
+                  <span>{posPesq > 0 ? `${posPesq}º na pesquisa` : "na pesquisa"}</span>
+                </div>
+              ) : (
+                <div className="pl-vpesq pl-vpesq-vazio">
+                  <span className="pl-vpesq-dash">—</span>
+                  <span className="pl-vpesq-sub">sem pesquisa</span>
                 </div>
               )}
-              <Foto src={fotoUrl} nome={c.n} cor={cor} size={prop ? "4.2em" : "5.4em"} />
+              <Foto src={fotoUrl} fallbackSrc={c.foto} nome={c.n} cor={cor} size={prop ? "4.2em" : "5.4em"} />
               <div className="pl-vnum tl-mono" style={{ background: cor }}>
                 {c.num}
               </div>
@@ -1654,6 +1713,21 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         .catch(() => { if (!cancelled) setPleitosUF(pleitosProps); });
     return () => { cancelled = true; };
   }, [uf, pleitosProps]);
+
+  // carregar lista oficial de municípios do TSE para a UF ativa
+  useEffect(() => {
+    if (!uf) return;
+    let cancelled = false;
+    fetch(`/api/telao/municipios?uf=${uf.toLowerCase()}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setMunicipios(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [uf]);
 
   const pleitos = uf === "sp" ? pleitosProps : pleitosUF;
 

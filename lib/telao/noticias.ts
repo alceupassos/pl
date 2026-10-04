@@ -85,7 +85,20 @@ async function doVeiculo(v: Veiculo): Promise<Noticia[]> {
       headers: { "user-agent": "Mozilla/5.0 (telao-pleitos)" },
     });
     if (!res.ok) return [];
-    const doc = parser.parse(await res.text());
+    const buf = Buffer.from(await res.arrayBuffer());
+    let encoding = "utf-8";
+    const ct = res.headers.get("content-type") || "";
+    const m = ct.match(/charset=([^\s;]+)/i);
+    if (m) {
+      encoding = m[1].toLowerCase();
+    } else {
+      const inicio = buf.slice(0, 300).toString("latin1");
+      const xm = inicio.match(/encoding=["']([^"']+)["']/i);
+      if (xm) encoding = xm[1].toLowerCase();
+    }
+    const decoder = new TextDecoder(encoding.includes("iso-8859") || encoding.includes("windows-1252") || encoding.includes("latin1") ? "iso-8859-1" : "utf-8");
+    const xmlText = decoder.decode(buf);
+    const doc = parser.parse(xmlText);
     const raw = doc?.rss?.channel?.item;
     const items: Item[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
     const agora = Date.now();

@@ -146,6 +146,7 @@
   right: 0;
   top: calc(100% + 0.4em);
   width: 26em;
+  max-width: min(26em, calc(100vw - 1.5rem));
   max-height: 70vh;
   display: flex;
   flex-direction: column;
@@ -155,7 +156,7 @@
   border: 1px solid var(--hair);
   border-radius: 0.7em;
   box-shadow: 0 1.5em 4em rgba(0, 0, 0, 0.6);
-  z-index: 20;
+  z-index: 50;
   animation: pl-pop 0.18s ease-out;
 }
 .pl-filtro-pop input {
@@ -2500,24 +2501,60 @@
   padding-right: 0;
 }
 
-/* vitrine: % da última pesquisa + desistentes */
+/* vitrine: % da última pesquisa + desistentes (alinhamento simétrico) */
 .pl-vpesq {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 0.3em;
+  justify-content: center;
+  min-height: 3.1rem;
+  margin-bottom: 0.35rem;
+  width: 100%;
 }
 .pl-vpesq b {
-  font-size: 1.5em;
+  font-size: 1.45rem;
   font-weight: 900;
   color: #fff;
+  line-height: 1.1;
   text-shadow: 0 0 0.6em rgba(76, 130, 240, 0.6);
 }
 .pl-vpesq span {
-  font-size: 0.55em;
-  letter-spacing: 0.1em;
-  color: var(--ink3);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
   text-transform: uppercase;
+  font-weight: 600;
+}
+.pl-vpesq-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.1rem;
+  margin-bottom: 0.35rem;
+  width: 100%;
+  opacity: 0.35;
+}
+.pl-vpesq-dash {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  line-height: 1.1;
+  font-weight: 700;
+}
+.pl-vpesq-sub {
+  font-size: 0.52rem !important;
+  color: #64748b !important;
+  letter-spacing: 0.06em;
+}
+.pl-vcard .pl-vnome {
+  min-height: 2.3em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pl-vcard .pl-vpart {
+  min-height: 1.2em;
 }
 .pl-vcard-fora {
   opacity: 0.38;
