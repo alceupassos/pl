@@ -396,7 +396,7 @@ function vazio(pleito: PleitoId, status: Apuracao["status"], escopo: Escopo): Ap
 
 // Cache em memória de 5 min por pleito+escopo (cadência pedida para o telão;
 // o TSE regrava a cada ~30s, mas não precisamos martelar o CDN deles).
-const TTL = 5 * 60_000;
+const TTL = 60_000; // apuração: 1 min (era 5)
 const cache = new Map<string, { at: number; data: Apuracao }>();
 const inflight = new Map<string, Promise<Apuracao>>();
 

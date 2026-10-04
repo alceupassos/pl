@@ -214,7 +214,7 @@ async function montar(): Promise<Panorama> {
   };
 }
 
-const TTL = 5 * 60_000;
+const TTL = 2 * 60_000; // painel nacional (108 arquivos): 2 min (era 5)
 let pronto: { at: number; data: Panorama } | null = null;
 let montando: Promise<Panorama> | null = null;
 

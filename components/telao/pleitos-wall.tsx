@@ -45,7 +45,8 @@ type Props = {
 const ABERTURA = new Date("2026-10-04T08:00:00-03:00").getTime();
 const FECHAMENTO = new Date("2026-10-04T17:00:00-03:00").getTime();
 // Apuração oficial TSE: atualiza a cada 5 min. Boca de urna (lançada à mão): 30s.
-const POLL_MS = 5 * 60_000;
+const POLL_MS = 5 * 60_000; // notícias
+const POLL_APURACAO_MS = 60_000; // apuração TSE: parciais saem a cada poucos minutos
 const POLL_BOCA_MS = 30_000;
 const MAJORITARIO_MAX = 20; // presidente/governador/senador: todos os candidatos
 const PROPORCIONAL_MAX = 20;
@@ -372,7 +373,7 @@ function useApuracao(escopo: Escopo, uf: string): Partial<Record<PleitoId, Apura
       }
     };
     load();
-    const id = setInterval(load, POLL_MS);
+    const id = setInterval(load, POLL_APURACAO_MS);
     return () => {
       alive = false;
       clearInterval(id);
@@ -394,7 +395,7 @@ function usePanorama(): Panorama | null {
     load();
     // primeira montagem no servidor pode levar ~30s (108 arquivos): tenta de novo logo
     const t = setTimeout(load, 45_000);
-    const id = setInterval(load, POLL_MS);
+    const id = setInterval(load, POLL_APURACAO_MS);
     return () => {
       alive = false;
       clearTimeout(t);
@@ -2742,7 +2743,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
           </div>
         </div>
         <div className="pl-src">
-          <b className="pl-src-alerta">USO ESTRITAMENTE INTERNO PARTIDÁRIO</b> · Não aberto ao público · Dados oficiais: TSE resultados.tse.jus.br (atualiza a cada 5 min) · Mídias sintéticas rotuladas conforme Resoluções TSE nº 23.610/2019 e 23.755/2026 · notícias via Google News{ehBoca ? " · boca de urna: instituto indicado" : ""} · candidatos {meta.fonte} ({meta.atualizado}) · ← → troca · espaço fixa
+          <b className="pl-src-alerta">USO ESTRITAMENTE INTERNO PARTIDÁRIO</b> · Não aberto ao público · Dados oficiais: TSE resultados.tse.jus.br (atualiza a cada 1 min) · Mídias sintéticas rotuladas conforme Resoluções TSE nº 23.610/2019 e 23.755/2026 · notícias via Google News{ehBoca ? " · boca de urna: instituto indicado" : ""} · candidatos {meta.fonte} ({meta.atualizado}) · ← → troca · espaço fixa
         </div>
       </footer>
       <a className="pl-assina" href="https://angra.io" target="_blank" rel="noreferrer">
