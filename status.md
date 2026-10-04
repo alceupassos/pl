@@ -91,6 +91,13 @@
 
 ## 📌 O que Tem para Fazer (Próximos Passos e Operação)
 
+### 0a. Tarde de 04/10 — consolidação + notícias (Claude Opus 5.5)
+- **Alterações feitas direto em produção** (sessão GPT-6.1: middleware de acesso, `/admin`, presença, monitor, radar social, fontes locais, `/telao/noticias`) estavam **sem commit** no servidor. Foram versionadas no commit `ed4f5f7` e mescladas com o trabalho local em `6484e5b`. Conflitos: `lib/cadastros.ts` e `app/log/page.tsx` ficaram com a versão local; o mini-mapa ficou com o tratamento de erro do servidor.
+- Backup do estado anterior do servidor: `git stash list` em `/opt/pl` → `backup-producao-antes-merge-0410`.
+- **`/telao/noticias` concluída**: tema claro wood (padrão) + escuro, mesma preferência do telão (`telao-tema`), filtro por veículo, sem piscar ao carregar. Commit `53f4ecd`, no ar em pl.angra.io (build v4.27).
+- **Pendente:** `npm run lint` acusa erros em arquivos vindos do servidor (`app/api/telao/redes/route.ts` com `any`; setState em effect em `brazil-map`, `mobile-news-ticker`, `social-radar`, `pleitos-wall`). Não quebram o build, mas devem ser corrigidos.
+- **Regra daqui em diante:** não editar direto em `/opt/pl`. Editar local → commit → push → `git pull --ff-only` no servidor.
+
 ### 0. Feito nesta rodada (04/10, manhã)
 - Correções extras: cores de legenda `SOLIDARIEDADE` e `PCDOB` (as chaves antigas `SD` / `PC do B` não batiam com os dados do TSE); 2 erros antigos de lint (setState em effect em `Foto` e `FiltroLocal`) corrigidos; aviso de hidratação do `<html>` suprimido para o tema.
 - Testado com Playwright em 1920×1080 e 390×844 com apuração simulada (63% das urnas): cadastro, vitrine/pódio, ranking, deputados com filtros, zoom, temas wood/escuro. `tsc`, `eslint` (0 erros) e `npm run build` OK.
