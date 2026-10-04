@@ -9,12 +9,11 @@
 //
 // Querystring: ?int=20 (segundos por tela) &p=senador-sp|brasil (fixa) &uf=rj
 
-import { MapPin, UserRound, Star, X, ArrowRight, Radio, Flag } from "lucide-react";
+import { MapPin, UserRound, Star, X, ArrowRight, Radio, Flag, Sun, Moon } from "lucide-react";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { AmbientVideo } from "@/components/ambient-video";
-import { LoginScreen } from "@/components/login-screen";
 import { BrazilMap } from "@/components/telao/brazil-map";
 import { MiniMapaPleito } from "@/components/telao/mini-mapa-pleito";
 import { AtivacaoCandidatoModal } from "@/components/telao/ativacao-candidato";
@@ -22,6 +21,7 @@ import { useOdometer } from "@/components/mobile/ui/odometer";
 import type {
   Apuracao,
   CandApurado,
+  CandSnapshot,
   Escopo,
   Municipio,
   PleitoId,
@@ -89,7 +89,7 @@ const COR_PARTIDO: Record<string, string> = {
   PSOL: "#ffb400", REDE: "#21a39b", PDT: "#c8102e", PODE: "#2db34a", AVANTE: "#e5007d",
   PRTB: "#0a8f3c", "MISSÃO": "#ffcc00", PSTU: "#b5121b", PCO: "#a50000", PCB: "#d10000",
   UP: "#ff4d4d", CIDADANIA: "#e4007c", DC: "#1c75bc", DEMOCRATA: "#1e90ff", AGIR: "#00a99d",
-  PV: "#2e9b3e", SD: "#ff7f00", "PC do B": "#d4001f", PRD: "#0b4ea2", MOBILIZA: "#7a3fb0",
+  PV: "#2e9b3e", SOLIDARIEDADE: "#ff7f00", PCDOB: "#d4001f", PRD: "#0b4ea2", MOBILIZA: "#7a3fb0",
 };
 function corPartido(p: string): string {
   return COR_PARTIDO[p] ?? "#6f7d96";
@@ -110,13 +110,81 @@ function Nome({ partido, children, className }: { partido: string; children: str
   );
 }
 
+/* ── selo do partido: medalhão na cor da legenda com o número na urna ── */
+function SeloPartido({ sigla, num, size = "2.6em" }: { sigla: string; num?: string; size?: string }) {
+  const cor = corPartido(sigla);
+  const txt = num || sigla.slice(0, 3);
+  return (
+    <svg className="pl-selo" viewBox="0 0 48 48" width={size} height={size} aria-hidden>
+      <defs>
+        <radialGradient id={`sg-${sigla}`} cx="35%" cy="28%" r="80%">
+          <stop offset="0" stopColor="#fff" stopOpacity=".55" />
+          <stop offset=".45" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity=".28" />
+        </radialGradient>
+      </defs>
+      <circle cx="24" cy="24" r="23" fill={cor} />
+      <circle cx="24" cy="24" r="23" fill={`url(#sg-${sigla})`} />
+      <circle cx="24" cy="24" r="19" fill="none" stroke="#fff" strokeOpacity=".7" strokeWidth="1.2" />
+      <text
+        x="24"
+        y="24"
+        dy=".36em"
+        textAnchor="middle"
+        fontSize={txt.length > 2 ? 13 : 19}
+        fontWeight="800"
+        fill="#fff"
+        style={{ fontFamily: "var(--font-sora), system-ui, sans-serif", letterSpacing: "-0.02em" }}
+      >
+        {txt}
+      </text>
+    </svg>
+  );
+}
+
+/** Grade de botões com o selo de cada partido (multisseleção). */
+function GradePartidos({
+  partidos,
+  numeros,
+  sel,
+  onToggle,
+}: {
+  partidos: string[];
+  numeros: Map<string, string>;
+  sel: string[];
+  onToggle: (p: string) => void;
+}) {
+  return (
+    <div className="pl-dest-grid" role="group" aria-label="Partidos">
+      {partidos.map((p) => {
+        const on = sel.includes(p);
+        return (
+          <button
+            key={p}
+            type="button"
+            className={on ? "on" : ""}
+            aria-pressed={on}
+            style={{ ["--c" as string]: corPartido(p) }}
+            onClick={() => onToggle(p)}
+          >
+            <SeloPartido sigla={p} num={numeros.get(p)} />
+            <span>{p}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SeletorDestaque({
   partidos,
+  numeros,
   sel,
   onChange,
   onClose,
 }: {
   partidos: string[];
+  numeros: Map<string, string>;
   sel: string[];
   onChange: (s: string[]) => void;
   onClose: () => void;
@@ -125,26 +193,9 @@ function SeletorDestaque({
   return (
     <div className="pl-dest-ov">
       <div className="pl-dest-box">
-        <div className="pl-kicker">CONFIGURAR TELÃO</div>
         <h2>Quais partidos destacar?</h2>
-        <p>Os candidatos dos partidos escolhidos aparecem com o nome em neon em todas as telas. Pode marcar mais de um.</p>
-        <div className="pl-dest-grid">
-          {partidos.map((p) => {
-            const i = sel.indexOf(p);
-            const cor = i >= 0 ? NEON[i % NEON.length] : undefined;
-            return (
-              <button
-                key={p}
-                className={i >= 0 ? "on" : ""}
-                style={cor ? { borderColor: cor, color: cor, boxShadow: `0 0 1em ${cor}66` } : undefined}
-                onClick={() => toggle(p)}
-              >
-                <i style={{ background: corPartido(p) }} />
-                {p}
-              </button>
-            );
-          })}
-        </div>
+        <p>Os candidatos dos partidos escolhidos aparecem destacados em todas as telas. Pode marcar mais de um.</p>
+        <GradePartidos partidos={partidos} numeros={numeros} sel={sel} onToggle={toggle} />
         <div className="pl-dest-act">
           <button className="pl-ed-del" onClick={() => onChange([])}>
             Sem destaque
@@ -155,6 +206,112 @@ function SeletorDestaque({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── registro de entrada: nome + WhatsApp + partidos (sem senha) ── */
+function mascaraTel(v: string): string {
+  const d = v.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "").slice(0, 11);
+  if (d.length <= 2) return d ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+function RegistroTelao({
+  partidos,
+  numeros,
+  onDone,
+}: {
+  partidos: string[];
+  numeros: Map<string, string>;
+  onDone: (sel: string[]) => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [tel, setTel] = useState("");
+  const [sel, setSel] = useState<string[]>([]);
+  const [erro, setErro] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const toggle = (p: string) => setSel((s) => (s.includes(p) ? s.filter((x) => x !== p) : [...s, p]));
+
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro("");
+    setEnviando(true);
+    try {
+      const r = await fetch("/api/telao/registro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, whatsapp: tel, partidos: sel }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) {
+        setErro(d.erro || "Não foi possível registrar agora. Tente de novo.");
+        return;
+      }
+      onDone(sel);
+    } catch {
+      setErro("Sem conexão. Verifique a internet e tente de novo.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <main className="telao pl-wall pl-reg-wrap" data-tema="wood">
+      <form className="pl-reg" onSubmit={enviar}>
+        <header className="pl-reg-head">
+          <span className="pl-reg-faixa" aria-hidden>
+            <i /><i /><i />
+          </span>
+          <h1>
+            Apuração 2026
+            <span>ao vivo, candidato a candidato</span>
+          </h1>
+          <p>Registre-se para acompanhar a central. Sem senha: só nome e WhatsApp.</p>
+        </header>
+        <div className="pl-reg-campos">
+          <label>
+            <span>Nome</span>
+            <input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              autoComplete="name"
+              placeholder="Como você quer ser chamado"
+              required
+              minLength={2}
+            />
+          </label>
+          <label>
+            <span>WhatsApp</span>
+            <input
+              value={tel}
+              onChange={(e) => setTel(mascaraTel(e.target.value))}
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder="(11) 91234-5678"
+              required
+            />
+          </label>
+        </div>
+        <fieldset className="pl-reg-partidos">
+          <legend>Escolha seus partidos <small>opcional · destaca os candidatos deles</small></legend>
+          <GradePartidos partidos={partidos} numeros={numeros} sel={sel} onToggle={toggle} />
+        </fieldset>
+        {erro && (
+          <p className="pl-reg-erro" role="alert">
+            {erro}
+          </p>
+        )}
+        <button className="pl-reg-ok" type="submit" disabled={enviando}>
+          {enviando ? "Registrando…" : sel.length ? `Entrar com ${sel.join(" · ")}` : "Entrar na apuração"}
+          <ArrowRight size={18} aria-hidden />
+        </button>
+        <small className="pl-reg-legal">
+          Uso interno partidário. Seus dados ficam só nesta central e não são compartilhados.
+        </small>
+      </form>
+    </main>
   );
 }
 
@@ -277,32 +434,28 @@ function FiltroLocal({
   const UF = uf.toUpperCase();
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
-  const [localMuns, setLocalMuns] = useState<Municipio[]>(propsMunicipios);
-  const [carregando, setCarregando] = useState(false);
+  // fallback: só busca a lista se o pai ainda não tiver os municípios da UF
+  const [fallback, setFallback] = useState<{ uf: string; muns: Municipio[] | null }>({ uf: "", muns: null });
+  const precisaBuscar = !(propsMunicipios && propsMunicipios.length > 0);
 
   useEffect(() => {
-    if (propsMunicipios && propsMunicipios.length > 0) {
-      setLocalMuns(propsMunicipios);
-      return;
-    }
+    if (!precisaBuscar) return;
     let ativo = true;
-    setCarregando(true);
     fetch(`/api/telao/municipios?uf=${uf.toLowerCase()}`)
       .then((r) => r.json())
       .then((data) => {
-        if (!ativo) return;
-        if (Array.isArray(data)) setLocalMuns(data);
+        if (ativo) setFallback({ uf, muns: Array.isArray(data) ? data : [] });
       })
-      .catch(() => {})
-      .finally(() => {
-        if (ativo) setCarregando(false);
+      .catch(() => {
+        if (ativo) setFallback({ uf, muns: [] });
       });
     return () => {
       ativo = false;
     };
-  }, [uf, propsMunicipios]);
+  }, [uf, precisaBuscar]);
 
-  const listaMunicipios = localMuns.length ? localMuns : propsMunicipios;
+  const listaMunicipios = !precisaBuscar ? propsMunicipios : fallback.uf === uf ? (fallback.muns ?? []) : [];
+  const carregando = precisaBuscar && fallback.uf !== uf;
   const atual = listaMunicipios.find((m) => m.cd === escopo.mu);
   const lista = useMemo(() => {
     const q = semAcento(busca.trim());
@@ -421,20 +574,15 @@ function Foto({
   size: string;
   fallbackSrc?: string;
 }) {
-  const [currentSrc, setCurrentSrc] = useState(src);
-  const [ok, setOk] = useState(true);
-
-  useEffect(() => {
-    setCurrentSrc(src);
-    setOk(true);
-  }, [src]);
+  // estado reiniciado quando a foto muda (ajuste durante o render, sem effect)
+  const [st, setSt] = useState({ de: src, atual: src, ok: true });
+  if (st.de !== src) setSt({ de: src, atual: src, ok: true });
+  const currentSrc = st.de === src ? st.atual : src;
+  const ok = st.de === src ? st.ok : true;
 
   const handleError = () => {
-    if (fallbackSrc && currentSrc !== fallbackSrc) {
-      setCurrentSrc(fallbackSrc);
-    } else {
-      setOk(false);
-    }
+    if (fallbackSrc && currentSrc !== fallbackSrc) setSt({ de: src, atual: fallbackSrc, ok: true });
+    else setSt({ de: src, atual: currentSrc, ok: false });
   };
 
   const ini = nome
@@ -464,6 +612,237 @@ function Badge({ c }: { c: CandApurado }) {
   if (s.includes("2º turno") || s.includes("2o turno")) return <span className="pl-badge pl-2t">2º TURNO</span>;
   if (s.includes("suplente")) return <span className="pl-badge pl-sup">SUPLENTE</span>;
   return null;
+}
+
+/* ── ripa: barra 3D de madeira com mini faixas verticais (cor do partido) ── */
+function Ripa({ v, cor, className = "" }: { v: number; cor: string; className?: string }) {
+  return (
+    <span className={`pl-ripa ${className}`} aria-hidden>
+      <i style={{ width: `${Math.max(0, Math.min(100, v))}%`, ["--c" as string]: cor }} />
+    </span>
+  );
+}
+
+/* ── zoom do candidato: clique em qualquer card abre números e colocação ── */
+type ZoomStat = { k: string; v: string; sub?: string; tom?: "alta" | "baixa"; txt?: boolean };
+type ZoomAlvo = {
+  nome: string;
+  nomeUrna?: string;
+  partido: string;
+  num: string | number;
+  foto: string;
+  fotoFallback?: string;
+  pos: number;
+  total: number;
+  contexto: string;
+  destaque?: { valor: string; rotulo: string };
+  barra?: number;
+  stats: ZoomStat[];
+  badge?: React.ReactNode;
+  nota?: string;
+};
+type ZoomAberto = ZoomAlvo & { rect: { x: number; y: number; w: number; h: number } };
+const ZoomCtx = createContext<(alvo: ZoomAlvo, el: HTMLElement) => void>(() => {});
+
+/** Props para tornar um card clicável/teclável que abre o zoom. */
+function useClicavel() {
+  const abrir = useContext(ZoomCtx);
+  return (alvo: () => ZoomAlvo) => ({
+    role: "button" as const,
+    tabIndex: 0,
+    "data-zoom": "",
+    onClick: (e: React.MouseEvent<HTMLElement>) => abrir(alvo(), e.currentTarget),
+    onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        abrir(alvo(), e.currentTarget);
+      }
+    },
+  });
+}
+
+function ord(n: number): string {
+  return `${n}º`;
+}
+
+/** Números de um candidato na apuração, relativos aos vizinhos de ranking. */
+function alvoApurado(c: CandApurado, lista: CandApurado[], ap: Apuracao, vagas: number, prop: boolean): ZoomAlvo {
+  const i = Math.max(0, lista.findIndex((x) => x.sq === c.sq));
+  const pos = i + 1;
+  const lider = lista[0];
+  const acima = lista[i - 1];
+  const abaixo = lista[i + 1];
+  const stats: ZoomStat[] = [{ k: "Votos nominais", v: nf(c.votos) }];
+  if (acima)
+    stats.push({
+      k: `Para alcançar o ${ord(pos - 1)}`,
+      v: `${nf(acima.votos - c.votos)} votos`,
+      sub: `${pctf(acima.pct - c.pct)} p.p. · ${titulo(acima.nome)}`,
+      tom: "baixa",
+    });
+  if (abaixo)
+    stats.push({
+      k: `Vantagem sobre o ${ord(pos + 1)}`,
+      v: `${nf(c.votos - abaixo.votos)} votos`,
+      sub: `${pctf(c.pct - abaixo.pct)} p.p. · ${titulo(abaixo.nome)}`,
+      tom: "alta",
+    });
+  if (pos > 2 && lider)
+    stats.push({ k: "Distância do líder", v: `${nf(lider.votos - c.votos)} votos`, sub: `${pctf(lider.pct - c.pct)} p.p. · ${titulo(lider.nome)}` });
+  if (prop) {
+    const doPartido = lista.filter((x) => x.partido === c.partido);
+    const pp = doPartido.findIndex((x) => x.sq === c.sq) + 1;
+    stats.push({ k: `No ${c.partido}`, v: `${ord(pp)} de ${doPartido.length}`, sub: "pela votação nominal no partido" });
+  } else if (vagas === 1) {
+    stats.push(
+      c.pct > 50
+        ? { k: "1º turno", v: "Acima de 50%", sub: "maioria dos votos válidos", tom: "alta" }
+        : { k: "Para 50% + 1", v: `${pctf(50 - c.pct)} p.p.`, sub: "maioria absoluta dos válidos" },
+    );
+  } else {
+    stats.push(
+      pos <= vagas
+        ? { k: `Vagas em disputa: ${vagas}`, v: "Dentro das vagas", tom: "alta" }
+        : { k: `Vagas em disputa: ${vagas}`, v: `Fora · ${ord(pos)}`, sub: lista[vagas - 1] ? `a ${nf(lista[vagas - 1].votos - c.votos)} votos do ${ord(vagas)}` : undefined, tom: "baixa" },
+    );
+  }
+  stats.push({ k: "Urnas apuradas", v: `${pctf(ap.pctUrnas)}%`, sub: ap.hora ? `atualizado ${ap.hora}` : undefined });
+  return {
+    nome: titulo(c.nome),
+    partido: c.partido,
+    num: c.num,
+    foto: `${ap.fotoBase}/${c.sq}`,
+    pos,
+    total: lista.length,
+    contexto: "na apuração oficial do TSE",
+    destaque: { valor: `${pctf(c.pct)}%`, rotulo: "dos votos válidos" },
+    barra: lider && lider.pct > 0 ? (c.pct / lider.pct) * 100 : 0,
+    stats,
+    badge: <Badge c={c} />,
+  };
+}
+
+function CandidatoZoom({ alvo, onClose, mobile }: { alvo: ZoomAberto; onClose: () => void; mobile: boolean }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const fecharRef = useRef<HTMLButtonElement>(null);
+  const toque = useRef<number | null>(null);
+  const cor = corPartido(alvo.partido);
+  const reduz = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // FLIP: o card nasce no retângulo de origem e cresce até o centro
+  const flip = useCallback(
+    (reverso: boolean) => {
+      const el = cardRef.current;
+      if (!el || reduz) return null;
+      const r = el.getBoundingClientRect();
+      const { x, y, w, h } = alvo.rect;
+      const de = `translate(${x - r.left}px, ${y - r.top}px) scale(${w / r.width}, ${h / r.height})`;
+      const quadros = [
+        { transform: de, opacity: 0.2, borderRadius: "14px" },
+        { transform: "none", opacity: 1 },
+      ];
+      return el.animate(reverso ? [...quadros].reverse() : quadros, {
+        duration: reverso ? 320 : 560,
+        easing: reverso ? "cubic-bezier(.5,0,.75,0)" : "cubic-bezier(.16,1,.3,1)",
+        fill: "both",
+      });
+    },
+    [alvo.rect, reduz],
+  );
+
+  useLayoutEffect(() => {
+    flip(false);
+    fecharRef.current?.focus({ preventScroll: true });
+  }, [flip]);
+
+  const fechar = useCallback(() => {
+    const a = flip(true);
+    if (a) a.onfinish = onClose;
+    else onClose();
+  }, [flip, onClose]);
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        fechar();
+      }
+    };
+    document.addEventListener("keydown", k, true);
+    return () => document.removeEventListener("keydown", k, true);
+  }, [fechar]);
+
+  return (
+    <div
+      className={`pl-zoom-ov ${mobile ? "pl-zoom-sheet" : ""}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${alvo.nome}: números e colocação`}
+      onClick={(e) => e.target === e.currentTarget && fechar()}
+    >
+      <div
+        ref={cardRef}
+        className="pl-zoom"
+        style={{ ["--c" as string]: cor }}
+        onTouchStart={(e) => (toque.current = e.touches[0].clientY)}
+        onTouchEnd={(e) => {
+          if (toque.current !== null && e.changedTouches[0].clientY - toque.current > 90) fechar();
+          toque.current = null;
+        }}
+      >
+        <button ref={fecharRef} type="button" className="pl-zoom-x" aria-label="Fechar" onClick={fechar}>
+          <X size={20} />
+        </button>
+        <div className="pl-zoom-retrato">
+          <Foto src={alvo.foto} fallbackSrc={alvo.fotoFallback} nome={alvo.nome} cor={cor} size="100%" />
+          <span className="pl-zoom-num tl-mono" style={{ background: cor }}>{alvo.num}</span>
+        </div>
+        <div className="pl-zoom-corpo">
+          <div className="pl-zoom-id">
+            <h2>{alvo.nome}</h2>
+            <p>
+              <b style={{ color: cor }}>{alvo.partido}</b>
+              {alvo.nomeUrna && alvo.nomeUrna !== alvo.nome ? ` · ${alvo.nomeUrna}` : ""}
+              {alvo.badge}
+            </p>
+          </div>
+          <div className="pl-zoom-pos">
+            <strong className="pl-zoom-ord">
+              {alvo.pos}
+              <sup>º</sup>
+            </strong>
+            <span>
+              de {nf(alvo.total)}
+              <em>{alvo.contexto}</em>
+            </span>
+            {alvo.destaque && (
+              <div className="pl-zoom-dest">
+                <b className="tl-mono">{alvo.destaque.valor}</b>
+                <small>{alvo.destaque.rotulo}</small>
+              </div>
+            )}
+          </div>
+          {alvo.barra !== undefined && (
+            <div className="pl-zoom-barra">
+              <Ripa v={alvo.barra} cor={cor} className="pl-ripa-xl" />
+              <small>em relação ao 1º colocado</small>
+            </div>
+          )}
+          <dl className="pl-zoom-stats">
+            {alvo.stats.map((s) => (
+              <div key={s.k} className={s.tom ? `pl-tom-${s.tom}` : ""}>
+                <dt>{s.k}</dt>
+                <dd className={s.txt ? "pl-zoom-txt" : "tl-mono"}>{s.v}</dd>
+                {s.sub && <dd className="pl-zoom-sub">{s.sub}</dd>}
+              </div>
+            ))}
+          </dl>
+          {alvo.nota && <p className="pl-zoom-nota">{alvo.nota}</p>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── andamento do processo ── */
@@ -522,17 +901,85 @@ function Andamento({ ap, now }: { ap?: Apuracao; now: number }) {
   );
 }
 
+/* ── filtros dos deputados: letra inicial (topo) e partido (rodapé) ── */
+const LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+function inicial(nome: string): string {
+  return semAcento(nome.trim()).charAt(0).toUpperCase();
+}
+
+function FiltroLetras({ disp, letra, onChange }: { disp: Set<string>; letra: string; onChange: (l: string) => void }) {
+  return (
+    <nav className="pl-abc" aria-label="Filtrar por letra inicial">
+      <button type="button" className={!letra ? "on" : ""} aria-pressed={!letra} onClick={() => onChange("")}>
+        Todos
+      </button>
+      {LETRAS.map((l) => (
+        <button
+          key={l}
+          type="button"
+          className={letra === l ? "on" : ""}
+          aria-pressed={letra === l}
+          disabled={!disp.has(l)}
+          onClick={() => onChange(letra === l ? "" : l)}
+        >
+          {l}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function FiltroPartidosMini({
+  cont,
+  partido,
+  onChange,
+}: {
+  cont: [string, number][];
+  partido: string;
+  onChange: (p: string) => void;
+}) {
+  return (
+    <nav className="pl-ptd" aria-label="Filtrar por partido">
+      <button type="button" className={!partido ? "on" : ""} aria-pressed={!partido} onClick={() => onChange("")}>
+        Todos
+      </button>
+      {cont.map(([p, n]) => (
+        <button
+          key={p}
+          type="button"
+          className={partido === p ? "on" : ""}
+          aria-pressed={partido === p}
+          style={{ ["--c" as string]: corPartido(p) }}
+          onClick={() => onChange(partido === p ? "" : p)}
+        >
+          <i />
+          {p}
+          <small className="tl-mono">{n}</small>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function contarPartidos(ps: string[]): [string, number][] {
+  const m = new Map<string, number>();
+  for (const p of ps) m.set(p, (m.get(p) ?? 0) + 1);
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
 /* ── ranking majoritário (presidente/governador/senador) ── */
 function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
+  const clicavel = useClicavel();
   const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos);
   const lider = lista[0];
   const max = Math.max(lider?.pct ?? 1, 1);
   // linhas dividem a altura disponível: cabem todos
   const n = Math.max(lista.length, 6);
+  const alvo = (c: CandApurado) => () => alvoApurado(c, lista, ap, vagas, false);
   return (
     <div className="pl-maj">
       {lider && (
-        <div className="pl-lider" key={lider.sq}>
+        <div className="pl-lider" key={lider.sq} {...clicavel(alvo(lider))}>
           <div className="pl-lider-halo" style={{ background: corPartido(lider.partido) }} />
           <Foto src={`${ap.fotoBase}/${lider.sq}`} nome={lider.nome} cor={corPartido(lider.partido)} size="13em" />
           <div className="pl-lider-tag">{vagas > 1 ? "MAIS VOTADO" : "LIDERANDO"}</div>
@@ -544,15 +991,14 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
           <Badge c={lider} />
         </div>
       )}
-      <div
-        className={`pl-rank ${lista.length > 8 ? "pl-rank-compact" : ""}`}
-      >
+      <div className={`pl-rank ${lista.length > 8 ? "pl-rank-compact" : ""}`}>
         <div className="pl-vv-lbl">% dos votos válidos · {nf(ap.votosValidos)} válidos apurados</div>
         {lista.map((c, i) => (
           <div
             key={c.sq}
             className={`pl-row ${i < vagas ? "pl-row-top" : ""}`}
             style={{ top: `calc(${i} * 100% / ${n})`, height: `calc(100% / ${n} - 0.35em)` }}
+            {...clicavel(alvo(c))}
           >
             <span className="pl-pos tl-mono">{i + 1}º</span>
             <Foto
@@ -570,7 +1016,7 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
               <div className="pl-row-bar">
                 <div
                   className="pl-row-fill"
-                  style={{ width: `${(c.pct / max) * 100}%`, background: corPartido(c.partido) }}
+                  style={{ width: `${(c.pct / max) * 100}%`, background: corPartido(c.partido), ["--c" as string]: corPartido(c.partido) }}
                 />
               </div>
             </div>
@@ -587,81 +1033,173 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
 
 /* ── ranking proporcional (deputados): todos os candidatos com cards compactos ── */
 function Proporcional({ ap, vagas }: { ap: Apuracao; vagas: number }) {
+  const clicavel = useClicavel();
   const [busca, setBusca] = useState("");
+  const [letra, setLetra] = useState("");
+  const [partido, setPartido] = useState("");
   const todos = useMemo(() => {
     return [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos);
   }, [ap.cand]);
+  const maxVotos = Math.max(1, todos[0]?.votos ?? 1);
+  const letras = useMemo(() => new Set(todos.map((c) => inicial(c.nome))), [todos]);
+  const cont = useMemo(() => contarPartidos(todos.map((c) => c.partido)), [todos]);
 
   const lista = useMemo(() => {
-    if (!busca.trim()) return todos;
-    const q = busca.toLowerCase();
-    return todos.filter((c) =>
-      c.nome.toLowerCase().includes(q) ||
-      String(c.num).includes(q) ||
-      c.partido.toLowerCase().includes(q)
+    const q = busca.trim().toLowerCase();
+    return todos.filter(
+      (c) =>
+        (!letra || inicial(c.nome) === letra) &&
+        (!partido || c.partido === partido) &&
+        (!q || c.nome.toLowerCase().includes(q) || String(c.num).includes(q) || c.partido.toLowerCase().includes(q)),
     );
-  }, [todos, busca]);
+  }, [todos, busca, letra, partido]);
 
   return (
     <div className="pl-prop">
-      <div className="pl-prop-head" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
-        <span><b>{lista.length}</b> de {nf(todos.length)} CANDIDATOS APURADOS · % DOS VOTOS VÁLIDOS</span>
-        <span className="pl-prop-vagas">{vagas} cadeiras · {nf(ap.cand.length)} com votos</span>
-        <div style={{ marginLeft: "auto" }}>
-          <input
-            type="search"
-            placeholder="Buscar deputado..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            style={{
-              background: "rgba(15, 23, 42, 0.8)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#fff",
-              padding: "0.25rem 0.6rem",
-              borderRadius: "6px",
-              fontSize: "0.75rem",
-              outline: "none",
-              width: "180px",
-            }}
-          />
-        </div>
+      <div className="pl-prop-head">
+        <span><b>{nf(lista.length)}</b> de {nf(todos.length)} candidatos · % dos votos válidos</span>
+        <span className="pl-prop-vagas">{vagas} cadeiras</span>
+        <input
+          type="search"
+          className="pl-busca"
+          placeholder="Buscar deputado, número ou partido"
+          aria-label="Buscar deputado"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
       </div>
+      <FiltroLetras disp={letras} letra={letra} onChange={setLetra} />
       <div className="pl-prop-grid">
-        {lista.map((c, i) => (
-          <div
-            key={c.sq || `${c.num}-${c.nome}`}
-            className="pl-pcard pl-pcard-compact"
-          >
-            <span className="pl-pos tl-mono">{i + 1}</span>
-            <Foto src={`${ap.fotoBase}/${c.sq}`} nome={c.nome} cor={corPartido(c.partido)} size="2.4em" />
-            <div className="pl-pcard-main">
-              <Nome partido={c.partido} className="pl-row-nome">{titulo(c.nome)}</Nome>
-              <span className="pl-row-part" style={{ color: corPartido(c.partido) }}>
-                {c.partido} · {c.num}
-              </span>
+        {lista.map((c) => {
+          const pos = todos.indexOf(c) + 1;
+          const cor = corPartido(c.partido);
+          return (
+            <div
+              key={c.sq || `${c.num}-${c.nome}`}
+              className="pl-pcard pl-pcard-compact"
+              {...clicavel(() => alvoApurado(c, todos, ap, vagas, true))}
+            >
+              <span className="pl-pos tl-mono">{pos}</span>
+              <Foto src={`${ap.fotoBase}/${c.sq}`} nome={c.nome} cor={cor} size="2.4em" />
+              <div className="pl-pcard-main">
+                <Nome partido={c.partido} className="pl-row-nome">{titulo(c.nome)}</Nome>
+                <span className="pl-row-part" style={{ color: cor }}>
+                  {c.partido} · {c.num}
+                </span>
+                <Badge c={c} />
+              </div>
+              <div className="pl-row-num">
+                <Num v={c.votos} className="pl-row-pct" />
+                <Pct v={c.pct} className="pl-row-votos" />
+              </div>
+              <Ripa v={(c.votos / maxVotos) * 100} cor={cor} className="pl-ripa-card" />
             </div>
-            <Badge c={c} />
-            <div className="pl-row-num">
-              <Num v={c.votos} className="pl-row-pct" />
-              <Pct v={c.pct} className="pl-row-votos" />
-            </div>
-          </div>
-        ))}
+          );
+        })}
+        {lista.length === 0 && <p className="pl-vazio">Nenhum deputado com esse filtro.</p>}
       </div>
+      <FiltroPartidosMini cont={cont} partido={partido} onChange={setPartido} />
     </div>
   );
 }
 
 /* ── pré-apuração: vitrine dos candidatos ── */
-// colunas que preenchem a largura toda: 7 → 7, 14 → 7×2, 15 → 8×2, 18 dep → 9×2
-function vitCols(n: number, prop: boolean): number {
-  const max = prop ? 9 : 8;
-  if (n <= max) return Math.max(n, 1);
-  return Math.ceil(n / Math.ceil(n / max));
+type ItemVit = { c: CandSnapshot; pct?: number; fora: boolean; destaque: boolean };
+
+function fotoVitrine(p: PleitoSnapshot, c: CandSnapshot): string {
+  const isPres = p.id === "presidente" || (p.uf && p.uf.toUpperCase() === "BR");
+  const sq = extrairSq(c.foto);
+  if (sq) return `/api/telao/foto/${isPres ? "6257" : "6259"}/${isPres ? "br" : (p.uf || "sp").toLowerCase()}/${sq}`;
+  return c.foto && c.foto.startsWith("http") ? c.foto : "";
 }
+
+function alvoVitrine(p: PleitoSnapshot, it: ItemVit, ordem: number, total: number, pesquisa?: BocaPesquisa): ZoomAlvo {
+  const { c, pct } = it;
+  const stats: ZoomStat[] = [];
+  let pos = ordem;
+  let tot = total;
+  let barra: number | undefined;
+  if (pesquisa && pct !== undefined) {
+    const rank = [...pesquisa.cand].sort((a, b) => b.pct - a.pct);
+    const i = rank.findIndex((x) => Number(x.num) === c.num);
+    pos = i + 1;
+    tot = rank.length;
+    barra = rank[0]?.pct ? (pct / rank[0].pct) * 100 : 0;
+    const acima = rank[i - 1];
+    const abaixo = rank[i + 1];
+    const empate = (o?: { pct: number }) => !!o && Math.abs(o.pct - pct) <= 2 * pesquisa.margem;
+    if (acima)
+      stats.push({
+        k: `Atrás do ${ord(pos - 1)}`,
+        v: `${pctf(acima.pct - pct, 1)} p.p.`,
+        sub: `${titulo(acima.nome)}${empate(acima) ? " · empate técnico" : ""}`,
+        tom: empate(acima) ? undefined : "baixa",
+      });
+    if (abaixo)
+      stats.push({
+        k: `À frente do ${ord(pos + 1)}`,
+        v: `${pctf(pct - abaixo.pct, 1)} p.p.`,
+        sub: `${titulo(abaixo.nome)}${empate(abaixo) ? " · empate técnico" : ""}`,
+        tom: empate(abaixo) ? undefined : "alta",
+      });
+    stats.push({ k: "Margem de erro", v: `±${pctf(pesquisa.margem, 1)} p.p.`, sub: pesquisa.fonte || pesquisa.instituto });
+  }
+  stats.push({ k: "Número na urna", v: String(c.num) });
+  if (c.col) stats.push({ k: "Coligação / federação", v: titulo(c.col), txt: true });
+  if (c.occ) stats.push({ k: "Ocupação", v: titulo(c.occ), txt: true });
+  return {
+    nome: titulo(c.n),
+    nomeUrna: titulo(c.nome),
+    partido: c.p,
+    num: c.num,
+    foto: fotoVitrine(p, c),
+    fotoFallback: c.foto,
+    pos,
+    total: tot,
+    contexto: pct !== undefined ? "na pesquisa de intenção de voto" : "na lista exibida",
+    destaque: pct !== undefined ? { valor: `${pctf(pct, 1)}%`, rotulo: "das intenções de voto" } : undefined,
+    barra,
+    stats,
+    nota: "Apuração oficial do TSE a partir das 17h. Antes disso, a colocação vem da pesquisa.",
+  };
+}
+
+/** Pódio da pesquisa: colunas 3D com a foto no topo de cada barra. */
+function PodioPesquisa({ p, itens, pesquisa }: { p: PleitoSnapshot; itens: ItemVit[]; pesquisa: BocaPesquisa }) {
+  const clicavel = useClicavel();
+  const col = itens.filter((x) => x.pct !== undefined).slice(0, 10);
+  if (col.length < 2) return null;
+  const max = Math.max(...col.map((x) => x.pct!), 1);
+  return (
+    <div className="pl-podio" aria-label={`Pesquisa ${pesquisa.fonte || pesquisa.instituto}`}>
+      {col.map((it, i) => {
+        const cor = corPartido(it.c.p);
+        return (
+          <div
+            key={it.c.num}
+            className="pl-podio-col"
+            style={{ ["--c" as string]: cor, ["--h" as string]: String(it.pct! / max), animationDelay: `${i * 70}ms` }}
+            {...clicavel(() => alvoVitrine(p, it, i + 1, col.length, pesquisa))}
+          >
+            <div className="pl-podio-trilho">
+              <div className="pl-podio-barra">
+                <span className="pl-podio-foto">
+                  <Foto src={fotoVitrine(p, it.c)} fallbackSrc={it.c.foto} nome={it.c.n} cor={cor} size="100%" />
+                </span>
+                <b className="pl-podio-pct tl-mono">{pctf(it.pct!, 1)}%</b>
+              </div>
+            </div>
+            <span className="pl-podio-nome">{titulo(it.c.n)}</span>
+            <span className="pl-podio-part" style={{ color: cor }}>{it.c.p}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Vitrine({
   p,
-  fotoBase,
   now,
   pesquisa,
 }: {
@@ -672,145 +1210,76 @@ function Vitrine({
 }) {
   const prop = isProporcional(p.id);
   const neon = useContext(NeonCtx);
+  const clicavel = useClicavel();
   const [busca, setBusca] = useState("");
-  const gridRef = useRef<HTMLDivElement>(null);
+  const [letra, setLetra] = useState("");
+  const [partido, setPartido] = useState("");
 
-  const pctDe = (num: number) => pesquisa?.cand.find((c) => c.num === num)?.pct;
-  const desistiu = (st: string) => /desist|ren[uú]n/i.test(st);
-
-  const todos = useMemo(() => {
+  const todos = useMemo<ItemVit[]>(() => {
+    const pctDe = (num: number) => pesquisa?.cand.find((c) => Number(c.num) === num)?.pct;
+    const desistiu = (st: string) => /desist|ren[uú]n/i.test(st);
     return p.candidatos
       .filter((c, i, a) => a.findIndex((x) => x.num === c.num) === i)
-      .map((c) => ({
-        c,
-        pct: pctDe(c.num),
-        fora: desistiu(c.st),
-        destaque: neon.has(c.p),
-      }))
+      .map((c) => ({ c, pct: pctDe(c.num), fora: desistiu(c.st), destaque: neon.has(c.p) }))
       .sort((a, b) => {
         if (a.fora !== b.fora) return Number(a.fora) - Number(b.fora);
-        // Se houver percentual na pesquisa, ordenar por % decrescente
         const hasA = a.pct !== undefined;
         const hasB = b.pct !== undefined;
         if (hasA && hasB) return b.pct! - a.pct!;
-        if (hasA && !hasB) return -1;
-        if (!hasA && hasB) return 1;
-        // Se não houver pesquisa ou empatado, destaque do partido primeiro
+        if (hasA !== hasB) return hasA ? -1 : 1;
         if (a.destaque !== b.destaque) return a.destaque ? -1 : 1;
-        // Por fim, ordem alfabética
-        return a.c.nome.localeCompare(b.c.nome, "pt-BR");
+        return a.c.n.localeCompare(b.c.n, "pt-BR");
       });
   }, [p.candidatos, pesquisa, neon]);
 
+  const maxPct = Math.max(1, ...todos.map((t) => t.pct ?? 0));
+  const letras = useMemo(() => new Set(todos.map((t) => inicial(t.c.n))), [todos]);
+  const cont = useMemo(() => contarPartidos(todos.map((t) => t.c.p)), [todos]);
+
   const lista = useMemo(() => {
-    if (!busca.trim()) return todos;
-    const q = busca.toLowerCase();
-    return todos.filter(({ c }) =>
-      c.nome.toLowerCase().includes(q) ||
-      c.n.toLowerCase().includes(q) ||
-      String(c.num).includes(q) ||
-      c.p.toLowerCase().includes(q)
+    const q = busca.trim().toLowerCase();
+    return todos.filter(
+      ({ c }) =>
+        (!letra || inicial(c.n) === letra) &&
+        (!partido || c.p === partido) &&
+        (!q ||
+          c.nome.toLowerCase().includes(q) ||
+          c.n.toLowerCase().includes(q) ||
+          String(c.num).includes(q) ||
+          c.p.toLowerCase().includes(q)),
     );
-  }, [todos, busca]);
-
-  const scrollUp = () => gridRef.current?.scrollBy({ top: -350, behavior: "smooth" });
-  const scrollDown = () => gridRef.current?.scrollBy({ top: 350, behavior: "smooth" });
-
-  const isPres = p.id === "presidente" || (p.uf && p.uf.toUpperCase() === "BR");
-  const eleicaoFoto = isPres ? "6257" : "6259";
-  const ufFoto = isPres ? "br" : (p.uf || "sp").toLowerCase();
+  }, [todos, busca, letra, partido]);
 
   return (
-    <div className="pl-vit">
-      <div className="pl-count" style={{ flexWrap: "wrap", gap: "0.8rem", alignItems: "center" }}>
+    <div className={`pl-vit ${prop ? "pl-vit-deps" : ""}`}>
+      <div className="pl-count">
         <Contagem now={now} />
         <em>
-          <b>{lista.length}</b> de {nf(p.total)} candidatos exibidos · {p.vagas} {p.vagas > 1 ? "vagas" : "vaga"}
-          {pesquisa ? ` · ordem da pesquisa: ${pesquisa.fonte || pesquisa.instituto}` : ""}
+          <b>{nf(lista.length)}</b> de {nf(p.total)} candidatos · {p.vagas} {p.vagas > 1 ? "vagas" : "vaga"}
+          {pesquisa ? ` · ordem da pesquisa ${pesquisa.fonte || pesquisa.instituto}` : ""}
         </em>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <input
-            type="search"
-            placeholder="Buscar candidato ou partido..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            style={{
-              background: "rgba(15, 23, 42, 0.8)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#fff",
-              padding: "0.3rem 0.7rem",
-              borderRadius: "6px",
-              fontSize: "0.8rem",
-              outline: "none",
-              width: "220px",
-            }}
-          />
-          <button
-            type="button"
-            onClick={scrollUp}
-            title="Rolar para cima"
-            style={{
-              background: "rgba(255, 255, 255, 0.1)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#fff",
-              borderRadius: "6px",
-              padding: "0.3rem 0.6rem",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            onClick={scrollDown}
-            title="Rolar para baixo"
-            style={{
-              background: "rgba(255, 255, 255, 0.1)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#fff",
-              borderRadius: "6px",
-              padding: "0.3rem 0.6rem",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            ▼
-          </button>
-        </div>
+        <input
+          type="search"
+          className="pl-busca"
+          placeholder="Buscar candidato, número ou partido"
+          aria-label="Buscar candidato"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
       </div>
-      <div
-        ref={gridRef}
-        className={`pl-vit-grid ${prop ? "pl-vit-prop" : ""}`}
-        style={{
-          display: "grid",
-          gridTemplateColumns: prop
-            ? `repeat(auto-fill, minmax(88px, 1fr))`
-            : `repeat(auto-fill, minmax(130px, 1fr))`,
-          gap: prop ? "0.35rem" : "0.6rem",
-          overflowY: "auto",
-          maxHeight: "calc(100vh - 250px)",
-          paddingRight: "0.4rem",
-        }}
-      >
-        {lista.map(({ c, pct, fora, destaque }) => {
-          const sq = extrairSq(c.foto);
+      {!prop && pesquisa && <PodioPesquisa p={p} itens={todos} pesquisa={pesquisa} />}
+      {prop && <FiltroLetras disp={letras} letra={letra} onChange={setLetra} />}
+      <div className={`pl-vit-grid ${prop ? "pl-vit-prop" : ""}`}>
+        {lista.map((it, idx) => {
+          const { c, pct, fora, destaque } = it;
           const cor = corPartido(c.p);
-          const fotoUrl = sq
-            ? `/api/telao/foto/${eleicaoFoto}/${ufFoto}/${sq}`
-            : c.foto && c.foto.startsWith("http")
-              ? c.foto
-              : "";
-          const posPesq = pesquisa?.cand ? pesquisa.cand.findIndex((x) => x.num === c.num) + 1 : 0;
-
+          const posPesq = pesquisa && pct !== undefined ? pesquisa.cand.filter((x) => x.pct > pct).length + 1 : 0;
           return (
             <div
               key={`${c.num}-${c.nome}`}
               className={`pl-vcard ${prop ? "pl-vcard-compact" : ""} ${fora ? "pl-vcard-fora" : ""} ${destaque ? "pl-vcard-destaque" : ""}`}
-              style={{
-                borderColor: destaque ? cor : undefined,
-                boxShadow: destaque ? `0 0 12px ${cor}55` : undefined,
-              }}
+              style={{ ["--c" as string]: cor }}
+              {...clicavel(() => alvoVitrine(p, it, idx + 1, lista.length, pesquisa))}
             >
               {pct !== undefined ? (
                 <div className="pl-vpesq">
@@ -818,37 +1287,30 @@ function Vitrine({
                   <span>{posPesq > 0 ? `${posPesq}º na pesquisa` : "na pesquisa"}</span>
                 </div>
               ) : (
-                <div className="pl-vpesq pl-vpesq-vazio">
-                  <span className="pl-vpesq-dash">—</span>
-                  <span className="pl-vpesq-sub">sem pesquisa</span>
-                </div>
+                !prop && (
+                  <div className="pl-vpesq pl-vpesq-vazio">
+                    <span className="pl-vpesq-sub">sem pesquisa</span>
+                  </div>
+                )
               )}
-              <Foto src={fotoUrl} fallbackSrc={c.foto} nome={c.n} cor={cor} size={prop ? "2.5em" : "5.4em"} />
+              <Foto src={fotoVitrine(p, c)} fallbackSrc={c.foto} nome={c.n} cor={cor} size={prop ? "2.9em" : "5.4em"} />
               <div className="pl-vnum tl-mono" style={{ background: cor }}>
                 {c.num}
               </div>
               <Nome partido={c.p} className="pl-vnome">
                 {titulo(c.n)}
               </Nome>
-              <div className="pl-vpart" style={{ color: cor, fontWeight: 700 }}>
+              <div className="pl-vpart" style={{ color: cor }}>
                 {c.p}
               </div>
-              {!prop && <div className="pl-vocc">{titulo(c.occ)}</div>}
-              <div
-                className={`pl-vst ${
-                  /defer/i.test(c.st) && !/indefer/i.test(c.st)
-                    ? "ok"
-                    : /indefer|inelig/i.test(c.st)
-                      ? "ko"
-                      : ""
-                }`}
-              >
-                {c.st || "Deferido"}
-              </div>
+              {!prop && c.occ && <div className="pl-vocc">{titulo(c.occ)}</div>}
+              {pct !== undefined && <Ripa v={(pct / maxPct) * 100} cor={cor} className="pl-ripa-card" />}
             </div>
           );
         })}
+        {lista.length === 0 && <p className="pl-vazio">Nenhum candidato com esse filtro.</p>}
       </div>
+      {prop && <FiltroPartidosMini cont={cont} partido={partido} onChange={setPartido} />}
     </div>
   );
 }
@@ -1214,6 +1676,8 @@ function Corrida({
   const prop = isProporcional(p.id);
   const temRes = !!ap && ap.status !== "aguardando" && ap.cand.length > 0;
   const urnas = ap?.pctUrnas ?? 0;
+  const clicavel = useClicavel();
+  const ordenados = temRes ? [...ap!.cand].sort((a, b) => b.votos - a.votos) : [];
 
   type Raia = { key: string; nome: string; partido: string; num: string; pct: number; foto: string; sq: string };
   const raias: Raia[] = temRes
@@ -1264,7 +1728,16 @@ function Corrida({
                 {hist.slice(0, -1).map((h, j) => (
                   <i key={j} className="pl-raia-rastro" style={{ left: x(h), background: cor, opacity: 0.25 + (j / hist.length) * 0.5 }} />
                 ))}
-                <div className="pl-bola" style={{ left: `max(1.45em, ${x(r.pct)})` }}>
+                <div
+                  className="pl-bola"
+                  style={{ left: `max(1.45em, ${x(r.pct)})` }}
+                  {...(temRes
+                    ? clicavel(() => {
+                        const c = ordenados.find((o) => o.sq === r.sq) ?? ordenados[i];
+                        return alvoApurado(c, ordenados, ap!, p.vagas, prop);
+                      })
+                    : {})}
+                >
                   <Foto src={r.foto} nome={r.nome} cor={cor} size="2.9em" />
                   <div className="pl-bola-lbl">
                     <Nome partido={r.partido} className="pl-bola-nome">
@@ -1752,15 +2225,19 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   const [precisaAtivar, setPrecisaAtivar] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/session", { credentials: "include" })
-      .then((r) => {
-        if (!r.ok) throw new Error();
+    // telão: login do cockpit OU registro simples (nome + WhatsApp)
+    fetch("/api/telao/registro", { credentials: "include", cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d: { cockpit?: boolean }) => {
         setAuthStatus("authenticated");
-        return fetch("/api/candidato/perfil");
-      })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data?.ativadoHoje) setPrecisaAtivar(true);
+        if (!d.cockpit) return;
+        // ativação diária só para quem tem login do cockpit
+        fetch("/api/candidato/perfil")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (data && !data.ativadoHoje) setPrecisaAtivar(true);
+          })
+          .catch(() => {});
       })
       .catch(() => setAuthStatus("guest"));
   }, []);
@@ -1804,7 +2281,39 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
     () => new Map(destaque.map((p) => [p, COR_PARTIDO[p] ?? "#facc15"])),
     [destaque],
   );
+  // número da legenda (2 primeiros dígitos do número de qualquer candidato do partido)
+  const numeros = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const pl of pleitos) for (const c of pl.candidatos) if (!m.has(c.p) && c.num >= 10) m.set(c.p, String(c.num).slice(0, 2));
+    return m;
+  }, [pleitos]);
   const [mostrarMiniMapa, setMostrarMiniMapa] = useState(false);
+
+  // tema: claro "wood" (padrão) ou escuro — persiste por aparelho
+  const [tema, setTema] = useState<"wood" | "escuro">(() => {
+    if (typeof window === "undefined") return "wood";
+    try {
+      return localStorage.getItem("telao-tema") === "escuro" ? "escuro" : "wood";
+    } catch {
+      return "wood";
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.tema = tema;
+    try {
+      localStorage.setItem("telao-tema", tema);
+    } catch {
+      /* ignora */
+    }
+  }, [tema]);
+
+  // zoom do candidato
+  const [zoom, setZoom] = useState<ZoomAberto | null>(null);
+  const abrirZoom = useCallback((alvo: ZoomAlvo, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setZoom({ ...alvo, rect: { x: r.left, y: r.top, w: r.width, h: r.height } });
+  }, []);
+  const fecharZoom = useCallback(() => setZoom(null), []);
 
   // destaque inicial: ?destaque=PL,NOVO > último salvo > abre o seletor no início
   useEffect(() => {
@@ -1919,7 +2428,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   // timer do carrossel (só roda se não houver um pleito fixo, ou se o fixo
   // tiver múltiplas cenas)
   useEffect(() => {
-    if (mobile || mapaAberto || escolhendo || ativando || !cenas.length) return;
+    if (mobile || mapaAberto || escolhendo || ativando || zoom || !cenas.length) return;
     if (fixo && cenas.length <= 1) return;
     const t = setInterval(() => {
       setElapsed((e) => {
@@ -1932,7 +2441,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
       });
     }, 50);
     return () => clearInterval(t);
-  }, [intervalo, cenas.length, fixo, mobile, mapaAberto, escolhendo, ativando]);
+  }, [intervalo, cenas.length, fixo, mobile, mapaAberto, escolhendo, ativando, zoom]);
 
   const cena = cenas[idx] || { pi: 0, j: 0, tipo: "apuracao" };
   const p = pleitos[cena.pi] || pleitos[0];
@@ -2001,7 +2510,23 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   }, [mapaAberto, authStatus, precisaAtivar]);
 
   if (authStatus === "checking") return null;
-  if (authStatus === "guest") return <LoginScreen onLogin={() => setAuthStatus("authenticated")} defaultOpen />;
+  if (authStatus === "guest")
+    return (
+      <RegistroTelao
+        partidos={partidos}
+        numeros={numeros}
+        onDone={(sel) => {
+          setDestaque(sel);
+          setEscolhendo(false);
+          try {
+            localStorage.setItem("telao-pleitos-destaque", JSON.stringify(sel));
+          } catch {
+            /* ignora */
+          }
+          setAuthStatus("authenticated");
+        }}
+      />
+    );
 
   const mudarEscopo = (novo: Escopo) => {
     setEscopo(novo);
@@ -2010,11 +2535,20 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
 
   return (
     <NeonCtx.Provider value={neonMap}>
+    <ZoomCtx.Provider value={abrirZoom}>
     <main
       className={`telao pl-wall ${mobile ? "pl-mobile" : ""} ${a ? "pl-status-apurando" : ""}`}
+      data-tema={tema}
       style={mobile ? undefined : ({ "--pl-h": "100vh" } as React.CSSProperties)}
-
     >
+      <div className="pl-wood" aria-hidden>
+        <div className="pl-wood-veio" />
+        <div className="pl-wood-piso">
+          {Array.from({ length: 24 }, (_, i) => (
+            <span key={i} style={{ ["--i" as string]: i }} />
+          ))}
+        </div>
+      </div>
 
 
       <header className="pl-head">
@@ -2119,6 +2653,15 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         >
           <Star size={16} aria-hidden /> {destaque.length ? destaque.join(" · ") : "Destaque"}
         </button>
+        <button
+          type="button"
+          className="pl-filtro-btn pl-tema-btn"
+          onClick={() => setTema((t) => (t === "wood" ? "escuro" : "wood"))}
+          aria-label={tema === "wood" ? "Mudar para o tema escuro" : "Mudar para o tema claro"}
+          title={tema === "wood" ? "Tema escuro" : "Tema claro"}
+        >
+          {tema === "wood" ? <Moon size={16} aria-hidden /> : <Sun size={16} aria-hidden />}
+        </button>
         <SeletorUF uf={uf} onClick={() => setMapaAberto(true)} />
         <FiltroLocal escopo={escopo} onChange={mudarEscopo} municipios={municipios} uf={uf} />
         <Contagem now={now} />
@@ -2203,14 +2746,14 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
           </div>
         </div>
         <div className="pl-src">
-          <b style={{ color: "#facc15" }}>USO ESTRITAMENTE INTERNO PARTIDÁRIO</b> · Não aberto ao público · Dados oficiais: TSE resultados.tse.jus.br (atualiza a cada 5 min) · Mídias sintéticas rotuladas conforme Resoluções TSE nº 23.610/2019 e 23.755/2026 · notícias via Google News{ehBoca ? " · boca de urna: instituto indicado" : ""} · candidatos {meta.fonte} ({meta.atualizado}) · ← → troca · espaço fixa
+          <b className="pl-src-alerta">USO ESTRITAMENTE INTERNO PARTIDÁRIO</b> · Não aberto ao público · Dados oficiais: TSE resultados.tse.jus.br (atualiza a cada 5 min) · Mídias sintéticas rotuladas conforme Resoluções TSE nº 23.610/2019 e 23.755/2026 · notícias via Google News{ehBoca ? " · boca de urna: instituto indicado" : ""} · candidatos {meta.fonte} ({meta.atualizado}) · ← → troca · espaço fixa
         </div>
       </footer>
       <a className="pl-assina" href="https://angra.io" target="_blank" rel="noreferrer">
         by ALCEU PASSOS (angra.io)
       </a>
       {escolhendo && !mapaAberto && !ativando && (
-        <SeletorDestaque partidos={partidos} sel={destaque} onChange={setDestaque} onClose={fecharSeletor} />
+        <SeletorDestaque partidos={partidos} numeros={numeros} sel={destaque} onChange={setDestaque} onClose={fecharSeletor} />
       )}
       {mapaAberto && (
         <div className="pl-region-overlay" role="dialog" aria-modal="true" aria-labelledby="region-title">
@@ -2235,7 +2778,9 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
       {ativando && (
         <AtivacaoCandidatoModal initialUf={uf} required={precisaAtivar} onSaved={() => { setPrecisaAtivar(false); setAtivando(false); }} onClose={() => setAtivando(false)} />
       )}
+      {zoom && <CandidatoZoom key={`${zoom.partido}-${zoom.num}`} alvo={zoom} onClose={fecharZoom} mobile={mobile} />}
     </main>
+    </ZoomCtx.Provider>
     </NeonCtx.Provider>
   );
 }

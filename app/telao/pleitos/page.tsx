@@ -4,8 +4,13 @@ import { PLEITOS, PLEITO_CFG, SNAPSHOT_META, type PleitoId } from "@/lib/telao/t
 import "../telao.css";
 import "./pleitos.css";
 import "./refresh.css";
+import "./wood.css";
 
 export const dynamic = "force-dynamic";
+
+// aplica o tema salvo antes da pintura (evita piscar escuro → claro)
+const TEMA_JS =
+  "try{document.documentElement.dataset.tema=localStorage.getItem('telao-tema')==='escuro'?'escuro':'wood'}catch(e){document.documentElement.dataset.tema='wood'}";
 
 export const metadata = {
   title: "Telão · Pleitos 2026 ao vivo",
@@ -20,5 +25,10 @@ export default function PleitosPage() {
       `/api/telao/foto/${PLEITO_CFG[id].eleicao}/${PLEITO_CFG[id].uf}`,
     ]),
   ) as Record<PleitoId, string>;
-  return <PleitosWall pleitos={PLEITOS} fotoBase={fotoBase} meta={SNAPSHOT_META} />;
+  return (
+    <>
+      <script dangerouslySetInnerHTML={{ __html: TEMA_JS }} />
+      <PleitosWall pleitos={PLEITOS} fotoBase={fotoBase} meta={SNAPSHOT_META} />
+    </>
+  );
 }

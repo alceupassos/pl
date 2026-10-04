@@ -1,12 +1,12 @@
 # 🏛️ Plano de Execução & Status do Sistema — Eleições 2026
 
-> Última atualização: **2026-10-04T07:45:00-03:00** — Executado no **Gemini 3.8 Flash**
+> Última atualização: **2026-10-04T08:45:00-03:00** — Executado no **Claude Opus 5.5**
 > 
 > **Status Geral**: 🟢 **Sistema 100% Operacional em Produção** (`https://pl.angra.io` e `https://politica.angra.io`).
 
 ---
 
-## 📋 Resumo Executivo das 22 Etapas Implementadas
+## 📋 Resumo Executivo das 28 Etapas Implementadas
 
 | Status | Etapa | Descrição | Principais Arquivos |
 | :---: | :--- | :--- | :--- |
@@ -32,6 +32,12 @@
 | `[x]` | **20. Ocultação de Bens & Barra Destaque** | Removida barra '★ EM DESTAQUE', ocultada exibição de bens (`R$ ... mi`) e municípios autônomos. | `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/pleitos.css` |
 | `[x]` | **21. Fim do Modo Claro & Degradê de Barrinhas** | Eliminado 100% de qualquer flash claro (FOUC). Background escuro global com degradê de barrinhas verticais claras e remoção do logo/foto de Sóstenes em prol de marca neutra institucional. | `app/layout.tsx`, `app/globals.css`, `app/design-refresh.css`, `app/telao/pleitos/refresh.css` |
 | `[x]` | **22. Exibição de 100% dos Candidatos & Cards Compactos** | Removido limite de 30 candidatos: base oficial completa do TSE carregada (1.045 dep. federais SP, 1.346 dep. estaduais SP e todos das 27 UFs). Cards ultracompactos de alta densidade para deputados e scroll vertical contínuo na apuração proporcional com busca instantânea. | `lib/telao/pleitos-sp.json`, `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/pleitos.css` |
+| `[x]` | **23. Tema Claro "Wood" (padrão) + Toggle Escuro** | Paleta madeira clara (bordo/carvalho, tinta nogueira, acento mel), mini faixas verticais em degradê (veio) e piso 3D de ripas em perspectiva. Botão sol/lua no cabeçalho, escolha salva por aparelho; script anti-flash aplica o tema antes da pintura. Cockpit `/`, `/m` e `/w` seguem escuros. | `app/telao/pleitos/wood.css`, `app/telao/pleitos/page.tsx`, `app/c/page.tsx`, `app/layout.tsx` |
+| `[x]` | **24. Cards em Vidro 3D com Relevo** | Cards de candidato em vidro (bisel claro no topo, sombra embaixo, brilho especular), inclinação 3D no hover; blur real só onde há poucos cards (deputados sem blur, para não travar com 1.000+). Nos dois temas. | `app/telao/pleitos/wood.css` |
+| `[x]` | **25. Zoom do Candidato (números + colocação)** | Clique/Enter em qualquer card (vitrine, ranking, líder, deputados, bolinhas da Corrida) abre zoom FLIP: foto grande, colocação "3º de 12", % e votos, distância para o de cima/de baixo/líder, 50%+1, vagas, posição dentro do partido (deputados), urnas apuradas. Pré-17h: posição e empate técnico pela pesquisa. Esc/clique fora fecha; no `/c` vira bottom sheet com arrastar para baixo. Carrossel pausa enquanto aberto. | `components/telao/pleitos-wall.tsx` (`CandidatoZoom`, `alvoApurado`, `alvoVitrine`) |
+| `[x]` | **26. Barras e Fotos em Todos os Candidatos** | "Ripas" 3D (barras extrudadas com mini faixas na cor do partido) nos cards da vitrine, no ranking majoritário e nos cards de deputado; pódio da pesquisa com colunas 3D e foto no topo de cada barra. Removido o selo "Deferido/Indeferido" dos cards. | `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/wood.css` |
+| `[x]` | **27. Filtros A–Z e por Partido (Deputados)** | Dep. Federal e Estadual (vitrine e apuração): botões pequenos A–Z no topo (letras sem candidato ficam desabilitadas) e filtro por partido com contagem no rodapé, ambos fixos nas bordas da lista; busca por nome/número/partido. | `components/telao/pleitos-wall.tsx` (`FiltroLetras`, `FiltroPartidosMini`) |
+| `[x]` | **28. Registro no Lugar do Login + Selos de Partido** | Telão e `/c` não pedem mais login: cadastro com nome + WhatsApp (sem senha) e escolha dos partidos por botões com selo (medalhão na cor da legenda com o número na urna, derivado dos próprios números dos candidatos). Cookie próprio `telao_reg` (30 dias) que libera SÓ o telão (o cockpit continua exigindo login). Registros em `data/telao-registros.jsonl` (gitignored). | `lib/telao/registro.ts`, `app/api/telao/registro/route.ts`, `components/telao/pleitos-wall.tsx` (`RegistroTelao`, `SeloPartido`) |
 
 ---
 
@@ -84,6 +90,11 @@
 ---
 
 ## 📌 O que Tem para Fazer (Próximos Passos e Operação)
+
+### 0. Feito nesta rodada (04/10, manhã)
+- Correções extras: cores de legenda `SOLIDARIEDADE` e `PCDOB` (as chaves antigas `SD` / `PC do B` não batiam com os dados do TSE); 2 erros antigos de lint (setState em effect em `Foto` e `FiltroLocal`) corrigidos; aviso de hidratação do `<html>` suprimido para o tema.
+- Testado com Playwright em 1920×1080 e 390×844 com apuração simulada (63% das urnas): cadastro, vitrine/pódio, ranking, deputados com filtros, zoom, temas wood/escuro. `tsc`, `eslint` (0 erros) e `npm run build` OK.
+- **Para ver os registros do telão:** `data/telao-registros.jsonl` no servidor (nome, WhatsApp, partidos, IP).
 
 ### 1. Monitoramento da Virada de Urnas às 17h00 (Hoje)
 - **Comportamento Automático**:
