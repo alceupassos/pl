@@ -1489,10 +1489,10 @@ function PainelBrasil({ panorama }: { panorama: Panorama | null }) {
   );
 }
 
-type Modo = "ambos" | "apuracao" | "boca" | "noticias";
+type Modo = "ambos" | "apuracao" | "boca";
 type Cena = {
   pi: number;
-  tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" | "noticias" | "panorama";
+  tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" | "noticias";
 };
 
 /* ── wall ── */
@@ -1519,7 +1519,6 @@ const CENA_NOME: Record<Cena["tipo"], string> = {
   comparativo: "Comparativo",
   boca: "Boca de urna",
   noticias: "Notícias",
-  panorama: "Panorama",
 };
 
 
@@ -1567,227 +1566,6 @@ function EdgeScroller() {
         onMouseLeave={stopScroll}
         style={{ position: 'fixed', right: 0, top: '15%', bottom: '15%', width: '80px', zIndex: 90, cursor: 'e-resize' }} 
       />
-    </>
-  );
-}
-
-export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "tv" }: Props) {
-  const mobile = variant === "mobile";
-  const now = useNow(1000);
-  const [uf, setUf] = useState("sp");
-  const [escopo, setEscopo] = useState<Escopo>({});
-  const [municipios, setMunicipios] = useState<Municipio[]>([]);
-  const [pleitosUF, setPleitosUF] = useState<PleitoSnapshot[]>(pleitosProps);
-  const ap = useApuracao(escopo, uf);
-  const panorama = usePanorama();
-  const boca = useBoca();
-  const pesquisas = useBoca("pesquisa");
-  const noticias = useNoticias();
-  const toque = useRef(0);
-  const [modo, setModo] = useState<Modo>("ambos");
-  const [destaque, setDestaque] = useState<string[]>([]);
-  const [escolhendo, setEscolhendo] = useState(false);
-  const [ativando, setAtivando] = useState(false);
-  const [authStatus, setAuthStatus] = useState<"checking" | "guest" | "authenticated">("checking");
-  const [mapaAberto, setMapaAberto] = useState(true);
-  const [precisaAtivar, setPrecisaAtivar] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/session", { credentials: "include" })
-      .then((r) => {
-        if (!r.ok) throw new Error();
-        setAuthStatus("authenticated");
-        return fetch("/api/candidato/perfil");
-      })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data?.ativadoHoje) setPrecisaAtivar(true);
-      })
-      .catch(() => setAuthStatus("guest"));
-  }, []);
-
-  // carregar pré-apuração da UF quando o usuário trocar para estado diferente de SP
-  useEffect(() => {
-    if (uf === "sp") setPleitosUF(pleitosProps);
-    else
-      fetch(`/api/telao/candidatos?uf=${uf}`)
-        .then((r) => (r.ok ? r.json() : pleitosProps))
-        .then((d) => setPleitosUF(d))
-        .catch(() => setPleitosUF(pleitosProps));
-  }, [uf, pleitosProps]);
-
-  const pleitos = pleitosUF;
-
-  // partidos presentes nos pleitos (para o seletor), ordenados por nº de candidatos
-  const partidos = useMemo(() => {
-    const cont = new Map<string, number>();
-    for (const pl of pleitos) for (const c of pl.candidatos) cont.set(c.p, (cont.get(c.p) ?? 0) + 1);
-    for (const p of Object.keys(COR_PARTIDO)) if (!cont.has(p)) cont.set(p, 0);
-    return [...cont.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([p]) => p);
-  }, [pleitos]);
-  const neonMap = useMemo(
-    () => new Map(destaque.map((p, i) => [p, NEON[i % NEON.length]])),
-    [destaque],
-  );
-
-  // destaque inicial: ?destaque=PL,NOVO > último salvo > abre o seletor no início
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("destaque");
-    let sel: string[] | null = q ? q.split(",").map((s) => s.trim()).filter(Boolean) : null;
-    if (!sel) {
-      try {
-        const raw = localStorage.getItem("telao-pleitos-destaque");
-        if (raw) sel = JSON.parse(raw) as string[];
-      } catch {
-        /* ignora */
-      }
-    }
-    const t = setTimeout(() => {
-      if (sel) setDestaque(sel);
-      else setEscolhendo(true);
-    }, 500);
-    return () => clearTimeout(t);
-  }, []);
-
-  const fecharSeletor = () => {
-    setEscolhendo(false);
-    try {
-      localStorage.setItem("telao-pleitos-destaque", JSON.stringify(destaque));
-    } catch {
-      /* ignora */
-    }
-  };
-
-  // query params de controle
-  const [fixo, setFixo] = useState<string | null>(null);
-  const [intervalo, setIntervalo] = useState(15_000);
-  useEffect(() => {
-    const usp = new URLSearchParams(window.location.search);
-    setFixo(usp.get("p"));
-    const i = parseInt(usp.get("int") || "", 10);
-    if (i && i >= 5) setIntervalo(i * 1000);
-    const m = usp.get("m");
-    if (m === "boca" || m === "noticias") setModo(m);
-  }, []);
-
-  const nCenas = modo === "boca" ? 2 : modo === "noticias" ? 1 : 4;
-  const numCenasFixas = (pleitoId: PleitoId): number => {
-    if (modo === "boca") return temBoca(pleitoId, boca) ? 2 : 0;
-    if (modo === "noticias") return 1;
-    return isProporcional(pleitoId) ? 2 : 4;
-  };
-
-  const cenas = useMemo(() => {
-    const out: { pi: number; j: number; tipo: Cena["tipo"] }[] = [];
-    if (fixo === "brasil") {
-      out.push({ pi: -1, j: 0, tipo: "panorama" });
-      if (modo === "boca") out.push({ pi: -1, j: 1, tipo: "boca" });
-      if (modo === "ambos" || modo === "noticias") out.push({ pi: -1, j: out.length, tipo: "noticias" });
-      return out;
-    }
-    pleitos.forEach((pl, pi) => {
-      if (fixo && pl.id !== fixo) return;
-      if (modo === "boca") {
-        if (temBoca(pl.id, boca)) {
-          out.push({ pi, j: 0, tipo: "boca" });
-          out.push({ pi, j: 1, tipo: "boca" });
-        }
-      } else if (modo === "noticias") {
-        out.push({ pi, j: 0, tipo: "noticias" });
-      } else {
-        out.push({ pi, j: 0, tipo: "apuracao" });
-        out.push({ pi, j: 1, tipo: "corrida" });
-        if (!isProporcional(pl.id)) {
-          out.push({ pi, j: 2, tipo: "evolucao" });
-          out.push({ pi, j: 3, tipo: "bancadas" });
-        }
-      }
-    });
-    return out;
-  }, [pleitos, fixo, modo, boca]);
-
-  const [idx, setIdx] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-
-  // timer do carrossel (só roda se não houver um pleito fixo, ou se o fixo
-  // tiver múltiplas cenas)
-  useEffect(() => {
-    if (!cenas.length) return;
-    if (fixo && cenas.length <= 1) return;
-    const t = setInterval(() => {
-      setElapsed((e) => {
-        const next = e + 50;
-        if (next >= intervalo) {
-          setIdx((i) => (i + 1) % cenas.length);
-          return 0;
-        }
-        return next;
-      });
-    }, 50);
-    return () => clearInterval(t);
-  }, [intervalo, cenas.length, fixo, toque.current]);
-
-  const cena = cenas[idx] || { pi: 0, j: 0, tipo: "apuracao" };
-  const p = pleitos[cena.pi] || pleitos[0];
-  const a = ap[p.id];
-  const pesq = pesquisas[p.id as keyof typeof pesquisas];
-  const ehBoca = cena.tipo === "boca";
-  const cenasDoPleito = cenas.map((c, j) => ({ ...c, j })).filter((c) => c.pi === cena.pi);
-  const temResultado = !!a && a.cand.length > 0 && a.status !== "aguardando";
-  const hora = now ? new Date(now).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "--:--:--";
-
-  const ticker = useMemo(
-    () =>
-      pleitos.map((pl) => {
-        const r = ap[pl.id];
-        if (!r || r.pctUrnas === 0) return `${pl.titulo}: aguardando urnas...`;
-        return `${pl.titulo}: ${r.cand.slice(0, 3).map((c) => `${c.nome} ${c.pct}%`).join(" · ")} (${pctf(r.pctUrnas, 1)}% apurado)`;
-      }),
-    [ap, pleitos],
-  );
-
-  const localTxt = p.id.startsWith("presidente")
-    ? (escopo.mu && municipios.find((m) => m.cd === escopo.mu)?.nm) || (escopo.uf && UF_NOME[escopo.uf as keyof typeof UF_NOME])
-    : escopo.mu && municipios.find((m) => m.cd === escopo.mu)?.nm;
-
-  const statusTxt = ehBoca
-    ? "PESQUISA DE BOCA DE URNA"
-    : cena.tipo === "corrida"
-      ? "CORRIDA · PASSO A PASSO"
-      : cena.tipo === "evolucao"
-        ? "EVOLUÇÃO DA APURAÇÃO"
-        : cena.tipo === "bancadas"
-          ? "BANCADAS · CADEIRAS POR PARTIDO"
-          : cena.tipo === "comparativo"
-            ? "PROJEÇÃO × PESQUISA × BOCA DE URNA × REALIDADE"
-            : a?.status === "finalizado"
-              ? "APURAÇÃO ENCERRADA"
-              : temResultado
-                ? "APURAÇÃO AO VIVO"
-                : "PRÉ-APURAÇÃO";
-
-  // if (authStatus === "checking") return null;
-  // if (authStatus === "guest") return <LoginScreen onLogin={() => setAuthStatus("authenticated")} defaultOpen />;
-
-  const mudarEscopo = (novo: Escopo) => {
-    setEscopo(novo);
-    setElapsed(0);
-  };
-
-  return (
-    <NeonCtx.Provider value={neonMap}>
-    <main
-      className={`telao pl-wall ${mobile ? "pl-mobile" : ""} ${a ? "pl-status-apurando" : ""}`}
-      style={mobile ? undefined : ({ "--pl-h": "100vh" } as React.CSSProperties)}
-      onTouchStart={() => toque.current++}
-    >
-      <Fundo3D />
-      {!mobile && <EdgeScroller />}
-      <header className="pl-head">
-        <div className="pl-brand">
-          <span className={`pl-live ${temResultado && a?.status !== "finalizado" ? "on" : ""}`} />
-          <div>
-            <div className="pl-kicker">ELEIÇÕES 2026 · 1º TURNO · {statusTxt}</div>
             <h1 key={`${p.id}-${cena.tipo}`} className="pl-title">
               {p.titulo}
               {localTxt && <span className="pl-title-local">{localTxt}</span>}
