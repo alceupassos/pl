@@ -43,7 +43,7 @@ export default async function AccessLogPage() {
           <h1>Log completo de acessos</h1>
           <p>
             Quem acessou, IP e cidade por IP, quantidade de acessos, tempo em cada página e os
-            leads/prospects que estão entrando.
+            nomes e WhatsApps informados no registro de uso.
           </p>
         </div>
         <div className="log-stat-grid">
@@ -56,10 +56,6 @@ export default async function AccessLogPage() {
             <strong>{summary.uniqueIps}</strong>
           </div>
           <div className="log-stat">
-            <span>Cadastros</span>
-            <strong>{cadastros.length}</strong>
-          </div>
-          <div className="log-stat">
             <span>Tempo médio/página</span>
             <strong>{fmtDur(summary.tempoMedioMs)}</strong>
           </div>
@@ -67,13 +63,13 @@ export default async function AccessLogPage() {
       </section>
 
       <section className="log-panel">
-        <h2>Leads / prospects que estão entrando</h2>
+        <h2>Pessoas que registraram uso e cadastros</h2>
         <div className="log-table-wrap">
           <table className="log-table">
             <thead>
               <tr>
                 <th>Nome</th>
-                <th>Contato</th>
+                <th>WhatsApp / contato</th>
                 <th>Cidade</th>
                 <th>UF</th>
                 <th>Origem</th>
@@ -98,7 +94,7 @@ export default async function AccessLogPage() {
                     </td>
                     <td>{c.cidade || "—"}</td>
                     <td>{c.uf || "—"}</td>
-                    <td>{c.origem === "landing" ? "landing" : "onboarding"}</td>
+                    <td>{c.origem}</td>
                     <td>{c.ip || "—"}</td>
                     <td>{formatDate(c.at)}</td>
                   </tr>

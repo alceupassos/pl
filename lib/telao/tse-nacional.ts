@@ -33,12 +33,14 @@ export type Casa = {
   ufsComDados: number;
   oficial: boolean; // todas as UFs com vagas distribuídas pelo TSE
   partidos: BancadaPartido[];
-  porUF: { uf: string; vagas: number; pctUrnas: number; qeProjetado: number; corteProjetado: number; base: string }[];
+  porUF: { uf: string; vagas: number; pctUrnas: number; qeProjetado: number; corteProjetado: number; base: string; status: Apuracao["status"] }[];
 };
 
 export type Panorama = {
   geradoEm: string;
   pctUrnasMedia: number;
+  territorios: { uf: string; pleito: PleitoId; status: Apuracao["status"]; secoesTot: number; secoesTotal: number; votosValidos: number }[];
+  presidencia: UFMajoritario[];
   governadores: UFMajoritario[];
   senado: UFMajoritario[];
   casaSenado: Casa; // vagas em disputa (2/3 = 54)
@@ -110,6 +112,7 @@ function casa(nome: string, aps: Apuracao[], vagasPadrao: number): Casa {
     partidos: somaPartidos(eleitos),
     porUF: aps.map((a) => ({
       uf: a.uf,
+      status: a.status,
       vagas: a.vagas,
       pctUrnas: a.pctUrnas,
       qeProjetado: a.necessidade?.qeProjetado ?? 0,
@@ -135,8 +138,8 @@ async function pool<T>(tarefas: (() => Promise<T>)[], n: number): Promise<T[]> {
 }
 
 async function montar(): Promise<Panorama> {
-  const cargos: PleitoId[] = ["governador-sp", "senador-sp", "dep-federal-sp", "dep-estadual-sp"];
-  const tarefas = UFS.flatMap((uf) => cargos.map((pl) => () => getApuracao(pl, { uf })));
+  const cargos: PleitoId[] = ["presidente", "governador-sp", "senador-sp", "dep-federal-sp", "dep-estadual-sp"];
+  const tarefas = UFS.flatMap((uf) => cargos.map((pl) => () => getApuracao(pl, { uf, regional: pl === "presidente" })));
   const res = await pool(tarefas, 4);
   const de = (uf: string, pl: PleitoId) => res[UFS.indexOf(uf) * cargos.length + cargos.indexOf(pl)];
 
@@ -194,10 +197,14 @@ async function montar(): Promise<Panorama> {
     govPart.set(l.partido, x);
   }
 
-  const urnas = res.filter((a) => a.pleito === "governador-sp").map((a) => a.pctUrnas);
+  const urnas = res.filter((a) => a.pleito === "presidente");
+  const secoes = urnas.reduce((s, a) => s + a.secoesTotal, 0);
+  const totalizadas = urnas.reduce((s, a) => s + a.secoesTot, 0);
   return {
     geradoEm: new Date().toISOString(),
-    pctUrnasMedia: urnas.length ? urnas.reduce((a, b) => a + b, 0) / urnas.length : 0,
+    pctUrnasMedia: secoes ? 100 * totalizadas / secoes : 0,
+    territorios: res.map(a => ({ uf: a.uf, pleito: a.pleito, status: a.status, secoesTot: a.secoesTot, secoesTotal: a.secoesTotal, votosValidos: a.votosValidos })),
+    presidencia: UFS.map((uf) => maj(uf, "presidente")),
     governadores,
     senado,
     casaSenado,

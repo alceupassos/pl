@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   if ((mu && !/^\d{5}$/.test(mu)) || (zona && (!mu || !/^\d{4}$/.test(zona))) || !isUF(uf)) {
     return NextResponse.json({ error: "filtro inválido" }, { status: 400 });
   }
-  const escopo: Escopo = mu ? { mu, zona: zona || undefined, uf } : { uf };
+  const escopo: Escopo = mu ? { mu, zona: zona || undefined, uf } : { uf, regional: q.get("regional") === "1" };
 
   const pleito = q.get("pleito");
   if (pleito) {

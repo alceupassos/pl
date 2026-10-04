@@ -42,7 +42,7 @@ export { REGIAO, UFS, UF_NOME, isUF };
 /** UF efetiva do pleito: presidente = Brasil (ou a UF quando há recorte municipal). */
 export function ufDe(pleito: PleitoId, escopo: Escopo = {}): string {
   const uf = escopo.uf && isUF(escopo.uf) ? escopo.uf : "sp";
-  if (pleito === "presidente") return escopo.mu ? uf : "br";
+  if (pleito === "presidente") return escopo.mu || escopo.regional ? uf : "br";
   return uf;
 }
 
@@ -133,6 +133,7 @@ export type Apuracao = {
   hora: string; // "dd/mm hh:mm:ss" da última totalização
   fotoBase: string; // prefixo do proxy de foto: /api/telao/foto/<eleicao>/<uf>
   cand: CandApurado[];
+  partidosIndividuais?: { sigla: string; nominais: number; legenda: number; total: number; pct: number }[];
   partidos: PartidoApurado[];
   historico: PontoHist[]; // evolução: um ponto por totalização observada
   uf: string; // UF dos dados (br = Brasil)
@@ -160,7 +161,7 @@ type Raw = Record<string, unknown> & {
   carg?: { nv?: string; qe?: string; agr?: RawAgr[] }[];
 };
 
-export type Escopo = { mu?: string; zona?: string; uf?: string };
+export type Escopo = { mu?: string; zona?: string; uf?: string; regional?: boolean };
 
 // Dois formatos do TSE: "dados-simplificados" (cand plano, partido em cc) e o
 // relatório completo "dados/…-u.json" (carg → agr → par → cand).
@@ -342,6 +343,7 @@ function normalize(pleito: PleitoId, raw: Raw, escopo: Escopo): Apuracao {
     hora: [raw.dt || raw.dg, raw.ht || raw.hg].filter(Boolean).join(" "),
     fotoBase: fotoBaseDe(pleito, escopo),
     cand,
+    partidosIndividuais: (carg?.agr ?? []).flatMap(ag => (ag.par ?? []).map(p => { const nominais = num(p.tvtn), legenda = num(p.tvtl), total = nominais + legenda; return { sigla: String(p.sg ?? ""), nominais, legenda, total, pct: vv > 0 ? 100 * total / vv : 0 }; })),
     partidos,
     historico: [],
     uf,
@@ -445,7 +447,7 @@ export async function getApuracao(pleito: PleitoId, escopo: Escopo = {}): Promis
   // SP mantém a chave antiga (histórico já gravado em data/apuracao-historico.json)
   const uf = ufDe(pleito, escopo);
   const ufKey = uf === "sp" || uf === "br" ? "" : `|${uf}`;
-  const key = `${pleito}|${escopo.mu ?? ""}|${escopo.zona ?? ""}${ufKey}`;
+  const key = `${pleito}|${escopo.mu ?? ""}|${escopo.zona ?? ""}${ufKey}${escopo.regional ? "|regional" : ""}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) return hit.data;
   let p = inflight.get(key);
@@ -546,6 +548,7 @@ export type PleitoSnapshot = {
   uf: string;
   vagas: number;
   total: number;
+  statusFonte?: Apuracao["status"];
   candidatos: CandSnapshot[];
 };
 
@@ -587,6 +590,7 @@ export async function getSnapshotUF(uf: string): Promise<PleitoSnapshot[]> {
       uf: UF,
       vagas: a.vagas || (id === "senador-sp" ? 2 : 1),
       total: a.cand.length,
+      statusFonte: a.status,
       candidatos: a.cand.map((c) => ({
         n: c.nome,
         nome: c.nome,
@@ -594,7 +598,7 @@ export async function getSnapshotUF(uf: string): Promise<PleitoSnapshot[]> {
         p: c.partido,
         st: c.situacao,
         bens: 0,
-        foto: `https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img/2045202024/${c.sq}/${UF}`,
+        foto: `/api/telao/foto/${PLEITO_CFG[id].eleicao}/${uf}/${c.sq}`,
         col: c.agremiacao === c.partido ? null : c.agremiacao,
         occ: "",
         nat: "",

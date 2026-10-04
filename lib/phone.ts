@@ -25,14 +25,14 @@ export function normalizePhone(raw: string): NormalizedPhone {
 
 /** Confere o comprovante de verificação (JWT) emitido por /api/whatsapp-otp/verify
  * e garante que ele pertence ao telefone informado. */
-export function verifyPhoneToken(token: unknown, rawPhone: string): boolean {
+export function verifyPhoneToken(token: unknown, rawPhone: string, owner?: string): boolean {
   if (typeof token !== "string" || !token) return false;
   const norm = normalizePhone(rawPhone);
   if (!norm.ok) return false;
 
   const payload = verifyJwt(token) as
-    | ({ kind?: string; phone?: string } & { exp: number })
+    | ({ kind?: string; phone?: string; owner?: string } & { exp: number })
     | null;
 
-  return !!payload && payload.kind === "wpp_verify" && payload.phone === norm.phone;
+  return !!payload && payload.kind === "wpp_verify" && payload.phone === norm.phone && (!owner || payload.owner === owner);
 }

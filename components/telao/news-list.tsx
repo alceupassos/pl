@@ -1,0 +1,9 @@
+"use client";
+import { useMemo, useState } from "react";
+import type { Noticia } from "@/lib/telao/noticias";
+const normalize=(s:string)=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+export function NewsList({news}:{news:Noticia[]}) {
+ const [query,setQuery]=useState("");
+ const items=useMemo(()=>{const seen=new Set<string>();return news.filter(n=>{const key=normalize(n.titulo);if(seen.has(key))return false;seen.add(key);return normalize(n.titulo+" "+n.resumo+" "+n.nome).includes(normalize(query.trim()));});},[news,query]);
+ return <main className="news-page"><header><a className="news-back" href="/telao/pleitos">← Voltar ao painel</a><p className="news-eyebrow">RADAR ELEITORAL</p><h1>Notícias de todos os cargos</h1><p>Presidente, governador, senador, deputado federal e estadual. Manchetes recentes das fontes disponíveis.</p></header><label className="news-search">Buscar candidato, partido, estado ou assunto<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nas notícias"/></label><p className="news-count" aria-live="polite">{items.length} notícias · mais recentes primeiro</p><div className="news-list">{items.map(n=><article key={n.link}><div className="news-meta"><span style={{borderColor:n.cor}}>{n.nome}</span>{n.t>0&&<time dateTime={new Date(n.t).toISOString()}>{new Date(n.t).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo"})}</time>}</div><h2><a href={n.link} target="_blank" rel="noreferrer">{n.titulo} <span aria-hidden="true">↗</span></a></h2>{n.resumo&&<p>{n.resumo}</p>}</article>)}</div>{!items.length&&<p className="news-empty">Nenhuma notícia disponível para esta busca. Tente outro nome ou assunto.</p>}<footer>Coleta automática de RSS públicos, com cache de até 5 minutos e janela de 12 horas. A disponibilidade depende dos veículos; a lista não representa cobertura completa de cada cargo.</footer></main>;
+}

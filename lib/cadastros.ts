@@ -2,6 +2,7 @@
 // do /m (onboarding.jsonl). Normaliza num formato único e ordena por nome (A→Z),
 // para listar em /mapa e /log "quem está entrando".
 
+import { readRecords } from "@/lib/store";
 import { readLeadLogs } from "@/lib/access-log";
 import { readOnboardingLog } from "@/lib/onboarding-log";
 
@@ -11,7 +12,7 @@ export type Cadastro = {
   uf: string;
   whatsapp: string;
   email: string;
-  origem: "landing" | "onboarding";
+  origem: "landing" | "onboarding" | "registro de uso";
   situacao?: string;
   pergunta?: string;
   ip?: string;
@@ -23,7 +24,7 @@ function s(v: unknown): string {
 }
 
 export async function readCadastros(): Promise<Cadastro[]> {
-  const [leads, onboarding] = await Promise.all([readLeadLogs(), readOnboardingLog()]);
+  const [leads, onboarding, registros] = await Promise.all([readLeadLogs(), readOnboardingLog(), readRecords("telao-registros")]);
 
   const deLeads: Cadastro[] = leads.map((l) => ({
     nome: s(l.nomeCompleto) || "—",
@@ -49,7 +50,9 @@ export async function readCadastros(): Promise<Cadastro[]> {
     at: s(o.at),
   }));
 
-  return [...deLeads, ...deOnboarding].sort((a, b) =>
+  const deRegistros: Cadastro[] = registros.map((r) => ({nome:s(r.nome) || "—",whatsapp:s(r.whatsapp),cidade:s(r.cidade),uf:s(r.uf),email:s(r.email),origem:"registro de uso",ip:s(r.ip)||undefined,at:s(r.at)}));
+
+  return [...deLeads, ...deOnboarding, ...deRegistros].sort((a, b) =>
     a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
   );
 }

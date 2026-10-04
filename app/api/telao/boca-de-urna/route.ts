@@ -58,6 +58,8 @@ export async function GET(req: NextRequest) {
     const wiki = pesquisaPresidencialWiki();
     if (wiki) dados.presidente = wiki;
   }
+  const uf = new URL(req.url).searchParams.get("uf")?.toLowerCase();
+  if (uf && uf !== "sp") { delete dados["governador-sp"]; delete dados["senador-sp"]; }
   return NextResponse.json(dados, { headers: { "cache-control": "no-store" } });
 }
 

@@ -33,8 +33,8 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
   useEffect(() => {
     let ativo = true;
     setCarregando(true);
-    fetch("/api/telao/nacional")
-      .then((r) => r.json())
+    fetch("/api/telao/nacional", { cache: "no-store" })
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data) => {
         if (!ativo) return;
         const mapa: Record<string, UfStatus> = {};
@@ -62,7 +62,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
           for (const c of data.camara.porUF) {
             mapa[c.uf] = {
               pctUrnas: c.pctUrnas ?? 0,
-              status: (c.pctUrnas ?? 0) > 0 ? "em_apuracao" : "aguardando",
+              status: c.status ?? "aguardando",
               vagas: c.vagas,
             };
           }
@@ -70,23 +70,18 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
           for (const a of data.assembleias.porUF) {
             mapa[a.uf] = {
               pctUrnas: a.pctUrnas ?? 0,
-              status: (a.pctUrnas ?? 0) > 0 ? "em_apuracao" : "aguardando",
+              status: a.status ?? "aguardando",
               vagas: a.vagas,
             };
           }
         } else {
-          // Presidente ou Fallback geral
-          const pctPadrao = data.pctUrnasMedia || 0;
-          for (const u of UFS) {
-            mapa[u] = {
-              pctUrnas: pctPadrao,
-              status: pctPadrao > 0 ? "em_apuracao" : "aguardando",
-            };
+          for (const u of data.presidencia ?? []) {
+            mapa[u.uf] = { pctUrnas: u.pctUrnas, status: u.status, lider: u.cand?.[0]?.nome, partidoLider: u.cand?.[0]?.partido };
           }
         }
         setAndamento(mapa);
       })
-      .catch(() => {})
+      .catch(() => { if (ativo) setAndamento({}); })
       .finally(() => {
         if (ativo) setCarregando(false);
       });
@@ -106,11 +101,11 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
   };
 
   const cargos: { id: CargoPleito; rotulo: string; ico: string }[] = [
-    { id: "presidente", rotulo: "Presidência", ico: "🏛️" },
-    { id: "governador", rotulo: "Governador", ico: "⭐" },
-    { id: "senador", rotulo: "Senador", ico: "⚖️" },
-    { id: "deputado-federal", rotulo: "Dep. Federal", ico: "🇧🇷" },
-    { id: "deputado-estadual", rotulo: "Dep. Estadual", ico: "📍" },
+    { id: "presidente", rotulo: "Presidência", ico: "" },
+    { id: "governador", rotulo: "Governador", ico: "" },
+    { id: "senador", rotulo: "Senador", ico: "" },
+    { id: "deputado-federal", rotulo: "Dep. Federal", ico: "" },
+    { id: "deputado-estadual", rotulo: "Dep. Estadual", ico: "" },
   ];
 
   const ufsFiltradas = useMemo(() => {
@@ -124,7 +119,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
       <div className="mini-mapa-head">
         <div className="mini-mapa-titulo-wrap">
           <span className="mini-mapa-badge-live" />
-          <h2 className="mini-mapa-title">ANDAMENTO DO PLEITO EM TEMPO REAL</h2>
+          <h2 className="mini-mapa-title">ANDAMENTO DO PLEITO · TSE</h2>
           <span className="mini-mapa-subtitle">
             {cargo === "presidente" ? "Totalização Nacional" : "Clique em qualquer estado para abrir no telão"}
           </span>
@@ -217,6 +212,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
                     : undefined,
                 }}
                 onMouseEnter={() => setHoverUf(u)}
+                onFocus={() => setHoverUf(u)} onBlur={() => setHoverUf(null)}
                 onMouseLeave={() => setHoverUf(null)}
                 onClick={() => onSelectUf(u)}
                 title={`${UF_NOME[u]} (${REGIAO[u]}): ${pct}% apurado${info?.lider ? ` · Líder: ${info.lider} (${info.partidoLider || ""})` : ""}`}
@@ -224,7 +220,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
                 <div className="mini-uf-top">
                   <span className="mini-uf-sigla">{u.toUpperCase()}</span>
                   <span className="mini-uf-pct" style={{ color: pct > 0 ? color : "#94a3b8" }}>
-                    {pct > 0 ? `${pct}%` : "—"}
+                    {info?.status === "erro" || !info ? "Indisponível" : info.status === "aguardando" ? "Aguardando" : `${pct}%`}
                   </span>
                 </div>
                 {/* Mini barra de progresso */}
@@ -256,6 +252,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
                 key={u}
                 className={`mini-uf-card-detalhe ${isSel ? "sel" : ""} ${isHov ? "hov" : ""}`}
                 onMouseEnter={() => setHoverUf(u)}
+                onFocus={() => setHoverUf(u)} onBlur={() => setHoverUf(null)}
                 onMouseLeave={() => setHoverUf(null)}
                 onClick={() => onSelectUf(u)}
               >
@@ -268,7 +265,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
                     </div>
                   </div>
                   <div className="mini-card-pct-badge" style={{ borderColor: color, color }}>
-                    {pct > 0 ? `${pct}% apurado` : "Aguardando 17h"}
+                    {info?.status === "erro" || !info ? "Indisponível" : info.status === "aguardando" ? "Aguardando TSE" : `${pct}% apurado`}
                   </div>
                 </div>
 

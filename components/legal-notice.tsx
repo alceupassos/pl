@@ -32,6 +32,7 @@ export function LegalNotice({ variant }: { variant: "mobile" | "page" }) {
       <>
         <footer className="m-legal">
           <span className="m-legal-text">{LEGAL_NOTICE_SHORT}</span>
+          <span className="legal-notice-brand">by TITAN PESQUISAS e ANGRA.IO</span>
           <button
             type="button"
             className="m-legal-link"
@@ -55,6 +56,7 @@ export function LegalNotice({ variant }: { variant: "mobile" | "page" }) {
     <>
       <footer className="legal-notice">
         <span className="legal-notice-text">{LEGAL_NOTICE_SHORT}</span>
+          <span className="legal-notice-brand">by TITAN PESQUISAS e ANGRA.IO</span>
         <button
           type="button"
           className="legal-notice-link"

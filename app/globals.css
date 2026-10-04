@@ -4523,3 +4523,5 @@ body.cfg-no-anim .pc-arrow { animation: none !important; }
   margin-top: 4px;
   text-transform: uppercase;
 }
+
+.legal-notice-brand{flex-shrink:0;font-size:10px;color:#dce1f0;white-space:nowrap}@media(max-width:767px){.legal-notice{flex-wrap:wrap;gap:4px 12px;min-height:58px}.legal-notice-brand{order:1}.legal-notice-link{order:2}.legal-notice-text{order:3;flex-basis:100%;text-align:center;white-space:normal;font-size:8px;line-height:1.3}}
