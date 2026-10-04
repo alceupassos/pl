@@ -472,9 +472,27 @@ function vitCols(n: number, prop: boolean): number {
   if (n <= max) return Math.max(n, 1);
   return Math.ceil(n / Math.ceil(n / max));
 }
-function Vitrine({ p, fotoBase, now }: { p: PleitoSnapshot; fotoBase: string; now: number }) {
+function Vitrine({
+  p,
+  fotoBase,
+  now,
+  pesquisa,
+}: {
+  p: PleitoSnapshot;
+  fotoBase: string;
+  now: number;
+  pesquisa?: BocaPesquisa;
+}) {
   const prop = isProporcional(p.id);
-  const lista = p.candidatos.slice(0, prop ? 18 : 16);
+  // ordem: maior % na última pesquisa → menor; sem pesquisa, por patrimônio;
+  // desistentes ao final; registros duplicados (mesmo número) removidos
+  const pctDe = (num: number) => pesquisa?.cand.find((c) => c.num === num)?.pct;
+  const desistiu = (st: string) => /desist|ren[uú]n/i.test(st);
+  const lista = p.candidatos
+    .filter((c, i, a) => a.findIndex((x) => x.num === c.num) === i)
+    .map((c) => ({ c, pct: pctDe(c.num), fora: desistiu(c.st) }))
+    .sort((a, b) => Number(a.fora) - Number(b.fora) || (b.pct ?? -1) - (a.pct ?? -1) || b.c.bens - a.c.bens)
+    .slice(0, prop ? 18 : 16);
   const falta = now ? Math.max(0, FECHAMENTO - now) : 0;
   const h = Math.floor(falta / 3.6e6);
   const m = Math.floor((falta % 3.6e6) / 6e4);
@@ -497,18 +515,28 @@ function Vitrine({ p, fotoBase, now }: { p: PleitoSnapshot; fotoBase: string; no
         )}
         <em>
           {nf(p.total)} candidatos · {p.vagas} {p.vagas > 1 ? "vagas" : "vaga"}
-          {prop ? " · maiores patrimônios declarados" : ""}
+          {pesquisa ? ` · ordem da última pesquisa: ${pesquisa.fonte || pesquisa.instituto}` : prop ? " · maiores patrimônios declarados" : ""}
         </em>
       </div>
       <div
         className={`pl-vit-grid ${prop ? "pl-vit-prop" : ""}`}
         style={{ gridTemplateColumns: `repeat(${vitCols(lista.length, prop)}, minmax(0, 1fr))` }}
       >
-        {lista.map((c, i) => {
+        {lista.map(({ c, pct, fora }, i) => {
           const sq = c.foto.match(/\/(\d{9,})\/[A-Z]{2}$/)?.[1] ?? "";
           const cor = corPartido(c.p);
           return (
-            <div key={`${c.num}-${c.nome}`} className="pl-vcard" style={{ animationDelay: `${i * 70}ms` }}>
+            <div
+              key={`${c.num}-${c.nome}`}
+              className={`pl-vcard ${fora ? "pl-vcard-fora" : ""}`}
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              {pct !== undefined && (
+                <div className="pl-vpesq">
+                  <b className="tl-mono">{pctf(pct, 1)}%</b>
+                  <span>{i + 1}º na pesquisa</span>
+                </div>
+              )}
               <Foto src={sq ? `${fotoBase}/${sq}` : ""} nome={c.n} cor={cor} size={prop ? "4.2em" : "5.6em"} />
               <div className="pl-vnum tl-mono" style={{ background: cor }}>{c.num}</div>
               <Nome partido={c.p} className="pl-vnome">{titulo(c.n)}</Nome>
@@ -1251,8 +1279,42 @@ function Comparativo({
   );
 }
 
+/* ── notícias: título + resumo + veículo + hora ── */
+function NoticiasScene({ lista, offset }: { lista: Noticia[]; offset: number }) {
+  if (!lista.length) {
+    return (
+      <div className="pl-boca-vazio">
+        <div className="pl-boca-tag pl-evo-tag">NOTÍCIAS</div>
+        <p>Carregando manchetes dos principais veículos…</p>
+      </div>
+    );
+  }
+  const n = 6;
+  const ini = (offset * n) % lista.length;
+  const sel = [...lista.slice(ini), ...lista.slice(0, ini)].slice(0, n);
+  return (
+    <div className="pl-news">
+      {sel.map((x, i) => (
+        <article key={`${x.veiculo}-${x.titulo}`} className={`pl-news-card ${i === 0 ? "pl-news-main" : ""}`} style={{ animationDelay: `${i * 90}ms` }}>
+          <header>
+            <b style={{ background: x.cor }}>{x.nome}</b>
+            <span className="tl-mono">
+              {x.t ? new Date(x.t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : ""}
+            </span>
+          </header>
+          <h3>{x.titulo}</h3>
+          {x.resumo && <p>{x.resumo}</p>}
+        </article>
+      ))}
+    </div>
+  );
+}
+
 type Modo = "ambos" | "apuracao" | "boca";
-type Cena = { pi: number; tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" };
+type Cena = {
+  pi: number;
+  tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" | "noticias";
+};
 
 /* ── wall ── */
 /* fundo: "skyline" de barras 3D em degradê (decorativo, alturas determinísticas) */
@@ -1277,6 +1339,7 @@ const CENA_NOME: Record<Cena["tipo"], string> = {
   bancadas: "Bancadas",
   comparativo: "Comparativo",
   boca: "Boca de urna",
+  noticias: "Notícias",
 };
 
 export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) {
@@ -1394,7 +1457,7 @@ export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) 
       if (int >= 6) setIntervalo(int);
       const i = pleitos.findIndex((x) => x.id === p);
       if (i >= 0) {
-        setIdx(i * 4); // modo inicial: apuração, corrida, evolução, bancadas/comparativo
+        setIdx(i * 5); // modo inicial: apuração, corrida, evolução, bancadas/comparativo, notícias
         setFixo(true);
       }
       const m = q.get("modo");
@@ -1416,6 +1479,7 @@ export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) 
       }
       if (modo === "boca" ? !isProporcional(pl.id) : modo === "ambos" && temBoca(pl.id, boca))
         out.push({ pi, tipo: "boca" });
+      if (modo === "ambos") out.push({ pi, tipo: "noticias" });
     });
     return out;
   }, [pleitos, modo, boca]);
@@ -1575,7 +1639,9 @@ export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) 
       <div className="pl-body" key={`${p.id}-${cena.tipo}`}>
         <Andamento ap={a} now={now} />
         <section className="pl-stage">
-          {cena.tipo === "corrida" ? (
+          {cena.tipo === "noticias" ? (
+            <NoticiasScene lista={noticias} offset={cena.pi} />
+          ) : cena.tipo === "corrida" ? (
             <Corrida p={p} ap={a} fotoBase={fotoBase[p.id]} rastro={rastroDe(a)} />
           ) : cena.tipo === "evolucao" ? (
             <Evolucao p={p} ap={a} />
@@ -1603,7 +1669,12 @@ export function PleitosWall({ pleitos, fotoBase, meta, variant = "tv" }: Props) 
               <Majoritario ap={a!} vagas={p.vagas} />
             )
           ) : (
-            <Vitrine p={p} fotoBase={fotoBase[p.id]} now={now} />
+            <Vitrine
+              p={p}
+              fotoBase={fotoBase[p.id]}
+              now={now}
+              pesquisa={pesquisas[p.id as keyof BocaDeUrna] as BocaPesquisa | undefined}
+            />
           )}
         </section>
       </div>

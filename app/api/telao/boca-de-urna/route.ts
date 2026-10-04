@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSession } from "@/lib/api-auth";
 import { ensureFreshPesquisas, getPesquisas } from "@/lib/sources/pesquisas";
+import { PESQUISAS_PADRAO } from "@/lib/telao/pesquisas-padrao";
 import {
   isBocaPleito,
   readBoca,
@@ -50,6 +51,9 @@ function pesquisaPresidencialWiki(): BocaPesquisa | null {
 export async function GET(req: NextRequest) {
   const tipo = tipoDe(req);
   const dados = await readBoca(tipo);
+  if (tipo === "pesquisa") {
+    for (const k of ["presidente", "governador-sp", "senador-sp"] as const) dados[k] ??= PESQUISAS_PADRAO[k];
+  }
   if (tipo === "pesquisa" && !dados.presidente) {
     const wiki = pesquisaPresidencialWiki();
     if (wiki) dados.presidente = wiki;
