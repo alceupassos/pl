@@ -102,7 +102,7 @@ export function verifySession(token: string | undefined, requestHeaders: Headers
   }
   if (!token) return null;
   const payload = verifyJwt(token);
-  if (!payload) return null;
+  if (!payload || !payload.sub || !["main", "provisional"].includes(payload.credentialType ?? "")) return null;
   const requiresSameIp = payload.credentialType !== "main";
   if (requiresSameIp && payload.ip !== getClientIp(requestHeaders)) {
     return null;

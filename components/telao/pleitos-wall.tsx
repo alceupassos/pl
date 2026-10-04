@@ -15,6 +15,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 
 import { AmbientVideo } from "@/components/ambient-video";
 import { BrazilMap } from "@/components/telao/brazil-map";
+import { CampaignMonitor } from "@/components/telao/campaign-monitor";
 import { MiniMapaPleito } from "@/components/telao/mini-mapa-pleito";
 import { AtivacaoCandidatoModal } from "@/components/telao/ativacao-candidato";
 import { useOdometer } from "@/components/mobile/ui/odometer";
@@ -30,6 +31,7 @@ import type {
 import type { Casa, Panorama, UFMajoritario } from "@/lib/telao/tse-nacional";
 import { UFS, UF_NOME } from "@/lib/telao/ufs";
 import type { BocaDeUrna, BocaPesquisa } from "@/lib/telao/boca-de-urna";
+import { MobileNewsTicker } from "./mobile-news-ticker";
 import type { Noticia } from "@/lib/telao/noticias";
 
 type Props = {
@@ -167,8 +169,7 @@ function GradePartidos({
             style={{ ["--c" as string]: corPartido(p) }}
             onClick={() => onToggle(p)}
           >
-            <SeloPartido sigla={p} num={numeros.get(p)} />
-            <span>{p}</span>
+            <i className="pl-party-dot" style={{ background: corPartido(p) }} /><span>{p}</span>
           </button>
         );
       })}
@@ -197,7 +198,7 @@ function SeletorDestaque({
         <p>Os candidatos dos partidos escolhidos aparecem destacados em todas as telas. Pode marcar mais de um.</p>
         <GradePartidos partidos={partidos} numeros={numeros} sel={sel} onToggle={toggle} />
         <div className="pl-dest-act">
-          <button className="pl-ed-del" onClick={() => onChange([])}>
+          <button className="pl-ed-del" onClick={() => { onChange([]); onClose(); }}>
             Sem destaque
           </button>
           <button className="pl-ed-save" onClick={onClose}>
@@ -929,6 +930,7 @@ function FiltroLetras({ disp, letra, onChange }: { disp: Set<string>; letra: str
   );
 }
 
+const PARTY_NAMES: Record<string,string> = { PT:"Partido dos Trabalhadores", PL:"Partido Liberal", PP:"Progressistas", PSD:"Partido Social Democrático", PSB:"Partido Socialista Brasileiro", MDB:"Movimento Democrático Brasileiro", PSDB:"Partido da Social Democracia Brasileira", PDT:"Partido Democrático Trabalhista", PSOL:"Partido Socialismo e Liberdade", PV:"Partido Verde", PCdoB:"Partido Comunista do Brasil", PCB:"Partido Comunista Brasileiro", PSTU:"Partido Socialista dos Trabalhadores Unificado", UP:"Unidade Popular", REDE:"Rede Sustentabilidade", REPUBLICANOS:"Republicanos", UNIÃO:"União Brasil", AVANTE:"Avante", NOVO:"Novo", PODE:"Podemos", CIDADANIA:"Cidadania", SOLIDARIEDADE:"Solidariedade" };
 function FiltroPartidosMini({
   cont,
   partido,
@@ -953,7 +955,7 @@ function FiltroPartidosMini({
           onClick={() => onChange(partido === p ? "" : p)}
         >
           <i />
-          {p}
+          <span title={PARTY_NAMES[p] || p}>{p} · {PARTY_NAMES[p] || p}</span>
           <small className="tl-mono">{n}</small>
         </button>
       ))}
@@ -1268,7 +1270,7 @@ function Vitrine({
         />
       </div>
       {!prop && pesquisa && <PodioPesquisa p={p} itens={todos} pesquisa={pesquisa} />}
-      {prop && <FiltroLetras disp={letras} letra={letra} onChange={setLetra} />}
+      {prop && <div className="pl-filter-combined"><FiltroLetras disp={letras} letra={letra} onChange={setLetra} /><FiltroPartidosMini cont={cont} partido={partido} onChange={setPartido} /></div>}
       <div className={`pl-vit-grid ${prop ? "pl-vit-prop" : ""}`}>
         {lista.map((it, idx) => {
           const { c, pct, fora, destaque } = it;
@@ -1289,7 +1291,7 @@ function Vitrine({
               ) : (
                 !prop && (
                   <div className="pl-vpesq pl-vpesq-vazio">
-                    <span className="pl-vpesq-sub">sem pesquisa</span>
+                    <span className="pl-vpesq-sub">sem percentual informado</span>
                   </div>
                 )
               )}
@@ -1308,9 +1310,9 @@ function Vitrine({
             </div>
           );
         })}
-        {lista.length === 0 && <p className="pl-vazio">Nenhum candidato com esse filtro.</p>}
+        {lista.length === 0 && <p className="pl-vazio">{p.statusFonte === "erro" || (!p.candidatos.length && p.uf !== "SP") ? "Cadastro indisponível nesta UF. Não significa ausência de candidatos." : "Nenhum candidato com esse filtro."}</p>}
       </div>
-      {prop && <FiltroPartidosMini cont={cont} partido={partido} onChange={setPartido} />}
+
     </div>
   );
 }
@@ -1336,12 +1338,12 @@ function useNoticias(): Noticia[] {
 }
 
 /* ── boca de urna ── */
-function useBoca(tipo: "boca" | "pesquisa" = "boca"): BocaDeUrna {
+function useBoca(tipo: "boca" | "pesquisa" = "boca", uf = "sp"): BocaDeUrna {
   const [d, setD] = useState<BocaDeUrna>({});
   useEffect(() => {
     let alive = true;
     const load = () =>
-      fetch(`/api/telao/boca-de-urna?tipo=${tipo}`, { cache: "no-store" })
+      fetch(`/api/telao/boca-de-urna?tipo=${tipo}&uf=${uf}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : {}))
         .then((x: BocaDeUrna) => alive && setD(x))
         .catch(() => {});
@@ -1351,7 +1353,8 @@ function useBoca(tipo: "boca" | "pesquisa" = "boca"): BocaDeUrna {
       alive = false;
       clearInterval(id);
     };
-  }, [tipo]);
+  }, [tipo, uf]);
+  if (uf !== "sp") { const scoped = { ...d }; delete scoped["governador-sp"]; delete scoped["senador-sp"]; return scoped; }
   return d;
 }
 
@@ -1922,19 +1925,8 @@ function projetar(ap: Apuracao): Map<string, Proj> {
 
 type Veredito = { texto: string; definido: boolean; conf: "alta" | "média" | "baixa" };
 
-function veredito(lista: { nome: string; pct: number; err: number }[], vagas: number, majoritario1t: boolean): Veredito {
-  const [a, b, c] = lista;
-  if (!a) return { texto: "aguardando dados", definido: false, conf: "baixa" };
-  if (vagas === 1 && majoritario1t) {
-    if (a.pct - a.err > 50) return { texto: `${titulo(a.nome)} vence no 1º turno`, definido: true, conf: "alta" };
-    if (b && c && b.pct - b.err > c.pct + c.err)
-      return { texto: `2º turno: ${titulo(a.nome)} × ${titulo(b.nome)}`, definido: true, conf: a.pct + a.err < 50 ? "alta" : "média" };
-    return { texto: b ? `Provável 2º turno: ${titulo(a.nome)} × ${titulo(b.nome)}` : titulo(a.nome), definido: false, conf: "baixa" };
-  }
-  const eleitos = lista.slice(0, vagas);
-  const prox = lista[vagas];
-  const ok = prox ? eleitos[vagas - 1] && eleitos[vagas - 1].pct - eleitos[vagas - 1].err > prox.pct + prox.err : true;
-  return { texto: `Eleitos projetados: ${eleitos.map((x) => titulo(x.nome)).join(" e ")}`, definido: !!ok, conf: ok ? "alta" : "baixa" };
+function veredito(_lista: { nome: string; pct: number; err: number }[], _vagas: number, _majoritario1t: boolean): Veredito {
+  return { texto: "Resultado e segundo turno dependem da totalização oficial", definido: false, conf: "baixa" };
 }
 
 function Comparativo({
@@ -1951,7 +1943,7 @@ function Comparativo({
   fotoBase: string;
 }) {
   const real = ap && ap.status !== "aguardando" ? ap : undefined;
-  const proj = real ? projetar(real) : new Map<string, Proj>();
+  const proj = new Map<string, Proj>();
   // candidatos: união (ordem = realidade > boca > pesquisa)
   const ordem: { num: string; nome: string; partido: string; sq: string }[] = [];
   const add = (num: string, nome: string, partido: string, sq = "") => {
@@ -2001,17 +1993,17 @@ function Comparativo({
   const series = [
     { k: "pesq", lbl: "Pesquisa", cls: "s-pesq", info: pesquisa ? `${pesquisa.instituto} ${pesquisa.divulgadoEm}` : "não lançada" },
     { k: "boca", lbl: "Boca de urna", cls: "s-boca", info: boca ? `${boca.instituto} ${boca.divulgadoEm}` : "não lançada" },
-    { k: "proj", lbl: "Projeção", cls: "s-proj", info: real ? "tendência ± margem" : "começa com a apuração" },
+    { k: "proj", lbl: "Projeção", cls: "s-proj", info: "indisponível · modelo não validado" },
     { k: "real", lbl: "Realidade (TSE)", cls: "s-real", info: real ? `${pctf(real.pctUrnas, 1)}% urnas` : "aguardando" },
   ] as const;
 
   return (
     <div className="pl-comp">
       <div className={`pl-comp-ver ${ver.definido ? "ok" : ""}`}>
-        <span className="pl-boca-tag pl-comp-tag">PREVISÃO ANTECIPADA</span>
+        <span className="pl-boca-tag pl-comp-tag">ACOMPANHAMENTO OFICIAL</span>
         <div className="pl-comp-txt">{ver.texto}</div>
         <div className="pl-comp-meta">
-          <span className={`pl-conf pl-conf-${ver.conf === "média" ? "media" : ver.conf}`}>confiança {ver.conf}</span>
+          <span className={`pl-conf pl-conf-${ver.conf === "média" ? "media" : ver.conf}`}>Sem modelo de probabilidade validado</span>
           {fonteVer && <span>base: {fonteVer}</span>}
           {definidoEm && <span className="pl-comp-def">✓ {definidoEm}</span>}
         </div>
@@ -2125,7 +2117,7 @@ function PainelBrasil({ panorama }: { panorama: Panorama | null }) {
       <div className="pl-br-head">
         <div>
           <h2>BRASIL · APURAÇÃO AO VIVO EM TODAS AS 27 UFS</h2>
-          <em>{pctf(panorama.pctUrnasMedia, 1)}% de urnas apuradas no país · atualizado {new Date(panorama.geradoEm).toLocaleTimeString("pt-BR")}</em>
+          <em>{pctf(panorama.pctUrnasMedia, 1)}% de seções nas UFs com denominador conhecido ({panorama.territorios?.filter(x => x.pleito === "presidente" && x.secoesTotal > 0).length ?? 0}/27) · atualizado {new Date(panorama.geradoEm).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}</em>
         </div>
       </div>
       <div className="pl-br-grid">
@@ -2211,8 +2203,8 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   const [pleitosUF, setPleitosUF] = useState<PleitoSnapshot[]>(pleitosProps);
   const ap = useApuracao(escopo, uf);
   const panorama = usePanorama();
-  const boca = useBoca();
-  const pesquisas = useBoca("pesquisa");
+  const boca = useBoca("boca", uf);
+  const pesquisas = useBoca("pesquisa", uf);
   const noticias = useNoticias();
 
   const [modo, setModo] = useState<Modo>("ambos");
@@ -2246,10 +2238,12 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
   useEffect(() => {
     if (uf === "sp") return;
     let cancelled = false;
+    const empty = pleitosProps.map(pl => pl.id === "presidente" ? pl : { ...pl, uf: uf.toUpperCase(), candidatos: [], total: 0, statusFonte: "erro" as const });
+    setPleitosUF(empty);
     fetch(`/api/telao/candidatos?uf=${uf}`)
-        .then((r) => (r.ok ? r.json() : pleitosProps))
+        .then((r) => (r.ok ? r.json() : empty))
         .then((d) => { if (!cancelled) setPleitosUF(d); })
-        .catch(() => { if (!cancelled) setPleitosUF(pleitosProps); });
+        .catch(() => { if (!cancelled) setPleitosUF(empty); });
     return () => { cancelled = true; };
   }, [uf, pleitosProps]);
 
@@ -2649,7 +2643,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         <button
           className={`pl-filtro-btn pl-dest-btn ${destaque.length ? "on" : ""}`}
           onClick={() => setEscolhendo(true)}
-          title="Partidos em destaque (neon)"
+          title="Escolher partidos em destaque"
         >
           <Star size={16} aria-hidden /> {destaque.length ? destaque.join(" · ") : "Destaque"}
         </button>
@@ -2666,6 +2660,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         <FiltroLocal escopo={escopo} onChange={mudarEscopo} municipios={municipios} uf={uf} />
         <Contagem now={now} />
         <div className="pl-clock tl-mono">{hora}</div>
+        <CampaignMonitor partyColor={corPartido} p={p} ap={a ?? undefined} pesquisa={pesq as BocaPesquisa | undefined} panorama={panorama} noticias={noticias} uf={uf} now={now} onSelectUf={(u)=>{setUf(u);setEscopo({});}} />
       </header>
 
       {mostrarMiniMapa && (
@@ -2724,6 +2719,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         </section>
       </div>
 
+      <MobileNewsTicker news={noticias}/>
       <footer className="pl-foot">
         <div className="pl-ticker">
           <div
@@ -2750,7 +2746,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         </div>
       </footer>
       <a className="pl-assina" href="https://angra.io" target="_blank" rel="noreferrer">
-        by ALCEU PASSOS (angra.io)
+        by TITAN PESQUISAS e ANGRA.IO
       </a>
       {escolhendo && !mapaAberto && !ativando && (
         <SeletorDestaque partidos={partidos} numeros={numeros} sel={destaque} onChange={setDestaque} onClose={fecharSeletor} />

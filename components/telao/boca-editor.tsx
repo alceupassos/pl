@@ -73,11 +73,11 @@ export function BocaEditor({ pleitos }: { pleitos: PleitoSnapshot[] }) {
           margem: Number(form.margem.replace(",", ".")) || 0,
           entrevistas: Number(form.entrevistas.replace(/\D/g, "")) || 0,
           fonte: form.fonte,
-          cand: cands.map((c) => ({
+          cand: cands.filter((c) => (form.pct[c.num] ?? "").trim() !== "").map((c) => ({
             num: c.num,
             nome: c.n,
             partido: c.p,
-            pct: Number((form.pct[c.num] ?? "").replace(",", ".")) || 0,
+            pct: Number((form.pct[c.num] ?? "").replace(",", ".")),
           })),
         };
     const r = await fetch(`/api/telao/boca-de-urna?tipo=${tipo}`, {
@@ -85,7 +85,7 @@ export function BocaEditor({ pleitos }: { pleitos: PleitoSnapshot[] }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ pleito: sel, pesquisa }),
     });
-    if (r.status === 401) return setMsg("Sessão expirada: faça login no cockpit (/) e volte aqui.");
+    if (r.status === 401) return setMsg("Sessão administrativa necessária para editar pesquisas.");
     if (!r.ok) return setMsg("erro ao salvar");
     const d = (await r.json()) as BocaDeUrna;
     setDados(d);

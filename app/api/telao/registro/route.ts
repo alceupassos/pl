@@ -1,7 +1,8 @@
+import { getSession } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthCookieName, getClientIp, verifySession } from "@/lib/auth";
-import { normalizePhone } from "@/lib/phone";
+import { normalizePhone, verifyPhoneToken } from "@/lib/phone";
 import { appendRecord } from "@/lib/store";
 import { TELAO_REG_COOKIE, TELAO_REG_TTL, assinarRegistro, lerRegistro } from "@/lib/telao/registro";
 
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
 
 // POST: registro com nome + WhatsApp (+ partidos escolhidos). Sem senha.
 export async function POST(request: NextRequest) {
-  let body: { nome?: unknown; whatsapp?: unknown; partidos?: unknown };
+
+  let body: { nome?: unknown; whatsapp?: unknown; partidos?: unknown; phoneToken?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -35,6 +37,8 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+  const previous = lerRegistro(request.cookies.get(TELAO_REG_COOKIE)?.value);
+  const verified = previous?.phone === tel.phone && !!previous.verifiedAt || verifyPhoneToken(body.phoneToken, tel.phone);
   const partidos = Array.isArray(body.partidos)
     ? body.partidos.filter((p): p is string => typeof p === "string").slice(0, 12).map((p) => p.slice(0, 20))
     : [];
@@ -42,6 +46,7 @@ export async function POST(request: NextRequest) {
   await appendRecord("telao-registros", "treg", {
     nome,
     whatsapp: tel.phone,
+    whatsappVerificado: verified,
     partidos,
     ip: getClientIp(request.headers),
     ua: request.headers.get("user-agent")?.slice(0, 200) ?? "",
@@ -50,7 +55,7 @@ export async function POST(request: NextRequest) {
   const res = NextResponse.json({ ok: true, nome }, { headers: NO_STORE });
   res.cookies.set({
     name: TELAO_REG_COOKIE,
-    value: assinarRegistro(nome, tel.phone),
+    value: assinarRegistro(nome, tel.phone, verified, previous?.id),
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

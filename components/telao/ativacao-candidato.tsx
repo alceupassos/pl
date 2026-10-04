@@ -20,6 +20,12 @@ export function AtivacaoCandidatoModal({ onClose, onSaved, initialUf = "sp", req
   const [activeToday, setActiveToday] = useState(false);
   const [step, setStep] = useState<"contact" | "candidate" | "review">("contact");
   const [error, setError] = useState("");
+  const [verificationRequired, setVerificationRequired] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [phoneToken, setPhoneToken] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [otpBusy, setOtpBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -28,8 +34,10 @@ export function AtivacaoCandidatoModal({ onClose, onSaved, initialUf = "sp", req
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/candidato/perfil", { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then((data) => {
+      setVerificationRequired(!!data?.verificationRequired);
       const p: PerfilCandidato | undefined = data?.perfil;
       if (p) {
+        if (p.whatsappVerifiedAt && p.verifiedPhone) setVerifiedPhone(p.verifiedPhone);
         setForm({ nome: p.nome || "", email: p.email || "", whatsapp: p.whatsapp || "", numero: p.numero ? String(p.numero) : "", cargo: p.cargo || "dep-federal-sp", uf: p.uf || initialUf, territorio: p.territorio || "" });
         if (p.nome && p.email && p.whatsapp && p.numero) setStep("review");
       }
@@ -54,15 +62,28 @@ export function AtivacaoCandidatoModal({ onClose, onSaved, initialUf = "sp", req
     return () => { document.removeEventListener("keydown", handleKey); if (previous?.isConnected) previous.focus(); };
   }, [loading, step, required, saving]);
   const update = (key: keyof Form, value: string) => setForm((old) => ({ ...old, [key]: value }));
+  const phone = (() => { const d = formatPhone(form.whatsapp); return d.length <= 11 ? `55${d}` : d; })();
+  const phoneReady = !verificationRequired || verifiedPhone === phone;
+  const otp = async (verify: boolean) => {
+    setOtpBusy(true); setError("");
+    try {
+      const r = await fetch(`/api/whatsapp-otp/${verify ? "verify" : "request"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ whatsapp: form.whatsapp, ...(verify ? { code } : {}) }), signal: AbortSignal.timeout(20000) });
+      const data = await r.json();
+      if (!r.ok) { setError(r.status === 429 ? "Aguarde antes de tentar novamente." : verify ? "Código inválido ou expirado. Confira ou peça um novo código." : "Não foi possível enviar o código. Confira o número e tente novamente."); return; }
+      if (verify) { setPhoneToken(data.token); setVerifiedPhone(phone); } else setCodeSent(true);
+    } catch { setError("Não foi possível confirmar o WhatsApp agora. Tente novamente."); }
+    finally { setOtpBusy(false); }
+  };
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setError("");
     if (step === "contact") {
       if (form.whatsapp.replace(/\D/g, "").length < 10) { setError("Informe o WhatsApp com DDD. Exemplo: 21 99999-9999."); return; }
       setStep("candidate"); return;
     }
+    if (!phoneReady) { setError("Confirme seu WhatsApp com o código antes de salvar. É necessário apenas uma vez por número."); return; }
     setSaving(true);
     try {
-      const response = await fetch("/api/candidato/perfil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, whatsapp: formatPhone(form.whatsapp), numero: Number(form.numero) }), signal: AbortSignal.timeout(15000) });
+      const response = await fetch("/api/candidato/perfil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, phoneToken, whatsapp: formatPhone(form.whatsapp), numero: Number(form.numero) }), signal: AbortSignal.timeout(15000) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) { setError(response.status === 401 ? "Sua sessão expirou. Entre novamente para salvar." : "Confira os campos e tente salvar novamente."); return; }
       setSaved(true); setActiveToday(true); onSaved?.(data.perfil); onClose();
@@ -78,7 +99,7 @@ export function AtivacaoCandidatoModal({ onClose, onSaved, initialUf = "sp", req
         {step === "contact" && <>
           <label><span>Nome do candidato</span><input name="name" autoComplete="name" required maxLength={60} value={form.nome} onChange={(e) => update("nome", e.target.value)} placeholder="Como aparece na urna" /></label>
           <label><span>E-mail</span><input name="email" type="email" autoComplete="email" required maxLength={80} value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="voce@exemplo.com" /></label>
-          <label><span>WhatsApp com DDD</span><input name="tel" type="tel" inputMode="tel" autoComplete="tel" required maxLength={20} value={form.whatsapp} onChange={(e) => update("whatsapp", e.target.value)} placeholder="(21) 99999-9999" /><small>Usado para os alertas de acompanhamento.</small></label>
+          <label><span>WhatsApp com DDD</span><input name="tel" type="tel" inputMode="tel" autoComplete="tel" required maxLength={20} value={form.whatsapp} onChange={(e) => update("whatsapp", e.target.value)} placeholder="(21) 99999-9999" /><small>Informação de contato do seu registro.</small></label>
         </>}
         {step === "candidate" && <>
           <label><span>Cargo</span><select value={form.cargo} onChange={(e) => update("cargo", e.target.value)}>{cargos.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
@@ -86,6 +107,8 @@ export function AtivacaoCandidatoModal({ onClose, onSaved, initialUf = "sp", req
           <details className="pl-profile-optional"><summary>Adicionar locais de atuação (opcional)</summary><label><span>Cidades ou bairros</span><textarea rows={2} maxLength={200} value={form.territorio} onChange={(e) => update("territorio", e.target.value)} placeholder="Ex.: Centro, Campo Grande, Bangu" /></label></details>
         </>}
         {step === "review" && <div className="pl-profile-summary"><UserRound size={24} /><div><strong>{form.nome}</strong><span>{cargos.find((c) => c.value === form.cargo)?.label} · {form.numero} · {UF_NOME[form.uf] || form.uf.toUpperCase()}</span><span>{form.email}</span><span>WhatsApp: {form.whatsapp}</span></div><button type="button" onClick={() => setStep("contact")}>Editar</button></div>}
+        {!phoneReady && step !== "contact" && <fieldset className="pl-phone-check"><legend>Confirme o WhatsApp uma vez</legend><p>Enviaremos um código para {form.whatsapp}. Alterar o número exige nova confirmação.</p><button type="button" disabled={otpBusy} onClick={() => otp(false)}>{codeSent ? "Reenviar código" : "Enviar código pelo WhatsApp"}</button>{codeSent && <label><span>Código recebido</span><input inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ""))} /><button type="button" disabled={otpBusy || code.length !== 4} onClick={() => otp(true)}>{otpBusy ? "Conferindo…" : "Confirmar código"}</button></label>}</fieldset>}
+        {verifiedPhone === phone && step !== "contact" && <p className="pl-phone-confirmed"><Check size={16} /> WhatsApp confirmado.</p>}
         {error && <p className="pl-profile-error" role="alert">{error}</p>}
         {saved && <p role="status"><Check size={16} /> Cadastro confirmado.</p>}
         <div className="pl-dest-act">

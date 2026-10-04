@@ -1,0 +1,1 @@
+Fontes reutilizadas dos arquivos já publicados pela própria aplicação: DM Sans, Playfair Display, Sora, JetBrains Mono e Archivo, obtidas originalmente por next/font/google. Subconjunto Latin; fontes locais removem dependência de downloads durante compilação. Manter licenças originais SIL Open Font License nas distribuições.

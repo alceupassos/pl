@@ -10,6 +10,7 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 import { sendPushToAll } from "@/lib/push";
 import { getApuracao, isPleitoId, type Apuracao, type CandApurado, type PleitoId } from "@/lib/telao/tse-apuracao";
@@ -24,21 +25,26 @@ export type PerfilCandidato = {
   uf: string;
   territorio: string; // região/bairros/cidades percorridos
   ativadoEm: string; // ISO timestamp
+  whatsappVerifiedAt?: string;
+  verifiedPhone?: string;
   ultimoPushKey?: string; // dedupe de notificações
 };
 
 const FILE = path.join(process.cwd(), "data", "candidato-perfil.json");
 
-export async function getPerfilCandidato(): Promise<PerfilCandidato | null> {
+function profileFile(owner?: string) { return owner ? path.join(process.cwd(), "data", "profiles", `${createHash("sha256").update(owner).digest("hex")}.json`) : FILE; }
+
+export async function getPerfilCandidato(owner?: string): Promise<PerfilCandidato | null> {
   try {
-    return JSON.parse(await readFile(FILE, "utf8")) as PerfilCandidato;
+    return JSON.parse(await readFile(profileFile(owner), "utf8")) as PerfilCandidato;
   } catch {
     return null;
   }
 }
 
-export async function savePerfilCandidato(p: Partial<PerfilCandidato>): Promise<PerfilCandidato> {
-  const atual = (await getPerfilCandidato()) ?? {
+export async function savePerfilCandidato(p: Partial<PerfilCandidato>, owner?: string): Promise<PerfilCandidato> {
+  const file = profileFile(owner);
+  const atual = (await getPerfilCandidato(owner)) ?? {
     nome: "",
     email: "",
     whatsapp: "",
@@ -62,18 +68,21 @@ export async function savePerfilCandidato(p: Partial<PerfilCandidato>): Promise<
     territorio: s(p.territorio ?? atual.territorio, 200),
     ativadoEm: new Date().toISOString(),
     ultimoPushKey: atual.ultimoPushKey,
+    whatsappVerifiedAt: p.whatsappVerifiedAt ?? atual.whatsappVerifiedAt,
+    verifiedPhone: p.verifiedPhone ?? atual.verifiedPhone,
   };
 
-  await mkdir(path.dirname(FILE), { recursive: true });
-  await writeFile(FILE, JSON.stringify(novo, null, 2), "utf8");
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, JSON.stringify(novo, null, 2), "utf8");
   return novo;
 }
 
 /** Verifica se a ativação foi realizada na data de hoje (YYYY-MM-DD). */
 export function foiAtivadoHoje(p?: PerfilCandidato | null): boolean {
   if (!p?.ativadoEm) return false;
-  const hoje = new Date().toISOString().slice(0, 10);
-  return p.ativadoEm.slice(0, 10) === hoje;
+  const date = new Date(p.ativadoEm); if (!Number.isFinite(date.getTime())) return false;
+  const format = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" });
+  return format.format(date) === format.format(new Date());
 }
 
 /**

@@ -1,7 +1,7 @@
 import "./m.css";
 
 import type { Metadata, Viewport } from "next";
-import { Archivo } from "next/font/google";
+import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -12,11 +12,7 @@ import { appendAccessLog } from "@/lib/access-log";
 import { getAuthCookieName, verifySession } from "@/lib/auth";
 
 // Display condensada para números-manchete (--font-display do m.css).
-const archivo = Archivo({
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-  variable: "--font-display",
-});
+const archivo = localFont({src:"../fonts/archivo.woff2",weight:"600 900",variable:"--font-display",display:"swap"});
 
 export const metadata: Metadata = {
   title: "Cockpit do Candidato",

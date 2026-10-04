@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getTelaoSession as getSession } from "@/lib/telao/registro";
 import { signJwt } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp-store";
 import { normalizePhone } from "@/lib/phone";
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
 
   const token = signJwt({
     kind: "wpp_verify",
+    owner: getSession(request)?.sub,
     phone: norm.phone,
     exp: Math.floor(Date.now() / 1000) + VERIFY_TOKEN_TTL_SECONDS,
   });

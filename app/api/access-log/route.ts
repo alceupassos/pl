@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/api-auth";
 
 import { appendAccessLog, summarizeAccessLogs } from "@/lib/access-log";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = getSession(request);
+  if (!session || session.credentialType !== "main") return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const summary = await summarizeAccessLogs();
 
   return NextResponse.json(summary, {
@@ -21,7 +24,7 @@ export async function POST(request: NextRequest) {
       ? (body.metadata as Record<string, unknown>)
       : undefined;
 
-  const entry = await appendAccessLog(request.headers, {
+  await appendAccessLog(request.headers, {
     event,
     path,
     metadata,
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       logged: true,
-      entry,
+
     },
     {
       headers: {

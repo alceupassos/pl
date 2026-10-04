@@ -5,6 +5,7 @@ import "../telao.css";
 import "./pleitos.css";
 import "./refresh.css";
 import "./wood.css";
+import "./monitor.css";
 
 export const dynamic = "force-dynamic";
 

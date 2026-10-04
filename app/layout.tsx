@@ -1,10 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  DM_Sans,
-  Playfair_Display,
-  Sora,
-  JetBrains_Mono,
-} from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "./landing.css";
 import "./design-refresh.css";
@@ -12,34 +7,13 @@ import "./design-refresh.css";
 import { LegalNotice } from "@/components/legal-notice";
 import { PageTracker } from "@/components/page-tracker";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "800"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
+const dmSans = localFont({src:"./fonts/dm-sans.woff2",weight:"400 800",variable:"--font-dm-sans",display:"swap"});
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-playfair",
-  display: "swap",
-});
+const playfair = localFont({src:[{path:"./fonts/playfair.woff2",weight:"400 700",style:"normal"},{path:"./fonts/playfair-italic.woff2",weight:"400 700",style:"italic"}],variable:"--font-playfair",display:"swap"});
 
-const sora = Sora({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-sora",
-  display: "swap",
-});
+const sora = localFont({src:"./fonts/sora.woff2",weight:"500 800",variable:"--font-sora",display:"swap"});
 
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500", "700"],
-  variable: "--font-mono",
-  display: "swap",
-});
+const jetbrains = localFont({src:"./fonts/jetbrains.woff2",weight:"500 700",variable:"--font-mono",display:"swap"});
 
 export const viewport: Viewport = {
   width: "device-width",
