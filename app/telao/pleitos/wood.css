@@ -894,3 +894,24 @@ html:has(.pl-wall[data-tema="wood"]) body {
   .pl-wood-veio, .pl-ripa i, .pl-podio-col, .pl-podio-barra, .pl-zoom-corpo, .pl-zoom-ov { animation: none !important; }
   .pl-wall .pl-vcard[data-zoom]:hover, .pl-wall .pl-lider[data-zoom]:hover { transform: none !important; }
 }
+
+/* ── pesquisa × real: linha clara sob a barra real ── */
+.pl-row-pesq { display: flex; align-items: center; gap: 0.5em; margin-top: 0.22em; min-width: 0; }
+.pl-row-pesq i {
+  display: block;
+  height: 0.18em;
+  min-width: 0.2em;
+  border-radius: 1em;
+  background: color-mix(in oklab, var(--c) 35%, #fff);
+  opacity: 0.85;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--c) 25%, transparent);
+  flex: none;
+}
+.pl-row-pesq span { font-size: 0.62em; color: var(--ink3); white-space: nowrap; }
+.pl-row-pesq b { font-weight: 800; margin-left: 0.2em; }
+.pl-dif-mais { color: var(--alta); }
+.pl-dif-menos { color: var(--baixa); }
+.pl-pesq-leg { display: inline-flex; align-items: center; gap: 0.4em; margin-left: 1em; letter-spacing: 0; }
+.pl-pesq-leg i { width: 1.6em; height: 0.18em; border-radius: 1em; background: color-mix(in oklab, var(--ink3) 45%, #fff); }
+.pl-lider-pesq { font-size: 0.72em; color: var(--ink3); margin-top: 0.2em; }
+.pl-wall:not([data-tema="wood"]) .pl-row-pesq i { background: color-mix(in oklab, var(--c) 45%, #fff); opacity: 0.7; }

@@ -668,7 +668,14 @@ function ord(n: number): string {
 }
 
 /** Números de um candidato na apuração, relativos aos vizinhos de ranking. */
-function alvoApurado(c: CandApurado, lista: CandApurado[], ap: Apuracao, vagas: number, prop: boolean): ZoomAlvo {
+function alvoApurado(
+  c: CandApurado,
+  lista: CandApurado[],
+  ap: Apuracao,
+  vagas: number,
+  prop: boolean,
+  pesquisa?: BocaPesquisa,
+): ZoomAlvo {
   const i = Math.max(0, lista.findIndex((x) => x.sq === c.sq));
   const pos = i + 1;
   const lider = lista[0];
@@ -708,6 +715,14 @@ function alvoApurado(c: CandApurado, lista: CandApurado[], ap: Apuracao, vagas: 
         : { k: `Vagas em disputa: ${vagas}`, v: `Fora · ${ord(pos)}`, sub: lista[vagas - 1] ? `a ${nf(lista[vagas - 1].votos - c.votos)} votos do ${ord(vagas)}` : undefined, tom: "baixa" },
     );
   }
+  const pq = pesquisa?.cand.find((x) => String(x.num) === String(c.num));
+  if (pq)
+    stats.push({
+      k: "Real × pesquisa",
+      v: `${c.pct - pq.pct >= 0 ? "+" : "−"}${pctf(Math.abs(c.pct - pq.pct), 1)} p.p.`,
+      sub: `pesquisa ${pctf(pq.pct, 1)}% · ${pesquisa!.fonte || pesquisa!.instituto}`,
+      tom: Math.abs(c.pct - pq.pct) <= (pesquisa!.margem || 0) ? undefined : c.pct > pq.pct ? "alta" : "baixa",
+    });
   stats.push({ k: "Urnas apuradas", v: `${pctf(ap.pctUrnas)}%`, sub: ap.hora ? `atualizado ${ap.hora}` : undefined });
   return {
     nome: titulo(c.nome),
@@ -971,14 +986,17 @@ function contarPartidos(ps: string[]): [string, number][] {
 }
 
 /* ── ranking majoritário (presidente/governador/senador) ── */
-function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
+function Majoritario({ ap, vagas, pesquisa }: { ap: Apuracao; vagas: number; pesquisa?: BocaPesquisa }) {
   const clicavel = useClicavel();
   const lista = [...ap.cand].sort((a, b) => Number(b.eleito) - Number(a.eleito) || b.votos - a.votos);
   const lider = lista[0];
-  const max = Math.max(lider?.pct ?? 1, 1);
+  // pesquisa (linha clara sob a barra real), casada pelo número na urna
+  const pesqDe = (c: CandApurado) => pesquisa?.cand.find((x) => String(x.num) === String(c.num))?.pct;
+  const maxPesq = Math.max(0, ...(pesquisa?.cand ?? []).map((x) => x.pct));
+  const max = Math.max(lider?.pct ?? 1, maxPesq, 1);
   // linhas dividem a altura disponível: cabem todos
   const n = Math.max(lista.length, 6);
-  const alvo = (c: CandApurado) => () => alvoApurado(c, lista, ap, vagas, false);
+  const alvo = (c: CandApurado) => () => alvoApurado(c, lista, ap, vagas, false, pesquisa);
   return (
     <div className="pl-maj">
       {lider && (
@@ -991,12 +1009,27 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
           <Pct v={lider.pct} className="pl-lider-pct" />
           <div className="pl-lider-vv">dos votos válidos</div>
           <Num v={lider.votos} className="pl-lider-votos" />
+          {pesqDe(lider) !== undefined && (
+            <div className="pl-lider-pesq">
+              pesquisa {pctf(pesqDe(lider)!, 1)}% · real {lider.pct - pesqDe(lider)! >= 0 ? "+" : "−"}
+              {pctf(Math.abs(lider.pct - pesqDe(lider)!), 1)} p.p.
+            </div>
+          )}
           <Badge c={lider} />
         </div>
       )}
       <div className={`pl-rank ${lista.length > 8 ? "pl-rank-compact" : ""}`}>
-        <div className="pl-vv-lbl">% dos votos válidos · {nf(ap.votosValidos)} válidos apurados</div>
-        {lista.map((c, i) => (
+        <div className="pl-vv-lbl">
+          % dos votos válidos · {nf(ap.votosValidos)} válidos apurados
+          {pesquisa && (
+            <span className="pl-pesq-leg">
+              <i /> pesquisa {pesquisa.fonte || pesquisa.instituto}
+            </span>
+          )}
+        </div>
+        {lista.map((c, i) => {
+          const pq = pesqDe(c);
+          return (
           <div
             key={c.sq}
             className={`pl-row ${i < vagas ? "pl-row-top" : ""}`}
@@ -1022,13 +1055,26 @@ function Majoritario({ ap, vagas }: { ap: Apuracao; vagas: number }) {
                   style={{ width: `${(c.pct / max) * 100}%`, background: corPartido(c.partido), ["--c" as string]: corPartido(c.partido) }}
                 />
               </div>
+              {pq !== undefined && (
+                <div className="pl-row-pesq" title={`Pesquisa: ${pctf(pq, 1)}%`}>
+                  <i style={{ width: `${(pq / max) * 100}%`, ["--c" as string]: corPartido(c.partido) }} />
+                  <span className="tl-mono">
+                    pesq. {pctf(pq, 1)}%{" "}
+                    <b className={c.pct - pq >= 0 ? "pl-dif-mais" : "pl-dif-menos"}>
+                      {c.pct - pq >= 0 ? "+" : "−"}
+                      {pctf(Math.abs(c.pct - pq), 1)}
+                    </b>
+                  </span>
+                </div>
+              )}
             </div>
             <div className="pl-row-num">
               <Pct v={c.pct} className="pl-row-pct" />
               <Num v={c.votos} className="pl-row-votos" />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -2707,7 +2753,11 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
             isProporcional(p.id) ? (
               <Proporcional ap={a!} vagas={p.vagas} />
             ) : (
-              <Majoritario ap={a!} vagas={p.vagas} />
+              <Majoritario
+                ap={a!}
+                vagas={p.vagas}
+                pesquisa={pesquisas[p.id as keyof BocaDeUrna] as BocaPesquisa | undefined}
+              />
             )
           ) : (
             <Vitrine
