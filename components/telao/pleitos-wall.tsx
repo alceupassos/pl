@@ -1489,7 +1489,7 @@ function PainelBrasil({ panorama }: { panorama: Panorama | null }) {
   );
 }
 
-type Modo = "ambos" | "apuracao" | "boca";
+type Modo = "ambos" | "apuracao" | "boca" | "noticias";
 type Cena = {
   pi: number;
   tipo: "apuracao" | "corrida" | "evolucao" | "bancadas" | "comparativo" | "boca" | "noticias";
