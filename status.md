@@ -24,6 +24,7 @@
 | `[x]` | **14. Menu de Escolha de Partido & Cores** | Seletor rápido de partidos no Header e modal de destaque, com cores oficiais de cada agremiação (`COR_PARTIDO`) refletidas nos candidatos. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
 | `[x]` | **15. Mini Mapa de Andamento por Cargo & UF** | Componente interativo com seletor de cargo (Presidente, Governador, Senado, Dep. Federal, Dep. Estadual), % de urnas apuradas por estado, escala de calor e clique para troca rápida de UF. | [mini-mapa-pleito.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/mini-mapa-pleito.tsx), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
 | `[x]` | **16. Deploy em Produção** | Sincronização e publicação no servidor `169.58.71.28` (`/opt/pl`), build verificado e recarga do PM2 `pl`. | — |
+| `[x]` | **17. Scroll Vertical Livre & Todos Candidatos** | Removido corte `.slice(0, 18)`, exibindo 100% dos candidatos de todos os estados (SP, PI, RJ, etc.), scroll vertical suave por mouse/touch/teclado (setas cima/baixo), busca rápida e remoção de barra duplicada de urnas apuradas. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
 
 ---
 

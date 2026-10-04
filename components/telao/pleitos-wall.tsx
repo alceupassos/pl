@@ -76,7 +76,7 @@ function Contagem({ now }: { now: number }) {
   if (!now) return null;
   const f = faseEleicao(now);
   return (
-    <div className={`pl-contagem pl-contagem-${f.fase}`} title={f.sub}>
+    <div className={`pl-contagem pl-contagem-${f.fase}`} title={f.sub} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
       <span className="pl-contagem-lbl">{f.rotulo}</span>
       {f.falta > 0 ? <b className="tl-mono">{hms(f.falta)}</b> : <i className="pl-pulse-dot" />}
     </div>
@@ -568,52 +568,161 @@ function Vitrine({
   pesquisa?: BocaPesquisa;
 }) {
   const prop = isProporcional(p.id);
-  // ordem: maior % na última pesquisa → menor; sem pesquisa, por patrimônio;
-  // desistentes ao final; registros duplicados (mesmo número) removidos
+  const neon = useContext(NeonCtx);
+  const [busca, setBusca] = useState("");
+  const gridRef = useRef<HTMLDivElement>(null);
+
   const pctDe = (num: number) => pesquisa?.cand.find((c) => c.num === num)?.pct;
   const desistiu = (st: string) => /desist|ren[uú]n/i.test(st);
-  const lista = p.candidatos
-    .filter((c, i, a) => a.findIndex((x) => x.num === c.num) === i)
-    .map((c) => ({ c, pct: pctDe(c.num), fora: desistiu(c.st) }))
-    .sort((a, b) => Number(a.fora) - Number(b.fora) || a.c.nome.localeCompare(b.c.nome))
-    .slice(0, prop ? 18 : 16);
-  const falta = now ? Math.max(0, FECHAMENTO - now) : 0;
+
+  const todos = useMemo(() => {
+    return p.candidatos
+      .filter((c, i, a) => a.findIndex((x) => x.num === c.num) === i)
+      .map((c) => ({
+        c,
+        pct: pctDe(c.num),
+        fora: desistiu(c.st),
+        destaque: neon.has(c.p),
+      }))
+      .sort((a, b) => {
+        if (a.fora !== b.fora) return Number(a.fora) - Number(b.fora);
+        if (a.destaque !== b.destaque) return Number(b.destaque) - Number(a.destaque);
+        if (a.pct !== undefined || b.pct !== undefined) return (b.pct ?? -1) - (a.pct ?? -1);
+        return a.c.nome.localeCompare(b.c.nome, "pt-BR");
+      });
+  }, [p.candidatos, pesquisa, neon]);
+
+  const lista = useMemo(() => {
+    if (!busca.trim()) return todos;
+    const q = busca.toLowerCase();
+    return todos.filter(({ c }) =>
+      c.nome.toLowerCase().includes(q) ||
+      c.n.toLowerCase().includes(q) ||
+      String(c.num).includes(q) ||
+      c.p.toLowerCase().includes(q)
+    );
+  }, [todos, busca]);
+
+  const scrollUp = () => gridRef.current?.scrollBy({ top: -350, behavior: "smooth" });
+  const scrollDown = () => gridRef.current?.scrollBy({ top: 350, behavior: "smooth" });
+
+  const ufClean = (p.uf || "sp").toLowerCase();
+
   return (
     <div className="pl-vit">
-      <div className="pl-count">
+      <div className="pl-count" style={{ flexWrap: "wrap", gap: "0.8rem", alignItems: "center" }}>
         <Contagem now={now} />
         <em>
-          {nf(p.total)} candidatos · {p.vagas} {p.vagas > 1 ? "vagas" : "vaga"}
-          {pesquisa ? ` · ordem da última pesquisa: ${pesquisa.fonte || pesquisa.instituto}` : prop ? " · maiores patrimônios declarados" : ""}
+          <b>{lista.length}</b> de {nf(p.total)} candidatos exibidos · {p.vagas} {p.vagas > 1 ? "vagas" : "vaga"}
+          {pesquisa ? ` · ordem da pesquisa: ${pesquisa.fonte || pesquisa.instituto}` : ""}
         </em>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <input
+            type="search"
+            placeholder="Buscar candidato ou partido..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            style={{
+              background: "rgba(15, 23, 42, 0.8)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#fff",
+              padding: "0.3rem 0.7rem",
+              borderRadius: "6px",
+              fontSize: "0.8rem",
+              outline: "none",
+              width: "220px",
+            }}
+          />
+          <button
+            type="button"
+            onClick={scrollUp}
+            title="Rolar para cima"
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#fff",
+              borderRadius: "6px",
+              padding: "0.3rem 0.6rem",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={scrollDown}
+            title="Rolar para baixo"
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#fff",
+              borderRadius: "6px",
+              padding: "0.3rem 0.6rem",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            ▼
+          </button>
+        </div>
       </div>
       <div
+        ref={gridRef}
         className={`pl-vit-grid ${prop ? "pl-vit-prop" : ""}`}
-        style={{ gridTemplateColumns: `repeat(${vitCols(lista.length, prop)}, minmax(0, 1fr))` }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(auto-fill, minmax(130px, 1fr))`,
+          gap: "0.6rem",
+          overflowY: "auto",
+          maxHeight: "calc(100vh - 250px)",
+          paddingRight: "0.4rem",
+        }}
       >
-        {lista.map(({ c, pct, fora }, i) => {
-          const sq = c.foto.match(/\/(\d{9,})\/[A-Z]{2}$/)?.[1] ?? "";
+        {lista.map(({ c, pct, fora, destaque }) => {
+          const sq = c.foto.match(/(\d{9,})/)?.[1] ?? "";
           const cor = corPartido(c.p);
+          const fotoUrl = sq
+            ? `/api/telao/foto/6259/${ufClean}/${sq}`
+            : c.foto && c.foto.startsWith("/")
+              ? c.foto
+              : "";
           return (
             <div
               key={`${c.num}-${c.nome}`}
-              className={`pl-vcard ${fora ? "pl-vcard-fora" : ""}`}
-              style={{ animationDelay: `${i * 70}ms` }}
+              className={`pl-vcard ${fora ? "pl-vcard-fora" : ""} ${destaque ? "pl-vcard-destaque" : ""}`}
+              style={{
+                borderColor: destaque ? cor : undefined,
+                boxShadow: destaque ? `0 0 12px ${cor}55` : undefined,
+              }}
             >
               {pct !== undefined && (
                 <div className="pl-vpesq">
                   <b className="tl-mono">{pctf(pct, 1)}%</b>
-                  <span>{i + 1}º na pesquisa</span>
                 </div>
               )}
-              <Foto src={sq ? `${fotoBase}/${sq}` : ""} nome={c.n} cor={cor} size={prop ? "4.2em" : "5.6em"} />
-              <div className="pl-vnum tl-mono" style={{ background: cor }}>{c.num}</div>
-              <Nome partido={c.p} className="pl-vnome">{titulo(c.n)}</Nome>
-              <div className="pl-vpart" style={{ color: cor }}>{c.p}</div>
+              <Foto src={fotoUrl} nome={c.n} cor={cor} size={prop ? "4.2em" : "5.4em"} />
+              <div className="pl-vnum tl-mono" style={{ background: cor }}>
+                {c.num}
+              </div>
+              <Nome partido={c.p} className="pl-vnome">
+                {titulo(c.n)}
+              </Nome>
+              <div className="pl-vpart" style={{ color: cor, fontWeight: 700 }}>
+                {c.p}
+              </div>
               {!prop && <div className="pl-vocc">{titulo(c.occ)}</div>}
-              <div className="pl-vbens tl-mono">{brl(c.bens)}</div>
-              <div className={`pl-vst ${/defer/i.test(c.st) && !/indefer/i.test(c.st) ? "ok" : /indefer|inelig/i.test(c.st) ? "ko" : ""}`}>
-                {c.st}
+              {c.bens > 0 && <div className="pl-vbens tl-mono">{brl(c.bens)}</div>}
+              <div
+                className={`pl-vst ${
+                  /defer/i.test(c.st) && !/indefer/i.test(c.st)
+                    ? "ok"
+                    : /indefer|inelig/i.test(c.st)
+                      ? "ko"
+                      : ""
+                }`}
+              >
+                {c.st || "Deferido"}
               </div>
             </div>
           );
@@ -1014,22 +1123,6 @@ function Corrida({
 
   return (
     <div className="pl-corrida">
-      <div className="pl-etapas">
-        <span className="pl-etapas-lbl">URNAS APURADAS</span>
-        <div className="pl-etapas-linha">
-          <div className="pl-etapas-fill" style={{ width: `${urnas}%` }} />
-          {MARCOS_URNAS.map((m) => (
-            <div key={m} className={`pl-etapa ${urnas >= m ? "on" : ""}`} style={{ left: `${m}%` }}>
-              <i />
-              <span className="tl-mono">{m}%</span>
-            </div>
-          ))}
-          <div className="pl-etapas-cursor" style={{ left: `${urnas}%` }}>
-            <b className="tl-mono">{pctf(urnas, 1)}%</b>
-          </div>
-        </div>
-      </div>
-
       <div className="pl-pista">
         <div className="pl-escala">
           {marcas.map((m) => (
@@ -1646,18 +1739,46 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
         out.push({ pi, j: 0, tipo: "noticias" });
       } else {
         out.push({ pi, j: 0, tipo: "apuracao" });
-        out.push({ pi, j: 1, tipo: "corrida" });
-        if (!isProporcional(pl.id)) {
-          out.push({ pi, j: 2, tipo: "evolucao" });
-          out.push({ pi, j: 3, tipo: "bancadas" });
+        const resLocal = ap[pl.id];
+        const temResultadoLocal = !!resLocal && resLocal.cand.length > 0 && resLocal.status !== "aguardando";
+        if (temResultadoLocal) {
+          out.push({ pi, j: 1, tipo: "corrida" });
+          if (!isProporcional(pl.id)) {
+            out.push({ pi, j: 2, tipo: "evolucao" });
+            out.push({ pi, j: 3, tipo: "bancadas" });
+          }
         }
       }
     });
     return out;
-  }, [pleitos, fixo, modo, boca]);
+  }, [pleitos, fixo, modo, boca, ap]);
 
   const [idx, setIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+
+  // Navegação de scroll por teclado (Cima e Baixo)
+  useEffect(() => {
+    const handleScrollKey = (e: KeyboardEvent) => {
+      if (["INPUT", "SELECT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) return;
+      const container = document.querySelector(".pl-vit-grid, .pl-stage") as HTMLElement | null;
+      if (!container) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        container.scrollBy({ top: 240, behavior: "smooth" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        container.scrollBy({ top: -240, behavior: "smooth" });
+      } else if (e.key === "PageDown") {
+        e.preventDefault();
+        container.scrollBy({ top: 600, behavior: "smooth" });
+      } else if (e.key === "PageUp") {
+        e.preventDefault();
+        container.scrollBy({ top: -600, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("keydown", handleScrollKey);
+    return () => window.removeEventListener("keydown", handleScrollKey);
+  }, []);
 
   // timer do carrossel (só roda se não houver um pleito fixo, ou se o fixo
   // tiver múltiplas cenas)

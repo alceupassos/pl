@@ -361,8 +361,26 @@
 .pl-stage {
   min-height: 0;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 200, 76, 0.4) transparent;
 }
+.pl-stage::-webkit-scrollbar {
+  width: 8px;
+}
+.pl-stage::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 4px;
+}
+.pl-stage::-webkit-scrollbar-thumb {
+  background: rgba(245, 200, 76, 0.4);
+  border-radius: 4px;
+}
+.pl-stage::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 200, 76, 0.8);
+}
+
 
 /* foto */
 .pl-foto {
@@ -633,7 +651,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.7em;
-  height: 100%;
+  min-height: 100%;
+  overflow-y: auto !important;
+  padding-bottom: 3rem;
 }
 .pl-count {
   display: flex;
@@ -2702,4 +2722,17 @@
   border-radius: 50%;
   display: inline-block;
 }
+
+/* ── Ajuste de layout: remove barra duplicada de urnas na corrida ── */
+.pl-corrida .pl-etapas {
+  display: none !important;
+}
+
+/* ── Card de candidato em destaque com brilho da cor oficial ── */
+.pl-vcard.pl-vcard-destaque {
+  border-width: 2px !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  transform: translateY(-2px);
+}
+
 
