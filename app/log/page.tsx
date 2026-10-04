@@ -35,15 +35,19 @@ export default async function AccessLogPage() {
 
   const [summary, cadastros] = await Promise.all([summarizeAccessLogs(), readCadastros()]);
 
+  const telaoCount = cadastros.filter((c) => c.origem === "telao").length;
+  const landingCount = cadastros.filter((c) => c.origem === "landing").length;
+  const onboardingCount = cadastros.filter((c) => c.origem === "onboarding").length;
+
   return (
     <main className="log-page">
       <section className="log-hero">
         <div>
-          <p className="log-kicker">Auditoria de acesso</p>
-          <h1>Log completo de acessos</h1>
+          <p className="log-kicker">Auditoria & Inteligência</p>
+          <h1>Log de acessos & Usuários</h1>
           <p>
-            Quem acessou, IP e cidade por IP, quantidade de acessos, tempo em cada página e os
-            leads/prospects que estão entrando.
+            Monitoramento em tempo real de acessos, IPs, tempo de tela e base completa de usuários
+            cadastrados (Telão de Apuração, Leads de Transparência e Onboarding).
           </p>
         </div>
         <div className="log-stat-grid">
@@ -56,8 +60,11 @@ export default async function AccessLogPage() {
             <strong>{summary.uniqueIps}</strong>
           </div>
           <div className="log-stat">
-            <span>Cadastros</span>
+            <span>Usuários Registrados</span>
             <strong>{cadastros.length}</strong>
+            <span style={{ fontSize: "10px", marginTop: "4px", color: "#a5b4fc" }}>
+              {telaoCount} telão · {landingCount} landing · {onboardingCount} mobile
+            </span>
           </div>
           <div className="log-stat">
             <span>Tempo médio/página</span>
@@ -67,42 +74,141 @@ export default async function AccessLogPage() {
       </section>
 
       <section className="log-panel">
-        <h2>Leads / prospects que estão entrando</h2>
+        <h2>
+          Usuários cadastrados & preferências ({cadastros.length})
+        </h2>
         <div className="log-table-wrap">
           <table className="log-table">
             <thead>
               <tr>
+                <th>Data</th>
                 <th>Nome</th>
-                <th>Contato</th>
-                <th>Cidade</th>
-                <th>UF</th>
+                <th>Contato / WhatsApp</th>
                 <th>Origem</th>
+                <th>Preferências / Detalhes</th>
+                <th>Local</th>
                 <th>IP</th>
-                <th>Quando</th>
               </tr>
             </thead>
             <tbody>
               {cadastros.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>Nenhum cadastro ainda.</td>
+                  <td colSpan={7}>Nenhum usuário cadastrado até o momento.</td>
                 </tr>
               ) : (
-                cadastros.map((c, i) => (
-                  <tr key={`${c.email || c.whatsapp || c.nome}-${c.at}-${i}`}>
-                    <td>{c.nome}</td>
-                    <td>
-                      {c.whatsapp || "—"}
-                      {c.email ? (
-                        <div style={{ color: "#9aa3b8", fontSize: "0.85em" }}>{c.email}</div>
-                      ) : null}
-                    </td>
-                    <td>{c.cidade || "—"}</td>
-                    <td>{c.uf || "—"}</td>
-                    <td>{c.origem === "landing" ? "landing" : "onboarding"}</td>
-                    <td>{c.ip || "—"}</td>
-                    <td>{formatDate(c.at)}</td>
-                  </tr>
-                ))
+                cadastros.map((c, i) => {
+                  const rawDigits = c.whatsapp ? c.whatsapp.replace(/\D/g, "") : "";
+                  const waUrl = rawDigits
+                    ? `https://wa.me/${rawDigits.startsWith("55") ? rawDigits : `55${rawDigits}`}`
+                    : null;
+                  return (
+                    <tr key={`${c.id || c.email || c.whatsapp || c.nome}-${c.at}-${i}`}>
+                      <td style={{ whiteSpace: "nowrap" }}>{formatDate(c.at)}</td>
+                      <td style={{ fontWeight: 600, color: "#fff" }}>{c.nome}</td>
+                      <td>
+                        {waUrl ? (
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "#86efac", textDecoration: "none" }}
+                            title="Conversar no WhatsApp"
+                          >
+                            💬 {c.whatsapp}
+                          </a>
+                        ) : (
+                          c.whatsapp || "—"
+                        )}
+                        {c.email ? (
+                          <div style={{ color: "#9aa3b8", fontSize: "0.85em", marginTop: "2px" }}>
+                            {c.email}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td>
+                        {c.origem === "telao" && (
+                          <span
+                            style={{
+                              background: "rgba(56, 189, 248, 0.15)",
+                              color: "#38bdf8",
+                              border: "1px solid rgba(56, 189, 248, 0.3)",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            📺 Telão
+                          </span>
+                        )}
+                        {c.origem === "landing" && (
+                          <span
+                            style={{
+                              background: "rgba(168, 85, 247, 0.15)",
+                              color: "#c084fc",
+                              border: "1px solid rgba(168, 85, 247, 0.3)",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            🚀 Landing
+                          </span>
+                        )}
+                        {c.origem === "onboarding" && (
+                          <span
+                            style={{
+                              background: "rgba(250, 204, 21, 0.15)",
+                              color: "#facc15",
+                              border: "1px solid rgba(250, 204, 21, 0.3)",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            📱 Mobile
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {Array.isArray(c.partidos) && c.partidos.length > 0 ? (
+                          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                            {c.partidos.map((p) => (
+                              <span
+                                key={p}
+                                style={{
+                                  background: "rgba(255, 255, 255, 0.08)",
+                                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                                  padding: "1px 6px",
+                                  borderRadius: "4px",
+                                  fontSize: "10px",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        ) : c.situacao || c.pergunta ? (
+                          <div style={{ fontSize: "11px", color: "#cbd5e1" }}>
+                            {c.situacao ? <span>Cargo: {c.situacao} </span> : null}
+                            {c.pergunta ? <span>— &quot;{c.pergunta}&quot;</span> : null}
+                          </div>
+                        ) : (
+                          <span style={{ color: "#64748b" }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        {c.cidade || c.uf ? `${c.cidade || ""}${c.cidade && c.uf ? "/" : ""}${c.uf || ""}` : "—"}
+                      </td>
+                      <td style={{ fontFamily: "monospace", fontSize: "11px", color: "#94a3b8" }}>
+                        {c.ip || "—"}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

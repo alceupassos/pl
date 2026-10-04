@@ -457,7 +457,7 @@ export default async function MapaPage() {
                       <td>{c.uf || "—"}</td>
                       <td>{c.whatsapp || "—"}</td>
                       <td>{c.email || "—"}</td>
-                      <td>{c.origem === "landing" ? "landing" : "onboarding"}</td>
+                      <td>{c.origem === "landing" ? "landing" : c.origem === "telao" ? "telão" : "onboarding"}</td>
                       <td>{fmtData(c.at)}</td>
                     </tr>
                   ))

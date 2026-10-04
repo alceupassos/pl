@@ -28,11 +28,9 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
   const [regiaoSel, setRegiaoSel] = useState<RegiaoFiltro>("Todas");
   const [andamento, setAndamento] = useState<Record<string, UfStatus>>({});
   const [hoverUf, setHoverUf] = useState<string | null>(null);
-  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     let ativo = true;
-    setCarregando(true);
     fetch("/api/telao/nacional")
       .then((r) => r.json())
       .then((data) => {
@@ -86,10 +84,7 @@ export function MiniMapaPleito({ ufSel, onSelectUf, cargoInicial = "governador",
         }
         setAndamento(mapa);
       })
-      .catch(() => {})
-      .finally(() => {
-        if (ativo) setCarregando(false);
-      });
+      .catch(() => {});
 
     return () => {
       ativo = false;

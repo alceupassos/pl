@@ -1,20 +1,24 @@
-// Cadastros unificados: leads da landing (transparency-leads.jsonl) + onboarding
-// do /m (onboarding.jsonl). Normaliza num formato único e ordena por nome (A→Z),
-// para listar em /mapa e /log "quem está entrando".
+// Cadastros unificados: leads da landing (transparency-leads.jsonl), onboarding
+// do /m (onboarding.jsonl) e registros do telão (telao-registros.jsonl).
+// Normaliza num formato único e ordena por data mais recente ou nome.
 
 import { readLeadLogs } from "@/lib/access-log";
 import { readOnboardingLog } from "@/lib/onboarding-log";
+import { readRecords } from "@/lib/store";
 
 export type Cadastro = {
+  id?: string;
   nome: string;
   cidade: string;
   uf: string;
   whatsapp: string;
   email: string;
-  origem: "landing" | "onboarding";
+  origem: "landing" | "onboarding" | "telao";
+  partidos?: string[];
   situacao?: string;
   pergunta?: string;
   ip?: string;
+  ua?: string;
   at: string;
 };
 
@@ -23,7 +27,19 @@ function s(v: unknown): string {
 }
 
 export async function readCadastros(): Promise<Cadastro[]> {
-  const [leads, onboarding] = await Promise.all([readLeadLogs(), readOnboardingLog()]);
+  const [leads, onboarding, telao] = await Promise.all([
+    readLeadLogs(),
+    readOnboardingLog(),
+    readRecords<{
+      id: string;
+      at: string;
+      nome?: string;
+      whatsapp?: string;
+      partidos?: string[];
+      ip?: string;
+      ua?: string;
+    }>("telao-registros"),
+  ]);
 
   const deLeads: Cadastro[] = leads.map((l) => ({
     nome: s(l.nomeCompleto) || "—",
@@ -49,7 +65,21 @@ export async function readCadastros(): Promise<Cadastro[]> {
     at: s(o.at),
   }));
 
-  return [...deLeads, ...deOnboarding].sort((a, b) =>
-    a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
+  const deTelao: Cadastro[] = telao.map((t) => ({
+    id: t.id,
+    nome: s(t.nome) || "—",
+    cidade: "",
+    uf: "",
+    whatsapp: s(t.whatsapp),
+    email: "",
+    origem: "telao",
+    partidos: Array.isArray(t.partidos) ? t.partidos : [],
+    ip: s(t.ip) || undefined,
+    ua: s(t.ua) || undefined,
+    at: s(t.at),
+  }));
+
+  return [...deLeads, ...deOnboarding, ...deTelao].sort((a, b) =>
+    (b.at || "").localeCompare(a.at || ""),
   );
 }
