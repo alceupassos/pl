@@ -1990,13 +1990,14 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
       </header>
 
       {mostrarMiniMapa && (
-        <div style={{ padding: "0 2rem" }}>
+        <div className="mini-mapa-container">
           <MiniMapaPleito
             ufSel={uf}
             onSelectUf={(u) => {
               setUf(u);
               setEscopo({});
             }}
+            onClose={() => setMostrarMiniMapa(false)}
           />
         </div>
       )}
