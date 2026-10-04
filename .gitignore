@@ -51,3 +51,11 @@ out/
 
 # briefings colaborativos do /basecalculo — runtime, persiste no servidor
 /data/briefings.jsonl
+
+# fotos oficiais TSE baixadas sob demanda pelo telão de pleitos
+/data/tse-fotos/
+
+# boca de urna lançada no dia da eleição — runtime, persiste no servidor
+/data/boca-de-urna.json
+/data/apuracao-historico.json
+/data/pesquisa-telao.json
