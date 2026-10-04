@@ -1760,7 +1760,7 @@ export function PleitosWall({ pleitos: pleitosProps, fotoBase, meta, variant = "
       style={mobile ? undefined : { "--pl-h": "100vh" }}
       onTouchStart={() => toque.current++}
     >
-      <div className="pl-header">
+      <header className="pl-header">
         <Fundo3D />
         {!mobile && <EdgeScroller />}
         <div className="pl-titles">
