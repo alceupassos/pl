@@ -943,3 +943,12 @@ html:has(.pl-wall[data-tema="wood"]) body {
 .pl-lider-pesq { font-size: 0.72em; color: var(--ink3); margin-top: 0.2em; }
 .pl-wall:not([data-tema="wood"]) .pl-row-pesq { background: color-mix(in oklab, var(--c) 55%, #fff); }
 .pl-wall:not([data-tema="wood"]) .pl-row-pesq::after { background: #0c1523; }
+
+/* /c (celular): pesquisa em linha própria; % e votos empilhados */
+.pl-mobile .pl-row-top-line { flex-wrap: wrap; row-gap: 0.15em; }
+.pl-mobile .pl-row-nome { min-width: 0; flex: 0 1 auto; overflow-wrap: normal !important; word-break: normal !important; }
+.pl-mobile .pl-row-pesq-txt { flex-basis: 100%; order: 9; margin-left: 0; font-size: 11px; }
+.pl-mobile .pl-row-num { display: flex; flex-direction: column; align-items: flex-end; flex: none; min-width: 0; }
+.pl-mobile .pl-row-num .pl-row-pct { font-size: 16px; }
+.pl-mobile .pl-row-num .pl-row-votos { font-size: 11px; }
+.pl-mobile .pl-row-main { min-width: 0; flex: 1 1 0; }
