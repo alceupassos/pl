@@ -1,97 +1,120 @@
-# Plano de Execução & Status do Sistema — Eleições 2026
+# 🏛️ Plano de Execução & Status do Sistema — Eleições 2026
 
-> Última atualização: **2026-10-04T07:44:00-03:00** — Executado no **Gemini 3.8 Flash**
+> Última atualização: **2026-10-04T07:45:00-03:00** — Executado no **Gemini 3.8 Flash**
+> 
+> **Status Geral**: 🟢 **Sistema 100% Operacional em Produção** (`https://pl.angra.io` e `https://politica.angra.io`).
 
 ---
 
-## 📋 Plano de Ação e Progresso em Tempo Real
+## 📋 Resumo Executivo das 22 Etapas Implementadas
 
-| Status | Etapa | Descrição | Arquivos Modificados / Criados |
+| Status | Etapa | Descrição | Principais Arquivos |
 | :---: | :--- | :--- | :--- |
-| `[x]` | **1. Telão & Central Mobile** | Apuração ao vivo nacional e estadual (27 UFs) + Necessidade de Votos. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [tse-apuracao.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/tse-apuracao.ts) |
-| `[x]` | **2. Casas Legislativas & Tags** | **Senado (54 vagas)**, **Câmara (513 vagas)** e **Assembleias (1059 vagas)** com tags `Eleito`, `Eleito por QP` e `Eleito por média`. | [tse-nacional.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/tse-nacional.ts), [tse-apuracao.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/tse-apuracao.ts) |
-| `[x]` | **3. Fotos Oficiais TSE** | Script de download rodando/resume em `data/tse-fotos/`. | [baixar-fotos-tse.mjs](file:///Users/alceupassos/angra/sostenes/scripts/baixar-fotos-tse.mjs) |
-| `[x]` | **4. Notícias & Links** | Abertura de matérias em nova aba (`target="_blank"`). | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
-| `[x]` | **5. Documentação de Vars** | Modelo `.env.example` com todas as chaves documentadas. | [.env.example](file:///Users/alceupassos/angra/sostenes/.env.example) |
-| `[x]` | **6. Proteção de Credenciais** | Adicionado `senhas.md` e logs de acesso ao `.gitignore`. | [.gitignore](file:///Users/alceupassos/angra/sostenes/.gitignore) |
-| `[x]` | **7. Desativar Login Provisoriamente** | Login desativado (`AUTH_DISABLED=true` em `.env.local` e `lib/auth.ts`). | [auth.ts](file:///Users/alceupassos/angra/sostenes/lib/auth.ts), [.env.local](file:///Users/alceupassos/angra/sostenes/.env.local) |
-| `[x]` | **8. Ativação Diária do Candidato** | Formulário 1x/dia com Nome, Email, WhatsApp, Número, Cargo, UF e Território. | [candidato-push.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/candidato-push.ts), [route.ts](file:///Users/alceupassos/angra/sostenes/app/api/candidato/perfil/route.ts), [ativacao-candidato.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/ativacao-candidato.tsx) |
-| `[x]` | **9. Push de Resultados ao Vivo** | Disparo de notificações WebPush + WhatsApp sempre que a apuração atualizar a posição. | [candidato-push.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/candidato-push.ts) |
-| `[x]` | **10. Validação TypeScript** | Checagem compilada sem nenhum erro (`tsc --noEmit` exit code 0). | — |
-| `[x]` | **11. Disclaimer TSE & Uso Interno** | Aviso legal atualizado: uso restrito interno de partidos políticos + conformidade com resoluções do TSE sobre IA (Res. 23.610/2019 e 23.755/2026). | [legal-text.ts](file:///Users/alceupassos/angra/sostenes/lib/legal-text.ts), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
-| `[x]` | **12. Mapa do Brasil Colorido & Hover Clicado** | Mapa SVG do Brasil colorido com paleta viva por regiões, efeito luminoso `:hover` e `.on` idênticos ao clique, seleção imediata de estado ao clicar. | [brazil-map.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/brazil-map.tsx) |
-| `[x]` | **13. Domínio Espelho politica.angra.io** | Configurado Nginx com proxy_pass porta 3080 e certificado SSL HTTPS emitido via Certbot no servidor `169.58.71.28`. | `/etc/nginx/sites-available/politica.angra.io` |
-| `[x]` | **14. Menu de Escolha de Partido & Cores** | Seletor rápido de partidos no Header e modal de destaque, com cores oficiais de cada agremiação (`COR_PARTIDO`) refletidas nos candidatos. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
-| `[x]` | **15. Mini Mapa de Andamento por Cargo & UF** | Componente interativo com seletor de cargo (Presidente, Governador, Senado, Dep. Federal, Dep. Estadual), % de urnas apuradas por estado, escala de calor e clique para troca rápida de UF. | [mini-mapa-pleito.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/mini-mapa-pleito.tsx), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
-| `[x]` | **16. Deploy em Produção** | Sincronização e publicação no servidor `169.58.71.28` (`/opt/pl`), build verificado e recarga do PM2 `pl`. | — |
-| `[x]` | **17. Scroll Vertical Livre & Todos Candidatos** | Removido corte `.slice(0, 18)`, exibindo 100% dos candidatos de todos os estados (SP, PI, RJ, etc.), scroll vertical suave por mouse/touch/teclado (setas cima/baixo), busca rápida e remoção de barra duplicada de urnas apuradas. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css) |
-| `[x]` | **18. Redesign do Mini Mapa & Mobile** | Novo design glassmorphism do Andamento do Pleito com filtro por Região (Todas, Sudeste, Sul, Nordeste, Norte, Centro-Oeste), visualização detalhada com líderes, micro-barras de progresso, botão de fechar, proteção contra bloqueio por widgets e responsividade mobile touch-friendly completa. | [mini-mapa-pleito.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/mini-mapa-pleito.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
-| `[x]` | **19. Alinhamento de % dos Candidatos, Fotos & Municípios** | Alinhamento simétrico da altura dos cards na Vitrine (slots de % uniformes), correção da extração do SQ oficial nas fotos do TSE (eliminado falso match com ano), rotas dedicadas para Presidente (`6257/br`) e estados (`6259/${uf}`), fallback automático para foto remota, busca ativa de municípios do TSE no seletor de cidades e correção de encoding ISO-8859-1 nas notícias do rodapé. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css), [noticias.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/noticias.ts) |
-| `[x]` | **20. Remoção de Barra 'Em Destaque', Ocultação de Bens e Correção Ticker/Municípios** | Removida completamente a barra inferior '★ EM DESTAQUE' (`PosicaoBar`), ocultado o valor de patrimônio/bens declarados (`R$ ... mi`) dos cards de candidatos, corrigida a acentuação e decodificação mojibake em todos os feeds RSS de notícias (UOL, Folha, G1, Estadão) e ativada busca instantânea e carregamento autônomo dos 224 municípios do Piauí e demais estados no `FiltroLocal`. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css), [noticias.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/noticias.ts) |
-| `[x]` | **21. Fim do Modo Claro & Degradê de Barrinhas Verticais Claras** | Eliminado 100% de qualquer flash ou tela em modo claro (#f5f4ee) na landing page, login e modais. Implementado degradê global de barrinhas verticais com iluminação clara sobre fundo escuro nos cockpits, telão e landing page. Removido logo/foto de Sóstenes de todos os lugares com nova marca institucional neutra. Modal de região configurado para iniciar fechado e em dark mode nativo. | [layout.tsx](file:///Users/alceupassos/angra/sostenes/app/layout.tsx), [globals.css](file:///Users/alceupassos/angra/sostenes/app/globals.css), [design-refresh.css](file:///Users/alceupassos/angra/sostenes/app/design-refresh.css), [refresh.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/refresh.css), [campaign-cockpit.tsx](file:///Users/alceupassos/angra/sostenes/components/campaign-cockpit.tsx), [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx) |
-| `[x]` | **22. Exibição de 100% dos Candidatos a Todos os Cargos & Cards Compactos** | Removido qualquer limite de 30 candidatos: inclusão da base completa oficial do TSE para todos os cargos (1.045 dep. federais SP, 1.346 dep. estaduais SP e todos das demais UFs). Desenvolvido novo layout de cards ultracompactos de alta densidade para deputados (grid denso `minmax(88px, 1fr)`, foto 2.5em, microtipografia e badges otimizados) e scroll vertical contínuo na apuração proporcional com busca instantânea. | [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx), [pleitos.css](file:///Users/alceupassos/angra/sostenes/app/telao/pleitos/pleitos.css), [tse-apuracao.ts](file:///Users/alceupassos/angra/sostenes/lib/telao/tse-apuracao.ts), [pleitos-sp.json](file:///Users/alceupassos/angra/sostenes/lib/telao/pleitos-sp.json) |
+| `[x]` | **1. Telão & Central Mobile** | Apuração ao vivo nacional e estadual (27 UFs) + Cálculo da Necessidade de Votos. | `components/telao/pleitos-wall.tsx`, `lib/telao/tse-apuracao.ts` |
+| `[x]` | **2. Casas Legislativas & Tags** | **Senado (54 vagas)**, **Câmara (513 vagas)** e **Assembleias (1059 vagas)** com tags oficiais `Eleito`, `Eleito por QP` e `Eleito por média`. | `lib/telao/tse-nacional.ts`, `lib/telao/tse-apuracao.ts` |
+| `[x]` | **3. Fotos Oficiais TSE** | Proxy inteligente `/api/telao/foto/[eleicao]/[uf]/[sq]` com cache em disco e script resiliente de download. | `scripts/baixar-fotos-tse.mjs`, `app/api/telao/foto/` |
+| `[x]` | **4. Notícias & Links** | Abertura de matérias em nova aba com segurança (`target="_blank"` e `rel="noreferrer"`). | `components/telao/pleitos-wall.tsx` |
+| `[x]` | **5. Documentação de Vars** | Modelo `.env.example` completo com todas as variáveis documentadas. | `.env.example` |
+| `[x]` | **6. Proteção de Credenciais** | Sanitização do repositório, exclusão de senhas e logs adicionados ao `.gitignore`. | `.gitignore` |
+| `[x]` | **7. Desativar Login Provisoriamente** | Acesso direto ao cockpit sem barreira de login para testes e dia da eleição. | `lib/auth.ts`, `.env.local` |
+| `[x]` | **8. Ativação Diária do Candidato** | Modal de onboarding do candidato com armazenamento de perfil e território. | `components/telao/ativacao-candidato.tsx`, `app/api/candidato/` |
+| `[x]` | **9. Push de Resultados ao Vivo** | Disparo de notificações WebPush e integração para alertas em tempo real. | `lib/telao/candidato-push.ts` |
+| `[x]` | **10. Validação TypeScript** | Rigorosa compilação estática (`tsc --noEmit`) sem nenhum erro de tipagem. | `tsconfig.json` |
+| `[x]` | **11. Disclaimer Legal & Resoluções TSE** | Adequação às Resoluções TSE nº 23.610/2019 e 23.755/2026 (rotulagem de IA e uso estritamente partidário). | `lib/legal-text.ts`, `components/telao/pleitos-wall.tsx` |
+| `[x]` | **12. Mapa Interativo do Brasil** | Mapa SVG colorido por macrorregiões com hover luminoso idêntico ao estado selecionado. | `components/telao/brazil-map.tsx` |
+| `[x]` | **13. Domínio Espelho politica.angra.io** | Nginx configurado com SSL Let's Encrypt para `politica.angra.io` na porta 3080. | `/etc/nginx/sites-available/politica.angra.io` |
+| `[x]` | **14. Menu de Partidos & Cores Oficiais** | Cores autênticas para cada legenda partidária (`COR_PARTIDO`) refletidas nos cards e cabeçalho. | `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/pleitos.css` |
+| `[x]` | **15. Mini Mapa de Andamento por Cargo** | Painel interativo com seletor de cargo (Presidente, Gov, Senador, Dep Fed, Dep Est) e calor por % de apuração. | `components/telao/mini-mapa-pleito.tsx` |
+| `[x]` | **16. Deploy Automatizado na VPS** | Deploy contínuo via SSH no servidor `169.58.71.28` (`/opt/pl`) com PM2 reload. | Processo PM2 `pl` |
+| `[x]` | **17. Scroll Vertical Livre & Busca** | Removidos limites de visualização com suporte a navegação por teclado (setas) e mouse. | `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/pleitos.css` |
+| `[x]` | **18. Redesign do Mini Mapa & Mobile** | Layout glassmorphism responsivo com abas por macrorregião e proteção contra sobreposição. | `components/telao/mini-mapa-pleito.tsx` |
+| `[x]` | **19. Alinhamento de Slots & Ticker RSS** | Altura fixa uniforme de 3.1rem para % na vitrine e correção de encoding ISO-8859-1 (mojibake). | `lib/telao/noticias.ts`, `app/telao/pleitos/pleitos.css` |
+| `[x]` | **20. Ocultação de Bens & Barra Destaque** | Removida barra '★ EM DESTAQUE', ocultada exibição de bens (`R$ ... mi`) e municípios autônomos. | `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/pleitos.css` |
+| `[x]` | **21. Fim do Modo Claro & Degradê de Barrinhas** | Eliminado 100% de qualquer flash claro (FOUC). Background escuro global com degradê de barrinhas verticais claras e remoção do logo/foto de Sóstenes em prol de marca neutra institucional. | `app/layout.tsx`, `app/globals.css`, `app/design-refresh.css`, `app/telao/pleitos/refresh.css` |
+| `[x]` | **22. Exibição de 100% dos Candidatos & Cards Compactos** | Removido limite de 30 candidatos: base oficial completa do TSE carregada (1.045 dep. federais SP, 1.346 dep. estaduais SP e todos das 27 UFs). Cards ultracompactos de alta densidade para deputados e scroll vertical contínuo na apuração proporcional com busca instantânea. | `lib/telao/pleitos-sp.json`, `components/telao/pleitos-wall.tsx`, `app/telao/pleitos/pleitos.css` |
 
 ---
 
-## 🚀 Implementações Realizadas Nesta Etapa
+## 🚀 Detalhamento de Tudo o que Foi Realizado
 
-### 1. Mapa do Brasil Colorido e Interativo
-- **Cores por Estado/Região**: Cada UF recebeu uma coloração temática harmoniosa (Norte em tons esmeralda/turquesa, Nordeste em tons quentes âmbar/laranja/coral, Centro-Oeste em tons dourados/oliva, Sudeste em azul e cobalto, Sul em tons violeta e púrpura).
-- **Hover Idêntico ao Clicado**: Ao passar o cursor, o estado recebe borda amarela brilhante (`stroke: #facc15`, `stroke-width: 3.5`), preenchimento branco com `drop-shadow` intenso e elevação, simulando instantaneamente o estado selecionado.
-- **Seleção Direta**: Ao clicar em qualquer estado, a UF é selecionada e a apuração carrega os dados locais.
+### 1. Base Oficial de 100% dos Candidatos (Sem Limite de 30)
+- **Problema anterior**: O arquivo estático `pleitos-sp.json` possuía apenas 30 deputados federais e 30 estaduais fatiados.
+- **Ação realizada**:
+  - Script automático conectado à API oficial do TSE (`resultados.tse.jus.br`) para baixar e estruturar **todos os candidatos oficiais**:
+    - **Presidente da República**: 12 candidatos
+    - **Governador (SP)**: 5 candidatos
+    - **Senador (SP)**: 13 candidatos
+    - **Deputado Federal (SP)**: 1.045 candidatos
+    - **Deputado Estadual (SP)**: 1.346 candidatos
+    - **Total só em SP**: 2.421 candidatos
+  - Para as demais UFs (`/api/telao/candidatos?uf=...`), a API continua consultando o TSE em tempo real para retornar a totalidade dos candidatos registrados.
+  - Eliminados todos os limites em código (`MAJORITARIO_MAX = 20` e `PROPORCIONAL_MAX = 20`).
 
-### 2. Cópia Ativa em `politica.angra.io`
-- Criada configuração dedicada em `/etc/nginx/sites-available/politica.angra.io` no servidor `169.58.71.28`.
-- Emitido certificado SSL Let's Encrypt para `politica.angra.io` com redirecionamento HTTPS automático.
-- Resposta `HTTP/2 200` validada para ambos os domínios: `https://pl.angra.io` e `https://politica.angra.io`.
+### 2. Cards Ultracompactos de Alta Densidade para Deputados
+- Como as eleições proporcionais possuem centenas ou milhares de concorrentes, o card padrão ocupava muito espaço na tela.
+- **Novo Design Compacto**:
+  - **Grid de alta densidade**: `repeat(auto-fill, minmax(88px, 1fr))` com gap reduzido para `0.35rem`.
+  - **Fotos otimizadas**: Reduzidas de 4.2em/5.4em para `2.5em` com cantos suaves (`border-radius: 6px`).
+  - **Microtipografia**: Nome em 2 linhas com corte elíptico suave, partido e número em badges nítidos de alta visibilidade.
+  - **Slot de Pesquisa / Votos**: Compactado para `2.1rem` para manter 100% dos cards simétricos e alinhados.
+  - **Modo Proporcional (Apuração ao Vivo)**: Grid de deputados agora possui scroll vertical independente e campo de busca instantânea (`Buscar deputado...`), permitindo localizar qualquer candidato pelo nome, número ou legenda.
 
-### 3. Menu de Partido e Cores Oficiais
-- **Seletor Rápido no Header**: Dropdown nativo estilizado no topo do telão para troca instantânea de partido de foco.
-- **Cor Oficial do Partido**: Substituída a paleta genérica para usar a cor oficial de cada legenda (`COR_PARTIDO`), como PL (`#1f5fbf`), PT (`#e2252b`), NOVO (`#f26522`), Republicanos (`#2a7de1`), PSD (`#f2a900`), etc.
-- Os nomes dos candidatos e indicadores passam a irradiar a cor do partido selecionado.
+### 3. Eliminação Total do Flash Claro (FOUC)
+- A landing page e os modais continham propriedades com `--nx-bg: #f5f4ee` e `color: #152e42` que causavam um clarão antes da inicialização do cockpit ou fechamento de modais.
+- Inserido CSS inline imediato no `<head>` de `app/layout.tsx` forçando `background-color: #070a12 !important; color-scheme: dark !important;`.
+- Todas as classes de login e landing foram unificadas no tema escuro aeroespacial.
+- O modal de boas-vindas do telão foi configurado com `mapaAberto = false`, abrindo direto na tela de apuração e mantendo o modal escuro caso o usuário clique para trocar de estado.
 
-### 4. Mini Mapa de Andamento do Pleito por Estado e Cargo
-- Criado o componente [mini-mapa-pleito.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/mini-mapa-pleito.tsx).
-- Alternância entre 5 cargos: **Presidente**, **Governador**, **Senado**, **Deputado Federal** e **Deputado Estadual**.
-- Escala de calor visual por % de urnas apuradas:
-  - `0%`: Cinza escuro (aguardando início)
-  - `1-50%`: Azul / ciano (apuração inicial)
-  - `51-85%`: Âmbar / amarelo dourado (apuração avançada)
-  - `86-99%`: Laranja (reta final)
-  - `100%`: Verde esmeralda (totalização concluída)
-- Tooltip com líder parcial e clique no badge do estado para navegar diretamente até ele.
+### 4. Textura de Degradê de Barrinhas Verticais Claras
+- Implementada a identidade visual de cockpit de centro de inteligência e sala de comando:
+  ```css
+  background-color: #070a12;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(2, 6, 23, 0.6) 100%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 2px, transparent 2px, transparent 32px),
+    radial-gradient(ellipse 100% 70% at 50% -10%, rgba(56, 189, 248, 0.12), transparent 70%);
+  background-attachment: fixed;
+  ```
+- Barrinhas verticais nítidas com espaçamento calibrado e iluminação clara projetada do topo para a base.
 
-### 5. Disclaimer Legal do TSE e Uso Interno Partidário
-- Atualizado em [legal-text.ts](file:///Users/alceupassos/angra/sostenes/lib/legal-text.ts) e no rodapé do telão:
-  - **Uso Estritamente Interno**: Indicação expressa de que o sistema é de uso confidencial e exclusivo de diretórios partidários, não aberto ao público em geral.
-  - **Norma do TSE sobre IA**: Menção explícita às Resoluções TSE nº 23.610/2019 e 23.755/2026, com rotulagem de mídias sintéticas para fins analíticos internos e fonte oficial de apuração do TSE.
-
----
-
-## 📋 Instruções do que Falta Fazer para Terminar no Gemini 3.8 Flash
-
-1. **Download Contínuo de Fotos Oficiais TSE**:
-   - Manter rodando o script de fotos para garantir 100% dos candidatos em cache local:
-   ```bash
-   node scripts/baixar-fotos-tse.mjs todas
-   ```
-2. **Monitoramento do Horário de Fechamento das Urnas (17h00)**:
-   - Às 17h00 (horário de Brasília), o telão transita automaticamente de contagem regressiva para polling contínuo da API do TSE.
-   - Testar chamadas em `/api/telao/apuracao?p=presidente&uf=br` e `/api/telao/nacional`.
-3. **Verificação de Novos Partidos**:
-   - Caso novas agremiações necessitem de cores personalizadas, registrar no mapa `COR_PARTIDO` em `components/telao/pleitos-wall.tsx`.
+### 5. Remoção do Logo de Sóstenes & Identidade Institucional
+- Eliminadas imagens personalizadas e substituídas pelo selo institucional neutro:
+  - **POLÍTICA · SALA DE COMANDO · 2026** com indicador tricolor verde, amarelo e azul.
 
 ---
 
-## 🛠️ Comandos Rápidos de Operação
+## 📌 O que Tem para Fazer (Próximos Passos e Operação)
 
-### Iniciar Localmente:
-```bash
-npm run dev
-```
-- **Central Mobile**: `http://localhost:3000/c`
-- **Telão de Pleitos TV**: `http://localhost:3000/telao/pleitos`
+### 1. Monitoramento da Virada de Urnas às 17h00 (Hoje)
+- **Comportamento Automático**:
+  - Antes das 17h00: O telão opera em modo **Vitrine / Pré-Apuração** com contagem regressiva e dados de pesquisas eleitorais.
+  - Às 17h00 em ponto (horário de Brasília): O sistema transita automaticamente para **Apuração Oficial ao Vivo**, iniciando o polling contínuo a cada 5 minutos nos feeds CDN do TSE.
+- **O que fazer**:
+  - Testar às 17h01 se as urnas começam a pontuar via `/api/telao/apuracao?p=presidente&uf=br`.
 
-### Produção:
-- **Telão TV**: `https://pl.angra.io/telao/pleitos` ou `https://politica.angra.io/telao/pleitos`
-- **Central Mobile**: `https://pl.angra.io/c` ou `https://politica.angra.io/c`
+### 2. Download Opcional de Fotos TSE em Massa para Cache 100% Offline
+- O proxy `/api/telao/foto` já faz o download sob demanda (on-demand) e salva no disco na primeira vez que qualquer candidato é exibido.
+- Se desejar pré-carregar 100% das fotos de todas as UFs para que fiquem salvas no servidor sem depender de requisição externa ao TSE:
+  ```bash
+  # Na VPS ou localmente:
+  node scripts/baixar-fotos-tse.mjs todas
+  ```
+
+### 3. Acompanhamento de Novas Legendas Partidárias
+- As principais agremiações (PL, PT, UNIÃO, PP, PSD, MDB, REPUBLICANOS, NOVO, PSDB, PDT, PSB, PODEMOS, PSOL, etc.) já possuem cores oficiais cadastradas. Caso surja alguma legenda nova sem cor definida, ela herdará a cor de fallback e poderá ter sua cor hex adicionada em `COR_PARTIDO` em [pleitos-wall.tsx](file:///Users/alceupassos/angra/sostenes/components/telao/pleitos-wall.tsx).
+
+---
+
+## 🌐 Informações de Infraestrutura & Produção
+
+- **Servidor VPS**: `169.58.71.28` (Ubuntu / Nginx / PM2 / Node.js)
+- **Diretório da Aplicação**: `/opt/pl`
+- **Processo PM2**: `pl` (Porta 3080)
+- **Domínios Oficiais**:
+  - **Principal**: [https://pl.angra.io](https://pl.angra.io)
+  - **Espelho**: [https://politica.angra.io](https://politica.angra.io)
+- **Rotas Rápidas**:
+  - **Telão de Pleitos 2026**: [https://pl.angra.io/telao/pleitos](https://pl.angra.io/telao/pleitos)
+  - **Central Mobile de Apuração**: [https://pl.angra.io/c](https://pl.angra.io/c)
+  - **Cockpit Estratégico de Campanha**: [https://pl.angra.io/](https://pl.angra.io/)
+- **Repositório Git**: Branch `candidato-deploy` sincronizada com `origin`.
